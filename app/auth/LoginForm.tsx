@@ -3,22 +3,24 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { PuffLoader } from "react-spinners";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PuffLoader } from "react-spinners";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -26,11 +28,11 @@ export default function LoginForm() {
     e.preventDefault();
 
     if (!email || !password) {
-      setError("Please enter both email and password");
+      setFormError("Please enter both email and password");
       return;
     }
 
-    setError("");
+    setFormError("");
     setIsLoading(true);
 
     try {
@@ -41,7 +43,8 @@ export default function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Invalid credentials");
+        setFormError("Invalid credentials");
+        setIsLoading(false);
         return;
       }
 
@@ -73,73 +76,88 @@ export default function LoginForm() {
             router.push("/candidate_dashboard");
             break;
           default:
-            setError("Invalid user role");
+            setFormError("Invalid user role");
             break;
         }
       } catch (sessionError) {
         console.error("Session error:", sessionError);
-        setError("Failed to get user session. Please try again.");
+        setFormError("Failed to get user session. Please try again.");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setError("An error occurred during login");
+      setFormError("An error occurred during login");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+    <Card className="w-full max-w-md shadow-lg animate-fadeIn">
+      <CardHeader className="space-y-4">
+        <div className="flex justify-center mb-2">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <img src="/wup-logo.png" className="w-16 h-16 text-primary" />
+          </div>
+        </div>
+        <CardTitle className="text-2xl font-bold text-center">
+          WU-P EVS
+        </CardTitle>
+        <CardDescription className="text-center">
+          Please Sign in your account to continue
+        </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="text-red-500 text-sm bg-red-50 p-3 rounded-md border border-red-200">
-              {error}
-            </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
           )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
               disabled={isLoading}
-              className="bg-white"
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Button
+                variant="link"
+                className="p-0 h-auto text-xs"
+                type="button"
+              >
+                Forgot password?
+              </Button>
+            </div>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
               disabled={isLoading}
-              className="bg-white"
             />
           </div>
-        </CardContent>
-        <CardFooter>
-          {isLoading ? (
-            <div className="w-full flex flex-col items-center justify-center space-y-2">
-              <PuffLoader color="#002aff" size={40} />
-              <span className="text-gray-600">Logging in...</span>
-            </div>
-          ) : (
-            <Button type="submit" className="w-full">
-              Log in
-            </Button>
-          )}
-        </CardFooter>
-      </form>
+
+          <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <PuffLoader color="#ffffff" size={24} />
+                <span>Signing in...</span>
+              </div>
+            ) : (
+              "Sign in"
+            )}
+          </Button>
+        </form>
+      </CardContent>
     </Card>
   );
 }
