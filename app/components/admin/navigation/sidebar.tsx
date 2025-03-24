@@ -74,7 +74,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       } lg:block fixed inset-y-0 left-0 z-50 w-64 bg-white border-r lg:relative`}
     >
       <div className="flex items-center justify-between p-4">
-        <h1 className="text-2xl font-bold">WUP EVS</h1>
+        {/* Logo Section */}
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/wup-logo.png" className="h-14 w-auto" />
+          <span className="text-xl font-bold tracking-tight">WUP EVS</span>
+        </Link>
         <Button
           variant="ghost"
           size="icon"

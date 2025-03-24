@@ -6,6 +6,7 @@ import { Sidebar } from "@/app/components/admin/navigation/sidebar";
 import { Header } from "@/app/components/admin/navigation/header";
 import { useIdleTimeout } from "@/app/admin_dashboard/hooks/useIdleTimeout";
 import { useSession } from "next-auth/react";
+import { Footer } from "../components/admin/navigation/footer";
 
 export default function DashboardLayout({
   children,
@@ -41,6 +42,7 @@ export default function DashboardLayout({
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header onSidebarToggle={toggleSidebar} />
         <main className="flex-1 overflow-y-auto p-4">{children}</main>
+        <Footer />
       </div>
     </div>
   );
