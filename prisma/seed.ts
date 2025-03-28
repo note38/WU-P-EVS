@@ -106,32 +106,46 @@ async function main() {
       ],
     });
 
-    // Create voters
+    // Create voters with new model fields
+    const voterPassword = await bcrypt.hash("voter123", 10);
     const voters = await prisma.voter.createMany({
       data: [
         {
           voterId: "V-001",
-          name: "John Doe",
+          firstName: "John",
+          lastName: "Doe",
+          middleName: "Michael", // Note the typo in 'midlleName'
           email: "john.doe@example.com",
+          hashpassword: voterPassword,
           electionId: election.id,
           departmentId: csDepartment.id,
           status: "REGISTERED",
+          avatar: "https://example.com/avatar/john-doe.jpg", // Added avatar
+          pollingStation: "Main Hall", // Optional polling station
+          credentialsSent: false,
         },
         {
           voterId: "V-002",
-          name: "Jane Smith",
+          firstName: "Jane",
+          lastName: "Smith",
+          middleName: "Elizabeth",
           email: "jane.smith@example.com",
+          hashpassword: voterPassword,
           electionId: election.id,
           departmentId: csDepartment.id,
           status: "VOTED",
+          avatar: "https://example.com/avatar/jane-smith.jpg", // Added avatar
+          pollingStation: "Science Building", // Optional polling station
+          credentialsSent: true,
         },
       ],
     });
 
-    // Create votes
-    const candidates = await prisma.candidate.findMany();
+    // Fetch voters to get their IDs for creating votes
     const votersList = await prisma.voter.findMany();
+    const candidates = await prisma.candidate.findMany();
 
+    // Create votes
     await prisma.vote.createMany({
       data: [
         {
@@ -153,6 +167,10 @@ async function main() {
     console.log("Admin credentials:", {
       username: "admin",
       password: "admin123",
+    });
+    console.log("Voter credentials:", {
+      username: "john.doe@example.com or jane.smith@example.com",
+      password: "voter123",
     });
   } catch (error) {
     console.error("Error seeding database:", error);

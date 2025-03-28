@@ -91,8 +91,12 @@ model Candidate {
 model Voter {
   id              Int         @id @default(autoincrement())
   voterId         String      @unique
-  name            String
+  avatar          String
+  firstName       String
+  lastName        String
+  middleName      String
   email           String      @unique
+  hashpassword    String
   election        Election    @relation(fields: [electionId], references: [id])
   electionId      Int
   department      Department  @relation(fields: [departmentId], references: [id])
@@ -103,7 +107,7 @@ model Voter {
   votes           Vote[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-
+  
   @@index([electionId, departmentId])
 }
 

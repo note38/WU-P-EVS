@@ -24,9 +24,13 @@ export default async function VotersPage() {
     select: {
       id: true,
       voterId: true,
-      name: true,
+      firstName: true,
+      lastName: true,
+      middleName: true,
       email: true,
       status: true,
+      avatar: true,
+      credentialsSent: true,
       createdAt: true,
       election: {
         select: {
