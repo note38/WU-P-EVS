@@ -6,6 +6,10 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
+    if (path === "/api/voters") {
+      return NextResponse.next();
+    }
+
     // If there's no token, redirect to root path
     if (!token) {
       return NextResponse.redirect(new URL("/", req.url));

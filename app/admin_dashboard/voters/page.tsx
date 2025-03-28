@@ -8,7 +8,7 @@ import {
   FilterIcon,
   MoreHorizontal,
 } from "lucide-react";
-import { VoterCards } from "@/app/components/admin/voter-detail/voter-card";
+import VoterCards from "@/app/components/admin/voter-detail/voter-card";
 import { VoterStats } from "@/app/components/admin/voter-detail/voter-stats";
 import { VoterActions } from "@/app/components/admin/voter-detail/voter-actions";
 import {
@@ -17,8 +17,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { prisma } from "@/lib/db";
 
-export default function VotersPage() {
+export default async function VotersPage() {
+  const voters = await prisma.voter.findMany({
+    select: {
+      id: true,
+      voterId: true,
+      name: true,
+      email: true,
+      status: true,
+      createdAt: true,
+      election: {
+        select: {
+          name: true,
+        },
+      },
+      department: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -109,8 +134,6 @@ export default function VotersPage() {
         </div>
       </div>
 
-      <VoterStats />
-
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>All Voters</CardTitle>
@@ -119,7 +142,7 @@ export default function VotersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <VoterCards />
+          <VoterCards voters={voters} />
         </CardContent>
       </Card>
     </div>
