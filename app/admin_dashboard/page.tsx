@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Vote, Users, FileText, LucideIcon } from "lucide-react";
+import {
+  StatCardSkeleton,
+  OverviewSkeleton,
+  RecentActivitySkeleton,
+  TabContentSkeleton,
+} from "@/app/components/ui/skeleton";
 
 interface StatCardProps {
   title: string;
@@ -41,8 +47,8 @@ const StatCard = ({
               trend === "increase"
                 ? "text-green-500"
                 : trend === "decrease"
-                ? "text-red-500"
-                : "text-gray-500"
+                  ? "text-red-500"
+                  : "text-gray-500"
             }`}
           >
             {trendValue}
@@ -71,89 +77,105 @@ export default function DashboardPage() {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Elections"
-              value="1"
-              description="Active election"
-              icon={Vote}
-              trend="upcoming"
-              trendValue="May 15, 2025"
-            />
-            <StatCard
-              title="Candidates"
-              value="51"
-              description="Across 12 positions"
-              icon={Users}
-              trend="increase"
-              trendValue="3 new this week"
-            />
-            <StatCard
-              title="Partylist"
-              value="4"
-              description="Political parties"
-              icon={FileText}
-              trend="neutral"
-              trendValue="No change"
-            />
-            <StatCard
-              title="Voters"
-              value="828"
-              description="Registered voters"
-              icon={Users}
-              trend="increase"
-              trendValue="12% from last election"
-            />
-          </div>
+          <Suspense fallback={<StatCardSkeleton />}>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Elections"
+                value="1"
+                description="Active election"
+                icon={Vote}
+                trend="upcoming"
+                trendValue="May 15, 2025"
+              />
+              <StatCard
+                title="Candidates"
+                value="51"
+                description="Across 12 positions"
+                icon={Users}
+                trend="increase"
+                trendValue="3 new this week"
+              />
+              <StatCard
+                title="Partylist"
+                value="4"
+                description="Political parties"
+                icon={FileText}
+                trend="neutral"
+                trendValue="No change"
+              />
+              <StatCard
+                title="Voters"
+                value="828"
+                description="Registered voters"
+                icon={Users}
+                trend="increase"
+                trendValue="12% from last election"
+              />
+            </div>
+          </Suspense>
 
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-4">
             <Card className="col-span-1 lg:col-span-3">
               <CardHeader>
                 <CardTitle>Overview</CardTitle>
               </CardHeader>
-              <CardContent>content</CardContent>
+              <CardContent>
+                <Suspense fallback={<OverviewSkeleton />}>
+                  <div>Dashboard overview content</div>
+                </Suspense>
+              </CardContent>
             </Card>
 
             <Card className="col-span-1">
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
-              <CardContent>content</CardContent>
+              <CardContent>
+                <Suspense fallback={<RecentActivitySkeleton />}>
+                  <div>Recent activity content</div>
+                </Suspense>
+              </CardContent>
             </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="candidates">
-          <Card>
-            <CardHeader>
-              <CardTitle>Candidates Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Candidate management content will appear here.</p>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<TabContentSkeleton />}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Candidates Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Candidate management content will appear here.</p>
+              </CardContent>
+            </Card>
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="voters">
-          <Card>
-            <CardHeader>
-              <CardTitle>Voters Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Voter management content will appear here.</p>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<TabContentSkeleton />}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Voters Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Voter management content will appear here.</p>
+              </CardContent>
+            </Card>
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="timeline">
-          <Card>
-            <CardHeader>
-              <CardTitle>Election Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Timeline content will appear here.</p>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<TabContentSkeleton />}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Election Timeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Timeline content will appear here.</p>
+              </CardContent>
+            </Card>
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>
