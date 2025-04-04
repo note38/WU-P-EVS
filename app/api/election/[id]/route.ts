@@ -1,20 +1,21 @@
-import { notFound } from "next/navigation";
+// app/api/elections/get-election/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import ElectionDetailClient from "./election-detail-client";
 
-// This is a server component that fetches data
-export default async function ElectionDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const electionId = Number(params.id);
-
-  if (isNaN(electionId)) {
-    notFound();
-  }
-
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Election ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(id);
+
     // Fetch the election with related counts
     const election = await prisma.election.findUnique({
       where: {
@@ -47,7 +48,10 @@ export default async function ElectionDetailPage({
     });
 
     if (!election) {
-      notFound();
+      return NextResponse.json(
+        { error: "Election not found" },
+        { status: 404 }
+      );
     }
 
     // Calculate totals
@@ -60,16 +64,13 @@ export default async function ElectionDetailPage({
     const castVotesCount = election._count.votes;
     const uncastVotesCount = votersCount - castVotesCount;
 
+    // Format the response
     const formattedElection = {
       id: election.id,
       name: election.name,
       description: election.description,
       startDate: election.startDate.toISOString(),
       endDate: election.endDate.toISOString(),
-      startTime: election.startDate.toLocaleTimeString(),
-      endTime: election.endDate.toLocaleTimeString(),
-      fullStartDate: election.startDate.toISOString(), // Convert to string instead of passing Date object
-      fullEndDate: election.endDate.toISOString(), // Convert to string instead of passing Date object
       status: election.status,
       candidatesCount,
       votersCount,
@@ -77,19 +78,12 @@ export default async function ElectionDetailPage({
       uncastVotesCount,
     };
 
-    // Pass the data to the client component
-    return <ElectionDetailClient election={formattedElection} />;
+    return NextResponse.json(formattedElection);
   } catch (error) {
     console.error("Error fetching election:", error);
-    return (
-      <div className="p-8 text-center">
-        <h1 className="text-2xl font-bold text-red-500">
-          Error loading election
-        </h1>
-        <p className="mt-2">
-          There was a problem fetching the election details.
-        </p>
-      </div>
+    return NextResponse.json(
+      { error: "Failed to fetch election" },
+      { status: 500 }
     );
   }
 }

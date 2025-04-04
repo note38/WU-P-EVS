@@ -50,7 +50,7 @@ export function CreateElectionForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button size="sm" className="w-full md:w-auto">
           <PlusIcon className="mr-2 h-4 w-4" />
           Create Election
         </Button>

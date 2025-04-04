@@ -1,7 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UsersIcon, UserCheckIcon, UserXIcon, MailIcon } from "lucide-react";
+import { unstable_cache } from "next/cache";
+import {
+  VoterDataService,
+  StatsResult,
+  AccelerateResult,
+} from "@/lib/data/VoterDataService";
 
-export function VoterStats() {
+// Cached stats fetch with Accelerate
+const getCachedStats = unstable_cache(
+  async (): Promise<AccelerateResult<StatsResult>> => {
+    return VoterDataService.getStats();
+  },
+  ["voter-stats-accelerated"],
+  { tags: ["stats"], revalidate: 60 }
+);
+
+export async function VoterStatsWithAccelerate() {
+  const result = await getCachedStats();
+  const stats = result.data;
+
+  // Calculate percentages
+  const votedPercentage =
+    stats.totalRegistered > 0
+      ? ((stats.votedCount / stats.totalRegistered) * 100).toFixed(1)
+      : "0.0";
+
+  const notVotedPercentage =
+    stats.totalRegistered > 0
+      ? ((stats.notVotedCount / stats.totalRegistered) * 100).toFixed(1)
+      : "0.0";
+
+  const credentialsSentPercentage =
+    stats.totalRegistered > 0
+      ? ((stats.credentialsSentCount / stats.totalRegistered) * 100).toFixed(1)
+      : "0.0";
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -12,8 +46,12 @@ export function VoterStats() {
           <UsersIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">5,000</div>
-          <p className="text-xs text-muted-foreground">+120 from last week</p>
+          <div className="text-2xl font-bold">
+            {stats.totalRegistered.toLocaleString()}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            +{stats.newRegistrations} from last week
+          </p>
         </CardContent>
       </Card>
 
@@ -23,9 +61,11 @@ export function VoterStats() {
           <UserCheckIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">4,195</div>
+          <div className="text-2xl font-bold">
+            {stats.votedCount.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">
-            83.9% of registered voters
+            {votedPercentage}% of registered voters
           </p>
         </CardContent>
       </Card>
@@ -36,9 +76,11 @@ export function VoterStats() {
           <UserXIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">805</div>
+          <div className="text-2xl font-bold">
+            {stats.notVotedCount.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">
-            16.1% of registered voters
+            {notVotedPercentage}% of registered voters
           </p>
         </CardContent>
       </Card>
@@ -51,9 +93,11 @@ export function VoterStats() {
           <MailIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">4,850</div>
+          <div className="text-2xl font-bold">
+            {stats.credentialsSentCount.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground">
-            97% of registered voters
+            {credentialsSentPercentage}% of registered voters
           </p>
         </CardContent>
       </Card>
