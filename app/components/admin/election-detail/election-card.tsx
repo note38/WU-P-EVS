@@ -37,13 +37,13 @@ interface ElectionCardProps {
   election: {
     id: number;
     name: string;
+    startDate: string;
+    endDate: string;
     status: string;
     candidates: number;
     voters: number;
     castVotes: number;
     uncastVotes: number;
-    fullStartDate: string;
-    fullEndDate: string;
   };
 }
 
@@ -53,18 +53,6 @@ export function ElectionCard({ election }: ElectionCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<"start" | "pause">("start");
-
-  // Format date and time for display
-  const formatDateTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-  };
-
-  const startDateTime = formatDateTime(election.fullStartDate);
-  const endDateTime = formatDateTime(election.fullEndDate);
 
   const handleStatusChange = (action: "start" | "pause") => {
     setStatusAction(action);
@@ -100,12 +88,8 @@ export function ElectionCard({ election }: ElectionCardProps) {
             <div>
               <CardTitle>{election.name}</CardTitle>
               <CardDescription>
-                <div>
-                  Start: {startDateTime.date} {startDateTime.time}
-                </div>
-                <div>
-                  End: {endDateTime.date} {endDateTime.time}
-                </div>
+                {new Date(election.startDate).toLocaleDateString()} -{" "}
+                {new Date(election.endDate).toLocaleDateString()}
               </CardDescription>
             </div>
             <Badge
@@ -113,10 +97,10 @@ export function ElectionCard({ election }: ElectionCardProps) {
                 election.status === "active"
                   ? "bg-green-500 hover:bg-green-600"
                   : election.status === "scheduled"
-                    ? "bg-blue-500 hover:bg-blue-600"
-                    : election.status === "completed"
-                      ? "bg-gray-500 hover:bg-gray-600"
-                      : "bg-yellow-500 hover:bg-yellow-600"
+                  ? "bg-blue-500 hover:bg-blue-600"
+                  : election.status === "completed"
+                  ? "bg-gray-500 hover:bg-gray-600"
+                  : "bg-yellow-500 hover:bg-yellow-600"
               }
             >
               {election.status.charAt(0).toUpperCase() +
@@ -212,12 +196,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
       </Card>
 
       <EditElectionForm
-        election={{
-          id: election.id,
-          name: election.name,
-          startDate: election.fullStartDate,
-          endDate: election.fullEndDate,
-        }}
+        election={election}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
       />

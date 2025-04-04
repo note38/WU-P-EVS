@@ -24,17 +24,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AccelerateInfo } from "@prisma/extension-accelerate";
 
-type Voter = {
+interface Voter {
   id: number;
   voterId: string;
   firstName: string;
   lastName: string;
-  middleName: string;
+  middleName?: string;
   email: string;
   status: VoterStatus;
-  avatar: string;
+  avatar?: string;
   credentialsSent: boolean;
   createdAt: Date;
   election: {
@@ -43,34 +42,28 @@ type Voter = {
   department: {
     name: string;
   };
-  info?: AccelerateInfo;
-};
-
-interface VoterCardsProps {
-  voters: Voter[];
-  info?: AccelerateInfo | null;
 }
 
-export default function VoterCards({ voters, info }: VoterCardsProps) {
+export default function VoterList({ voters }: { voters: Voter[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
 
+  // Create full name
   const getFullName = (voter: Voter) => {
-    return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
-      .trim()
-      .replace(/\s+/g, " ");
+    return `${voter.firstName} ${voter.middleName || ""} ${voter.lastName}`.trim();
   };
 
+  // Filter voters based on search term
   const filteredVoters = voters.filter((voter) => {
     const fullName = getFullName(voter);
-    const searchLower = searchTerm.toLowerCase();
     return (
-      fullName.toLowerCase().includes(searchLower) ||
-      voter.email.toLowerCase().includes(searchLower) ||
-      voter.voterId.toLowerCase().includes(searchLower)
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voter.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voter.voterId.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
+  // Toggle selection of a single voter
   const toggleVoterSelection = (voterId: number) => {
     setSelectedVoters((prev) =>
       prev.includes(voterId)
@@ -79,6 +72,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
     );
   };
 
+  // Toggle select all voters
   const toggleSelectAll = () => {
     setSelectedVoters(
       selectedVoters.length === filteredVoters.length
@@ -87,13 +81,14 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
     );
   };
 
+  // Placeholder for bulk email handler
   const handleBulkEmail = () => {
+    // Implement bulk email functionality
     console.log("Sending emails to:", selectedVoters);
-    // Implement actual email logic
   };
 
   return (
-    <div className="space-y-4">
+    <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
         <Input
           placeholder="Search voters (name, email, voter ID)..."
@@ -101,7 +96,6 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-
         {selectedVoters.length > 0 && (
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-sm text-muted-foreground">
@@ -129,7 +123,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
           id="select-all"
         />
         <label htmlFor="select-all" className="text-sm font-medium">
-          Select All ({filteredVoters.length} voters)
+          Select All
         </label>
       </div>
 
@@ -142,36 +136,34 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
           {filteredVoters.map((voter) => {
             const fullName = getFullName(voter);
             return (
-              <Card key={voter.id} className="overflow-hidden group">
+              <Card key={voter.id} className="overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between p-4 pb-0">
                   <div className="flex items-center space-x-4">
                     <Checkbox
                       checked={selectedVoters.includes(voter.id)}
                       onCheckedChange={() => toggleVoterSelection(voter.id)}
                     />
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={voter.avatar} alt={fullName} />
+                    <Avatar>
+                      {voter.avatar ? (
+                        <AvatarImage src={voter.avatar} alt={fullName} />
+                      ) : null}
                       <AvatarFallback>
                         {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="space-y-1">
-                      <div className="font-medium line-clamp-1">{fullName}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-1">
+                    <div>
+                      <div className="font-medium">{fullName}</div>
+                      <div className="text-sm text-muted-foreground">
                         {voter.email}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        ID: {voter.voterId}
+                        Voter ID: {voter.voterId}
                       </div>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -199,35 +191,29 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       <Badge
                         variant={
                           voter.status === VoterStatus.REGISTERED
-                            ? "secondary"
-                            : voter.status === VoterStatus.VOTED
-                              ? "default"
-                              : "destructive"
+                            ? "outline"
+                            : "default"
                         }
                       >
-                        {voter.status.toLowerCase()}
+                        {voter.status}
                       </Badge>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(voter.createdAt).toLocaleDateString()}
+                        Registered: {voter.createdAt.toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="text-sm line-clamp-1">
+                    <div className="text-sm">
                       <span className="font-medium">Election:</span>{" "}
                       {voter.election.name}
                     </div>
-                    <div className="text-sm line-clamp-1">
+                    <div className="text-sm">
                       <span className="font-medium">Department:</span>{" "}
                       {voter.department.name}
                     </div>
-                    <div className="text-sm">
-                      {voter.credentialsSent ? (
-                        <span className="text-green-600">Credentials sent</span>
-                      ) : (
-                        <span className="text-orange-600">
-                          Pending credentials
-                        </span>
-                      )}
-                    </div>
+                    {voter.credentialsSent && (
+                      <div className="text-sm text-green-600">
+                        Credentials Sent
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

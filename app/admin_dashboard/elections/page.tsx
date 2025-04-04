@@ -1,162 +1,118 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusIcon } from "lucide-react";
-import { ElectionCard } from "@/app/components/admin/election-detail/election-card";
-import { ElectionStats } from "@/app/components/admin/election-detail/election-stats";
-import { prisma } from "@/lib/db";
+"use client";
+
+import { useState } from "react";
 import { CreateElectionForm } from "@/app/components/admin/election-detail/create-election-form";
-import { Suspense } from "react";
-import {
-  ElectionCardsSkeleton,
-  ElectionStatsSkeleton,
-} from "@/app/components/ui/skeleton";
-import { unstable_cache } from "next/cache";
+import { ElectionCard } from "@/app/components/admin/election-detail/election-card";
+import { SearchInput } from "@/app/components/admin/search-input";
 
-// Cached election data fetch
-const getElectionsData = unstable_cache(
-  async () => {
-    return prisma.election.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        startDate: true,
-        endDate: true,
-        status: true,
-        createdAt: true,
-        _count: {
-          select: {
-            positions: true,
-            voters: true,
-            votes: true,
-          },
-        },
-        positions: {
-          select: {
-            _count: {
-              select: {
-                candidates: true,
-              },
-            },
-          },
-        },
-        createdBy: {
-          select: {
-            username: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      // Enable caching for this query
-      cacheStrategy: {
-        ttl: 60, // Cache for 60 seconds
-        swr: 120, // Stale-while-revalidate for 120 seconds
-      },
-    });
+// Sample elections data
+const elections = [
+  {
+    id: 1,
+    name: "Presidential Election 2023",
+    startDate: "2023-06-15T08:00:00",
+    endDate: "2023-06-16T20:00:00",
+    status: "active",
+    candidates: 4,
+    voters: 5000,
+    castVotes: 4195,
+    uncastVotes: 805,
   },
-  ["elections-data"],
-  { tags: ["elections"], revalidate: 60 }
-);
-
-// Async Election List Component
-async function ElectionList() {
-  const elections = await getElectionsData();
-
-  const formattedElections = elections.map((election) => {
-    // Calculate total candidates by summing up the candidates in each position
-    const candidates = election.positions.reduce(
-      (total, position) => total + position._count.candidates,
-      0
-    );
-
-    const totalVoters = election._count.voters;
-    const castVotes = election._count.votes;
-    const uncastVotes = totalVoters - castVotes;
-
-    // Convert string dates to Date objects if necessary
-    const startDateObj = new Date(election.startDate);
-    const endDateObj = new Date(election.endDate);
-
-    // Extract date and time components
-    const startDate = startDateObj.toISOString().split("T")[0];
-    const startTime = startDateObj.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    const endDate = endDateObj.toISOString().split("T")[0];
-    const endTime = endDateObj.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    return {
-      id: election.id,
-      name: election.name,
-      description: election.description,
-      startDate: startDate,
-      startTime: startTime,
-      endDate: endDate,
-      endTime: endTime,
-      fullStartDate: startDateObj.toISOString(),
-      fullEndDate: endDateObj.toISOString(),
-      status: election.status.toLowerCase(),
-      candidates,
-      voters: totalVoters,
-      castVotes,
-      uncastVotes,
-      createdBy: election.createdBy?.username || "System",
-    };
-  });
-
-  return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-      {formattedElections.map((election) => (
-        <ElectionCard key={election.id} election={election} />
-      ))}
-    </div>
-  );
-}
-
-// Page Config
-export const dynamic = "force-dynamic";
-export const revalidate = 60;
+  {
+    id: 2,
+    name: "City Council Election",
+    startDate: "2023-07-10T09:00:00",
+    endDate: "2023-07-11T18:00:00",
+    status: "scheduled",
+    candidates: 12,
+    voters: 3500,
+    castVotes: 0,
+    uncastVotes: 3500,
+  },
+  {
+    id: 3,
+    name: "Student Body Election",
+    startDate: "2023-05-01T10:00:00",
+    endDate: "2023-05-02T16:00:00",
+    status: "completed",
+    candidates: 8,
+    voters: 1200,
+    castVotes: 918,
+    uncastVotes: 282,
+  },
+  {
+    id: 4,
+    name: "Board of Directors Election",
+    startDate: "2023-08-20T08:00:00",
+    endDate: "2023-08-25T17:00:00",
+    status: "draft",
+    candidates: 6,
+    voters: 50,
+    castVotes: 0,
+    uncastVotes: 50,
+  },
+  {
+    id: 5,
+    name: "Neighborhood Association",
+    startDate: "2023-09-05T09:00:00",
+    endDate: "2023-09-06T17:00:00",
+    status: "scheduled",
+    candidates: 5,
+    voters: 250,
+    castVotes: 0,
+    uncastVotes: 250,
+  },
+  {
+    id: 6,
+    name: "School Board Election",
+    startDate: "2023-04-10T08:00:00",
+    endDate: "2023-04-11T20:00:00",
+    status: "completed",
+    candidates: 7,
+    voters: 1800,
+    castVotes: 1350,
+    uncastVotes: 450,
+  },
+];
 
 export default function ElectionsPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredElections = elections.filter(
+    (election) =>
+      election.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      election.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Elections Management</h1>
-
-        {/* Use the CreateElectionForm component */}
-        <div className="hidden md:block">
-          <CreateElectionForm />
-        </div>
-
-        {/* Mobile button - hidden on desktop */}
-        <div className="block md:hidden w-full">
-          <CreateElectionForm />
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-3xl font-bold text-primary">
+          Elections Management
+        </h1>
+        <CreateElectionForm />
       </div>
 
-      <Suspense fallback={<ElectionStatsSkeleton />}>
-        <ElectionStats />
-      </Suspense>
+      <SearchInput
+        placeholder="Search elections by name or status..."
+        value={searchTerm}
+        onChange={setSearchTerm}
+        className="max-w-md"
+      />
 
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle>All Elections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Suspense fallback={<ElectionCardsSkeleton />}>
-            <ElectionList />
-          </Suspense>
-        </CardContent>
-      </Card>
+      {filteredElections.length === 0 ? (
+        <div className="text-center py-10">
+          <p className="text-lg text-gray-500">
+            No elections found matching "{searchTerm}"
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredElections.map((election) => (
+            <ElectionCard key={election.id} election={election} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
