@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, X } from "lucide-react";
 
 export function CreateElectionForm() {
   const [open, setOpen] = useState(false);
@@ -25,11 +25,30 @@ export function CreateElectionForm() {
     startTime: "",
     endDate: "",
     endTime: "",
+    partyList: [] as string[],
   });
+  const [newParty, setNewParty] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddParty = () => {
+    if (newParty.trim() !== "") {
+      setFormData((prev) => ({
+        ...prev,
+        partyList: [...prev.partyList, newParty.trim()],
+      }));
+      setNewParty("");
+    }
+  };
+
+  const handleRemoveParty = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      partyList: prev.partyList.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,6 +63,7 @@ export function CreateElectionForm() {
       startTime: "",
       endDate: "",
       endTime: "",
+      partyList: [],
     });
   };
 
@@ -132,6 +152,57 @@ export function CreateElectionForm() {
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            {/* Party List Section with Scrollable Container */}
+            <div className="grid grid-cols-4 items-start gap-4 mt-4">
+              <Label className="col-span-4 font-medium text-lg">
+                Party List
+              </Label>
+              <div className="col-span-4">
+                <div className="max-h-40 overflow-y-auto mb-2 border rounded-md">
+                  <div className="p-2 space-y-2">
+                    {formData.partyList.length > 0 ? (
+                      formData.partyList.map((party, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+                            {party}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveParty(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500 text-sm py-2 px-3">
+                        No parties added yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Add partylist"
+                    value={newParty}
+                    onChange={(e) => setNewParty(e.target.value)}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddParty();
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={handleAddParty}>
+                    Add
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

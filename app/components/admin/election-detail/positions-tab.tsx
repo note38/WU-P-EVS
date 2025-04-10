@@ -32,28 +32,24 @@ const positions = [
     name: "President",
     maxCandidates: 1,
     candidates: 4,
-    description: "Head of state and government",
   },
   {
     id: 2,
     name: "Vice President",
     maxCandidates: 1,
     candidates: 3,
-    description: "Second highest executive officer",
   },
   {
     id: 3,
     name: "Secretary",
     maxCandidates: 1,
     candidates: 2,
-    description: "Administrative officer",
   },
   {
     id: 4,
     name: "Treasurer",
     maxCandidates: 1,
     candidates: 2,
-    description: "Financial officer",
   },
 ];
 
@@ -67,13 +63,10 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
   const [newPosition, setNewPosition] = useState({
     name: "",
     maxCandidates: 1,
-    description: "",
   });
 
-  const filteredPositions = positions.filter(
-    (position) =>
-      position.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      position.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPositions = positions.filter((position) =>
+    position.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddPosition = () => {
@@ -84,7 +77,6 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
     setNewPosition({
       name: "",
       maxCandidates: 1,
-      description: "",
     });
   };
 
@@ -141,23 +133,6 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
                   }
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="position-description" className="col-span-4">
-                  Description
-                </Label>
-                <Input
-                  id="position-description"
-                  placeholder="Brief description of the position"
-                  className="col-span-4"
-                  value={newPosition.description}
-                  onChange={(e) =>
-                    setNewPosition({
-                      ...newPosition,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button
@@ -185,7 +160,6 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Position</TableHead>
-                <TableHead>Description</TableHead>
                 <TableHead>Max Candidates</TableHead>
                 <TableHead>Current Candidates</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -195,7 +169,6 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
               {filteredPositions.map((position) => (
                 <TableRow key={position.id}>
                   <TableCell className="font-medium">{position.name}</TableCell>
-                  <TableCell>{position.description}</TableCell>
                   <TableCell>{position.maxCandidates}</TableCell>
                   <TableCell>{position.candidates}</TableCell>
                   <TableCell className="text-right">

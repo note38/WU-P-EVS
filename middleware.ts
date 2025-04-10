@@ -51,6 +51,7 @@ export const config = {
     "/admin_dashboard/:path*",
     "/user_dashboard/:path*",
     "/api/admin/:path*",
+    "/api/emails/:path*",
     "/api/user/:path*",
   ],
 };

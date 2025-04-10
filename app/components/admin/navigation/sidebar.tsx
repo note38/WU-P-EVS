@@ -25,17 +25,17 @@ const sidebarItems = [
   { name: "Dashboard", icon: LayoutDashboardIcon, href: "/admin_dashboard" },
   { name: "Elections", icon: Vote, href: "/admin_dashboard/elections" },
   { name: "Voters", icon: User, href: "/admin_dashboard/voters" },
-  { name: "Analytics", icon: BarChart, href: "/dashboard/analytics" },
-  { name: "Reports", icon: FileText, href: "/dashboard/reports" },
-  {
-    name: "Communications",
-    icon: MessageSquare,
-    href: "/dashboard/communications",
-  },
-  { name: "Archives", icon: Archive, href: "/dashboard/archives" },
+  // { name: "Analytics", icon: BarChart, href: "/dashboard/analytics" },
+  // { name: "Reports", icon: FileText, href: "/dashboard/reports" },
+  // {
+  //   name: "Communications",
+  //   icon: MessageSquare,
+  //   href: "/dashboard/communications",
+  // },
+  // { name: "Archives", icon: Archive, href: "/dashboard/archives" },
   { name: "System Settings", icon: Settings, href: "/dashboard/settings" },
-  { name: "Support", icon: HelpCircle, href: "/dashboard/support" },
-  { name: "Notifications", icon: Bell, href: "/dashboard/notifications" },
+  // { name: "Support", icon: HelpCircle, href: "/dashboard/support" },
+  // { name: "Notifications", icon: Bell, href: "/dashboard/notifications" },
 ];
 
 interface SidebarProps {

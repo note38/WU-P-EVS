@@ -86,7 +86,7 @@ export default function ElectionDetailClient({
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold text-primary">{election.name}</h1>
+        <h1 className="text-3xl font-bold text-black">{election.name}</h1>
         <Badge className={getStatusClassName(election.status)}>
           {formatStatus(election.status)}
         </Badge>
@@ -136,13 +136,13 @@ export default function ElectionDetailClient({
             <ListIcon className="h-4 w-4 mr-2" />
             Positions
           </TabsTrigger>
-          <TabsTrigger value="candidates">
-            <VoteIcon className="h-4 w-4 mr-2" />
-            Candidates
-          </TabsTrigger>
           <TabsTrigger value="voters">
             <UsersIcon className="h-4 w-4 mr-2" />
             Voters
+          </TabsTrigger>
+          <TabsTrigger value="candidates">
+            <VoteIcon className="h-4 w-4 mr-2" />
+            Candidates
           </TabsTrigger>
           <TabsTrigger value="results">
             <BarChart3Icon className="h-4 w-4 mr-2" />
@@ -154,12 +154,12 @@ export default function ElectionDetailClient({
           <PositionsTab electionId={election.id} />
         </TabsContent>
 
-        <TabsContent value="candidates">
-          <CandidatesTab electionId={election.id} />
-        </TabsContent>
-
         <TabsContent value="voters">
           <VotersTab electionId={election.id} />
+        </TabsContent>
+
+        <TabsContent value="candidates">
+          <CandidatesTab electionId={election.id} />
         </TabsContent>
 
         <TabsContent value="results">

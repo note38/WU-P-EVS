@@ -89,7 +89,13 @@ export function Header({ onSidebarToggle }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <button
+                  onClick={async () => {
+                    await fetch("/api/emails", { method: "POST" });
+                  }}
+                >
+                  SEND EMAIL
+                </button>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleLogout}

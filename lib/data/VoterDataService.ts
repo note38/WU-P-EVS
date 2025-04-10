@@ -127,7 +127,7 @@ export class VoterDataService {
     });
   }
 
-  // Delete voter
+  // Delete votera
   static async deleteVoter(id: number) {
     return prisma.voter.delete({
       where: { id },

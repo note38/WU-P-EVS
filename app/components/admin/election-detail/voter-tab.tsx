@@ -21,18 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CreateVoterForm } from "../voter-detail/create-voter-form"; // Import the CreateVoterForm component
 
 // Sample voters data
 const voters = [
@@ -84,13 +74,7 @@ interface VotersTabProps {
 
 export function VotersTab({ electionId }: VotersTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedVoters, setSelectedVoters] = useState<string[]>([]);
-  const [newVoter, setNewVoter] = useState({
-    name: "",
-    email: "",
-    sendCredentials: true,
-  });
 
   const filteredVoters = voters.filter(
     (voter) =>
@@ -115,18 +99,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
-  const handleAddVoter = () => {
-    console.log("Adding voter:", newVoter);
-    // Here you would typically send the data to your backend
-    setIsAddDialogOpen(false);
-    // Reset form
-    setNewVoter({
-      name: "",
-      email: "",
-      sendCredentials: true,
-    });
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -146,77 +118,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
             Send Credentials
           </Button>
 
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Voter
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Voter</DialogTitle>
-                <DialogDescription>
-                  Add a new voter to this election.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="voter-name" className="col-span-4">
-                    Voter Name
-                  </Label>
-                  <Input
-                    id="voter-name"
-                    placeholder="Full name"
-                    className="col-span-4"
-                    value={newVoter.name}
-                    onChange={(e) =>
-                      setNewVoter({ ...newVoter, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="voter-email" className="col-span-4">
-                    Email
-                  </Label>
-                  <Input
-                    id="voter-email"
-                    type="email"
-                    placeholder="Email address"
-                    className="col-span-4"
-                    value={newVoter.email}
-                    onChange={(e) =>
-                      setNewVoter({ ...newVoter, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="send-credentials"
-                    checked={newVoter.sendCredentials}
-                    onCheckedChange={(checked) =>
-                      setNewVoter({
-                        ...newVoter,
-                        sendCredentials: checked as boolean,
-                      })
-                    }
-                  />
-                  <Label htmlFor="send-credentials">
-                    Send login credentials via email
-                  </Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleAddVoter}>Add Voter</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* Use the imported CreateVoterForm component */}
+          <CreateVoterForm />
         </div>
       </div>
 
