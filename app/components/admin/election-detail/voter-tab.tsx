@@ -32,7 +32,6 @@ const voters = [
     email: "michael.brown@example.com",
     status: "voted",
     votedAt: "2023-06-15 10:23 AM",
-    pollingStation: "Polling Station 3",
   },
   {
     id: "V-12385",
@@ -40,7 +39,6 @@ const voters = [
     email: "emily.johnson@example.com",
     status: "voted",
     votedAt: "2023-06-15 09:45 AM",
-    pollingStation: "Online",
   },
   {
     id: "V-45672",
@@ -48,7 +46,6 @@ const voters = [
     email: "david.wilson@example.com",
     status: "voted",
     votedAt: "2023-06-15 08:30 AM",
-    pollingStation: "Polling Station 1",
   },
   {
     id: "V-98732",
@@ -56,7 +53,6 @@ const voters = [
     email: "sophia.martinez@example.com",
     status: "not_voted",
     votedAt: null,
-    pollingStation: null,
   },
   {
     id: "V-23456",
@@ -64,7 +60,6 @@ const voters = [
     email: "james.taylor@example.com",
     status: "voted",
     votedAt: "2023-06-15 11:15 AM",
-    pollingStation: "Polling Station 2",
   },
 ];
 
@@ -168,7 +163,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Voted At</TableHead>
-                <TableHead>Polling Station</TableHead>
+
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -197,7 +192,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                     </Badge>
                   </TableCell>
                   <TableCell>{voter.votedAt || "N/A"}</TableCell>
-                  <TableCell>{voter.pollingStation || "N/A"}</TableCell>
+
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon">

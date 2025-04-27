@@ -12,20 +12,17 @@ datasource db {
 enum Role {
   ADMIN
   VOTER
-  CANDIDATE
 }
 
 enum ElectionStatus {
   DRAFT
   ACTIVE
   COMPLETED
-  ARCHIVED
 }
 
 enum VoterStatus {
   REGISTERED
   VOTED
-  INVALIDATED
 }
 
 model User {
@@ -90,7 +87,6 @@ model Candidate {
 
 model Voter {
   id              Int         @id @default(autoincrement())
-  voterId         String      @unique
   avatar          String
   firstName       String
   lastName        String
@@ -102,7 +98,6 @@ model Voter {
   department      Department  @relation(fields: [departmentId], references: [id])
   departmentId    Int
   status          VoterStatus @default(REGISTERED)
-  pollingStation  String?
   credentialsSent Boolean     @default(false)
   votes           Vote[]
   createdAt       DateTime    @default(now())

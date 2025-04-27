@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { VoterStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AccelerateInfo } from "@prisma/extension-accelerate";
+
+// Define VoterStatus enum since we don't have @prisma/client
+enum VoterStatus {
+  REGISTERED = "REGISTERED",
+  VOTED = "VOTED",
+  DISQUALIFIED = "DISQUALIFIED",
+}
 
 type Voter = {
   id: number;
@@ -43,12 +48,12 @@ type Voter = {
   department: {
     name: string;
   };
-  info?: AccelerateInfo;
+  info?: any;
 };
 
 interface VoterCardsProps {
   voters: Voter[];
-  info?: AccelerateInfo | null;
+  info?: any | null;
 }
 
 export default function VoterCards({ voters, info }: VoterCardsProps) {
@@ -150,7 +155,10 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       onCheckedChange={() => toggleVoterSelection(voter.id)}
                     />
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={voter.avatar} alt={fullName} />
+                      <AvatarImage
+                        src={voter.avatar || "/placeholder.svg"}
+                        alt={fullName}
+                      />
                       <AvatarFallback>
                         {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
@@ -178,10 +186,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <EyeIcon className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
+
                       <DropdownMenuItem>
                         <EditIcon className="mr-2 h-4 w-4" />
                         Edit

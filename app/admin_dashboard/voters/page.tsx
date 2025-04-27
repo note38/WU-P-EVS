@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 import VoterCards from "@/app/components/admin/voter-detail/voter-card";
 import { VoterStatsWithAccelerate } from "@/app/components/admin/voter-detail/voter-stats";
 import { VoterActions } from "@/app/components/admin/voter-detail/voter-actions";
+import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import {
@@ -18,6 +19,13 @@ import {
 } from "@/app/components/ui/skeleton";
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 
+// Define VoterStatus enum to match the one in DepartmentCard
+enum VoterStatus {
+  REGISTERED = "REGISTERED",
+  VOTED = "VOTED",
+  DISQUALIFIED = "DISQUALIFIED",
+}
+
 // Cached voter data fetch with Accelerate
 const getCachedVoters = unstable_cache(
   async (): Promise<AccelerateResult<VoterData[]>> => {
@@ -28,9 +36,29 @@ const getCachedVoters = unstable_cache(
 );
 
 // Async Components
-async function VoterList() {
-  const result = await getCachedVoters();
-  return <VoterCards voters={result.data} info={result.info} />;
+async function DepartmentDisplay() {
+  try {
+    const { data: votersData = [], info } = await getCachedVoters();
+
+    // Map VoterData to the Voter format expected by DepartmentCard
+    const voters = votersData.map((voter) => ({
+      ...voter,
+      // Ensure status is properly typed as VoterStatus
+      status: voter.status as unknown as VoterStatus,
+    }));
+
+    return <DepartmentCard voters={voters} info={info} />;
+  } catch (error) {
+    console.error("Error fetching voters:", error);
+    // Return empty state with error message
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-500">
+          Failed to load voter data. Please try again later.
+        </p>
+      </div>
+    );
+  }
 }
 
 // Page Config
@@ -40,7 +68,7 @@ export const revalidate = 60;
 // Main Page
 export default function VotersPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
 
@@ -60,15 +88,13 @@ export default function VotersPage() {
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle>All Voters</CardTitle>
-          <div className="w-full sm:w-auto">
-            <VoterActions />
-          </div>
+          <CardTitle>Voters by Department</CardTitle>
+          <div className="w-full sm:w-auto"></div>
         </CardHeader>
 
         <CardContent>
           <Suspense fallback={<VoterCardsSkeleton />}>
-            <VoterList />
+            <DepartmentDisplay />
           </Suspense>
         </CardContent>
       </Card>

@@ -46,7 +46,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
   };
 
   return (
-    <header className="border-b">
+    <header className="border-b bg-green-50">
       <div className="flex h-16 items-center px-4">
         <Button
           variant="ghost"

@@ -121,7 +121,7 @@ export default function FullscreenResults({
                         return null;
                       }}
                     />
-                    <Bar dataKey="votes" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="votes" fill="#00D100" radius={[4, 4, 0, 0]}>
                       {!showNames && (
                         <LabelList
                           dataKey="votes"

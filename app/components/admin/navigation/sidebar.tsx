@@ -33,7 +33,11 @@ const sidebarItems = [
   //   href: "/dashboard/communications",
   // },
   // { name: "Archives", icon: Archive, href: "/dashboard/archives" },
-  { name: "System Settings", icon: Settings, href: "/dashboard/settings" },
+  {
+    name: "System Settings",
+    icon: Settings,
+    href: "/admin_dashboard/settings",
+  },
   // { name: "Support", icon: HelpCircle, href: "/dashboard/support" },
   // { name: "Notifications", icon: Bell, href: "/dashboard/notifications" },
 ];
@@ -71,7 +75,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <div
       className={`${
         isOpen ? "block" : "hidden"
-      } lg:block fixed inset-y-0 left-0 z-50 w-64 bg-white border-r lg:relative`}
+      } lg:block fixed inset-y-0 left-0 z-50 w-64 bg-green-100 border-r lg:relative`}
     >
       <div className="flex items-center justify-between p-4">
         {/* Logo Section */}
