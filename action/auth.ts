@@ -26,7 +26,7 @@ export async function voterLogin(formData: LoginFormData) {
     }
 
     // Check if the election is active
-    if (voter.election.status !== "ACTIVE") {
+    if (voter.election?.status !== "ACTIVE") {
       return {
         success: false,
         message: "The election you are registered for is not currently active",
@@ -49,7 +49,7 @@ export async function voterLogin(formData: LoginFormData) {
 
     // Set voter session cookie
     const oneDay = 24 * 60 * 60 * 1000;
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set("voter_session", String(voter.id), {
       expires: new Date(Date.now() + oneDay),
       httpOnly: true,
@@ -75,8 +75,8 @@ export async function voterLogin(formData: LoginFormData) {
 
 export async function getVoterSession() {
   const cookieStore = cookies();
-  const voterId = cookieStore.get("voter_session")?.value;
-  const electionId = cookieStore.get("election_id")?.value;
+  const voterId = (await cookieStore).get("voter_session")?.value;
+  const electionId = (await cookieStore).get("election_id")?.value;
 
   if (!voterId || !electionId) {
     return null;
@@ -96,11 +96,11 @@ export async function getVoterSession() {
     if (
       !voter ||
       voter.status === "VOTED" ||
-      voter.election.status !== "ACTIVE"
+      voter.election?.status !== "ACTIVE"
     ) {
       // Clear cookies if voter is not valid, has voted, or election is not active
-      cookieStore.delete("voter_session");
-      cookieStore.delete("election_id");
+      (await cookieStore).delete("voter_session");
+      (await cookieStore).delete("election_id");
       return null;
     }
 
@@ -116,7 +116,7 @@ export async function getVoterSession() {
 }
 
 export async function logoutVoter() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete("voter_session");
   cookieStore.delete("election_id");
   redirect("/");
