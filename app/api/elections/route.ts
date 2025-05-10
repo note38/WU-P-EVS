@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
           description: data.description || "",
           startDate: startDateTime,
           endDate: endDateTime,
-          status: "DRAFT", // Start as draft
+          status: "INACTIVE",
           createdById: userId,
         },
       });

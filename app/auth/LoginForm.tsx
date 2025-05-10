@@ -7,22 +7,23 @@ import { PuffLoader } from "react-spinners";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react"; // Import the eye icons
+import { Eye, EyeOff, User, UserCheck } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState("admin"); // Default to admin
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -41,11 +42,25 @@ export default function LoginForm() {
       const result = await signIn("credentials", {
         email,
         password,
+        userType, // Pass the user type to the authentication handler
         redirect: false,
       });
 
       if (result?.error) {
-        setFormError("Invalid credentials");
+        // Handle specific error messages
+        if (result.error.includes("active election")) {
+          setFormError("Voter login is disabled during active elections");
+        } else if (result.error.includes("already cast your vote")) {
+          setFormError("You have already cast your vote in this election");
+        } else if (result.error.includes("No active election")) {
+          setFormError("There is no active election available for voting");
+        } else if (result.error.includes("not associated with any election")) {
+          setFormError("You are not currently registered for any election");
+        } else {
+          setFormError(
+            "Invalid credentials. Please check your email and password."
+          );
+        }
         setIsLoading(false);
         return;
       }
@@ -66,20 +81,13 @@ export default function LoginForm() {
           throw new Error("No user session found");
         }
 
-        // Redirect based on user role
-        switch (session.user.role) {
-          case "ADMIN":
-            router.push("/admin_dashboard");
-            break;
-          case "VOTER":
-            router.push("/user_dashboard");
-            break;
-          case "CANDIDATE":
-            router.push("/candidate_dashboard");
-            break;
-          default:
-            setFormError("Invalid user role");
-            break;
+        // Redirect based on user role and type
+        if (session.user.userType === "admin") {
+          router.push("/admin_dashboard");
+        } else if (session.user.userType === "voter") {
+          router.push("/ballot");
+        } else {
+          setFormError("Invalid user type");
         }
       } catch (sessionError) {
         console.error("Session error:", sessionError);
@@ -98,17 +106,34 @@ export default function LoginForm() {
       <CardHeader className="space-y-4">
         <div className="flex justify-center mb-2">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <img src="/wup-logo.png" className="w-16 h-16 text-primary" />
+            <img
+              src="/wup-logo.png"
+              alt="WUP Logo"
+              className="w-16 h-16 text-primary"
+            />
           </div>
         </div>
         <CardTitle className="text-2xl font-bold text-center">
           WU-P EVS
         </CardTitle>
         <CardDescription className="text-center">
-          Please Sign in your account to continue
+          Wesleyan University Philippines - Enhanced Voting System
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <Tabs defaultValue="admin" onValueChange={setUserType} className="mb-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <User size={16} />
+              Admin
+            </TabsTrigger>
+            <TabsTrigger value="voter" className="flex items-center gap-2">
+              <UserCheck size={16} />
+              Voter
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
             <Alert variant="destructive" className="mb-4">
@@ -163,7 +188,7 @@ export default function LoginForm() {
                 <span>Logging in...</span>
               </div>
             ) : (
-              "Sign in"
+              `Sign in as ${userType === "admin" ? "Admin" : "Voter"}`
             )}
           </Button>
         </form>

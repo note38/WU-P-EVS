@@ -2,20 +2,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
-import { generateVoterId } from "@/lib/utils";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    // Validate required fields
-    if (
-      !data.firstName ||
-      !data.lastName ||
-      !data.email ||
-      !data.departmentId ||
-      !data.electionId
-    ) {
+    // Validate required fields - election is no longer required
+    if (!data.firstName || !data.lastName || !data.email || !data.yearId) {
       return NextResponse.json(
         {
           error: "Missing required fields",
@@ -42,29 +35,32 @@ export async function POST(request: Request) {
     const tempPassword = Math.random().toString(36).slice(-8);
     const hashpassword = await bcrypt.hash(tempPassword, 10);
 
-    // Generate voter ID
-    const voterId = generateVoterId();
-
     // Convert IDs to numbers
-    const departmentId = parseInt(data.departmentId);
-    const electionId = parseInt(data.electionId);
+    const yearId = parseInt(data.yearId);
+
+    // Create the base data object
+    const voterData = {
+      avatar: data.avatar || "default-avatar.png",
+      firstName: data.firstName,
+      lastName: data.lastName,
+      middleName: data.middleName || "",
+      email: data.email,
+      hashpassword: hashpassword,
+      electionId: "",
+      yearId: yearId,
+      status: "REGISTERED",
+      credentialsSent: false,
+    };
+
+    // Add electionId only if it exists
+    if (data.electionId) {
+      Object.assign(voterData, { electionId: parseInt(data.electionId) });
+    }
 
     try {
       // Create voter with relations
       const voter = await prisma.voter.create({
-        data: {
-          voterId: voterId,
-          avatar: "default-avatar.png",
-          firstName: data.firstName,
-          lastName: data.lastName,
-          middleName: data.middleName || "",
-          email: data.email,
-          hashpassword: hashpassword,
-          departmentId: departmentId,
-          electionId: electionId,
-          status: "REGISTERED",
-          credentialsSent: false,
-        },
+        data: voterData,
       });
 
       return NextResponse.json(

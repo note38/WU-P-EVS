@@ -24,6 +24,7 @@ export async function GET() {
         avatar: true,
         role: true,
       },
+      cacheStrategy: { ttl: 30 }, // 30 seconds TTL for cache
     });
 
     if (!user) {
@@ -60,18 +61,31 @@ export async function PATCH(request: Request) {
     if (data.email) updateData.email = data.email;
     if (data.avatar) updateData.avatar = data.avatar;
 
-    // Update user in database
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatar: true,
-        role: true,
+    // Update user in database with minimal data selection for faster response
+    const updatedUser = await prisma.$transaction(
+      async (tx) => {
+        // Update the user
+        const user = await tx.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatar: true,
+            role: true,
+          },
+        });
+
+        return user;
       },
-    });
+      {
+        // Transaction optimization options
+        maxWait: 5000, // 5 seconds max wait time
+        timeout: 10000, // 10 seconds timeout
+        isolationLevel: "ReadCommitted", // Less strict isolation for better performance
+      }
+    );
 
     return NextResponse.json({
       message: "Profile updated successfully",
@@ -106,7 +120,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Get user with password
+    // Get user with password - minimal data selection
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -132,15 +146,16 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Hash new password
+    // Hash new password - this is CPU-intensive but can't be optimized easily
     const hashedPassword = await bcrypt.hash(data.newPassword, 10);
 
-    // Update password
+    // Update password with minimal return data
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
       },
+      select: { id: true }, // Minimal selection for faster response
     });
 
     return NextResponse.json({

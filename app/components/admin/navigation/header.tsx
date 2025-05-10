@@ -94,7 +94,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
                     await fetch("/api/emails", { method: "POST" });
                   }}
                 >
-                  SEND EMAIL
+                  Profile
                 </button>
               </DropdownMenuItem>
               <DropdownMenuItem

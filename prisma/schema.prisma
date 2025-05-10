@@ -15,7 +15,7 @@ enum Role {
 }
 
 enum ElectionStatus {
-  DRAFT
+  INACTIVE
   ACTIVE
   COMPLETED
 }
@@ -30,8 +30,8 @@ model User {
   avatar      String?
   username    String      @unique
   email       String      @unique
-  password    String?
-  role        Role        @default(VOTER)
+  password    String
+  role        Role        @default(ADMIN)
   elections   Election[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -43,9 +43,10 @@ model Election {
   description String?
   startDate   DateTime
   endDate     DateTime
-  status      ElectionStatus @default(DRAFT)
+  status      ElectionStatus @default(INACTIVE)
   positions   Position[]
   partylists  Partylist[]
+  candidates  Candidate[]
   voters      Voter[]
   votes       Vote[]
   createdAt   DateTime      @default(now())
@@ -60,6 +61,8 @@ model Position {
   id            Int          @id @default(autoincrement())
   name          String
   maxCandidates Int          @default(1)
+  year        Year?     @relation(fields: [yearId], references: [id])
+  yearId      Int?
   election      Election     @relation(fields: [electionId], references: [id])
   electionId    Int
   candidates    Candidate[]
@@ -67,7 +70,7 @@ model Position {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  @@index([electionId])
+  @@index([electionId, yearId])
 }
 
 model Candidate {
@@ -78,11 +81,16 @@ model Candidate {
   positionId  Int
   partylist   Partylist @relation(fields: [partylistId], references: [id])
   partylistId Int
-  votes       Vote[]
+  election    Election  @relation(fields: [electionId], references: [id])
+  electionId  Int
+  year        Year?     @relation(fields: [yearId], references: [id])
+  yearId      Int?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@index([positionId, partylistId])
+  @@index([electionId])
+  @@index([yearId])
 }
 
 model Voter {
@@ -93,23 +101,23 @@ model Voter {
   middleName      String
   email           String      @unique
   hashpassword    String
-  election        Election    @relation(fields: [electionId], references: [id])
+  role            Role        @default(VOTER)
+  election        Election?    @relation(fields: [electionId], references: [id])
   electionId      Int
-  department      Department  @relation(fields: [departmentId], references: [id])
-  departmentId    Int
+  year            Year        @relation(fields: [yearId], references: [id])
+  yearId          Int
   status          VoterStatus @default(REGISTERED)
   credentialsSent Boolean     @default(false)
   votes           Vote[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   
-  @@index([electionId, departmentId])
+  @@index([electionId, yearId])
 }
 
 model Vote {
   id          Int       @id @default(autoincrement())
   voter       Voter     @relation(fields: [voterId], references: [id])
-  candidate   Candidate @relation(fields: [candidateId], references: [id])
   position    Position  @relation(fields: [positionId], references: [id])
   election    Election  @relation(fields: [electionId], references: [id])
   voterId     Int
@@ -134,8 +142,8 @@ model Partylist {
 
 model Department {
   id          Int         @id @default(autoincrement())
+  image       String?
   name        String
-  voters      Voter[]
   years       Year[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -146,6 +154,9 @@ model Year {
   name         String
   department   Department  @relation(fields: [departmentId], references: [id])
   departmentId Int
+  positions    Position[]
+  voters       Voter[]
+  candidates   Candidate[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }

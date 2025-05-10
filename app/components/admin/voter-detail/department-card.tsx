@@ -44,12 +44,11 @@ import VoterCards from "./voter-card";
 enum VoterStatus {
   REGISTERED = "REGISTERED",
   VOTED = "VOTED",
-  DISQUALIFIED = "DISQUALIFIED",
 }
 
 type Voter = {
   id: number;
-  voterId: string;
+  voterId?: string;
   firstName: string;
   lastName: string;
   middleName: string;
@@ -60,15 +59,17 @@ type Voter = {
   createdAt: Date;
   election: {
     name: string;
+    id: number;
   };
-  department: {
+  year: {
     name: string;
+    id: number;
   };
   info?: any;
 };
 
-// Define Department type
-type Department = {
+// Define Year type (renamed from Department)
+type Year = {
   id: string;
   name: string;
   description: string;
@@ -85,7 +86,7 @@ interface DepartmentCardProps {
 export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
 
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
@@ -93,27 +94,23 @@ export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
       .replace(/\s+/g, " ");
   };
 
-  // Get unique department names
-  const departmentNames = Array.from(
-    new Set(voters.map((voter) => voter.department.name))
-  );
+  // Get unique year names
+  const yearNames = Array.from(new Set(voters.map((voter) => voter.year.name)));
 
-  // Create department objects with additional properties
-  const departments: Department[] = departmentNames.map((name) => {
-    const departmentVoters = voters.filter(
-      (voter) => voter.department.name === name
-    );
+  // Create year objects with additional properties
+  const years: Year[] = yearNames.map((name) => {
+    const yearVoters = voters.filter((voter) => voter.year.name === name);
     return {
       id: name.toLowerCase().replace(/\s+/g, "-"), // Create ID from name
       name,
-      description: `${name} department voters and information`,
+      description: `${name} year voters and information`,
       icon: <Users className="h-4 w-4 mr-1" />,
       color: getRandomColor(name), // Generate a consistent color based on name
-      voterCount: departmentVoters.length,
+      voterCount: yearVoters.length,
     };
   });
 
-  // Generate a consistent color based on department name
+  // Generate a consistent color based on year name
   function getRandomColor(name: string): string {
     // Simple hash function to generate a consistent color
     const hash = name.split("").reduce((acc, char) => {
@@ -139,22 +136,22 @@ export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
     const matchesSearch =
       fullName.toLowerCase().includes(searchLower) ||
       voter.email.toLowerCase().includes(searchLower) ||
-      voter.voterId.toLowerCase().includes(searchLower);
+      voter.voterId?.toLowerCase().includes(searchLower) ||
+      false;
 
-    const matchesDepartment =
-      selectedDepartment === "all" ||
-      voter.department.name ===
-        departmentNames.find(
-          (name) =>
-            name.toLowerCase().replace(/\s+/g, "-") === selectedDepartment
+    const matchesYear =
+      selectedYear === "all" ||
+      voter.year.name ===
+        yearNames.find(
+          (name) => name.toLowerCase().replace(/\s+/g, "-") === selectedYear
         );
 
-    return matchesSearch && matchesDepartment;
+    return matchesSearch && matchesYear;
   });
 
-  // Handle department selection
-  const handleDepartmentClick = (departmentId: string) => {
-    setSelectedDepartment(departmentId);
+  // Handle year selection
+  const handleYearClick = (yearId: string) => {
+    setSelectedYear(yearId);
   };
 
   const toggleVoterSelection = (voterId: number) => {
@@ -178,40 +175,33 @@ export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
     // Implement actual email logic
   };
 
-  // Group voters by department
-  const votersByDepartment = departments.reduce<Record<string, Voter[]>>(
-    (acc, department) => {
-      acc[department.id] = voters.filter(
-        (voter) => voter.department.name === department.name
-      );
-      return acc;
-    },
-    {}
-  );
+  // Group voters by year
+  const votersByYear = years.reduce<Record<string, Voter[]>>((acc, year) => {
+    acc[year.id] = voters.filter((voter) => voter.year.name === year.name);
+    return acc;
+  }, {});
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {departments.map((department) => (
+        {years.map((year) => (
           <Card
-            key={department.id}
+            key={year.id}
             className={`cursor-pointer transition-all hover:shadow-md ${
-              selectedDepartment === department.id ? "ring-2 ring-primary" : ""
+              selectedYear === year.id ? "ring-2 ring-primary" : ""
             }`}
-            onClick={() => handleDepartmentClick(department.id)}
+            onClick={() => handleYearClick(year.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div className="flex items-center space-x-2">
-                {department.icon}
-                <CardTitle>{department.name}</CardTitle>
+                {year.icon}
+                <CardTitle>{year.name}</CardTitle>
               </div>
-              <Badge className="bg-green-300">
-                {department.voterCount} voters
-              </Badge>
+              <Badge className="bg-green-300">{year.voterCount} voters</Badge>
             </CardHeader>
             <CardContent>
               <CardDescription className="mb-2">
-                {department.description}
+                {year.description}
               </CardDescription>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -221,7 +211,7 @@ export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
                   </span>
                 </div>
                 <ChevronRight
-                  className={`h-4 w-4 transition-transform ${selectedDepartment === department.id ? "rotate-90" : ""}`}
+                  className={`h-4 w-4 transition-transform ${selectedYear === year.id ? "rotate-90" : ""}`}
                 />
               </div>
             </CardContent>
@@ -229,22 +219,17 @@ export default function DepartmentCard({ voters, info }: DepartmentCardProps) {
         ))}
       </div>
 
-      {selectedDepartment && selectedDepartment !== "all" && (
+      {selectedYear && selectedYear !== "all" && (
         <div className="mt-8">
           <Card>
             <CardHeader>
               <CardTitle>
-                Voters in{" "}
-                {departments.find((d) => d.id === selectedDepartment)?.name}
+                Voters in {years.find((y) => y.id === selectedYear)?.name}
               </CardTitle>
-              <CardDescription>
-                Manage voters in this department
-              </CardDescription>
+              <CardDescription>Manage voters in this year</CardDescription>
             </CardHeader>
             <CardContent>
-              <VoterCards
-                voters={votersByDepartment[selectedDepartment] || []}
-              />
+              <VoterCards voters={votersByYear[selectedYear] || []} />
             </CardContent>
           </Card>
         </div>

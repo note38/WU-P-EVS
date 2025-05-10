@@ -53,6 +53,29 @@ import {
   cropImage,
 } from "../../lib/image-utils";
 
+// Cache utility for profile data
+const profileCache = {
+  data: null as any | null,
+  timestamp: 0,
+  ttl: 30000, // 30 seconds in milliseconds
+
+  set(data: any) {
+    this.data = data;
+    this.timestamp = Date.now();
+  },
+
+  get() {
+    if (this.data && Date.now() - this.timestamp < this.ttl) {
+      return this.data;
+    }
+    return null;
+  },
+
+  clear() {
+    this.data = null;
+  },
+};
+
 const profileFormSchema = z.object({
   username: z.string().min(2, {
     message: "Name must be at least 2 characters.",
@@ -139,7 +162,29 @@ export function ProfileSettings() {
     async function fetchUserProfile() {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/users/profile");
+
+        // Check cache first
+        const cachedData = profileCache.get();
+        if (cachedData) {
+          profileForm.reset({
+            username: cachedData.username,
+            email: cachedData.email,
+          });
+
+          if (cachedData.avatar) {
+            setAvatar(cachedData.avatar);
+          }
+
+          setIsLoading(false);
+          return;
+        }
+
+        // If no cache, fetch from API
+        const response = await fetch("/api/users/profile", {
+          headers: {
+            "Cache-Control": "no-cache",
+          },
+        });
 
         if (response.ok) {
           const userData = await response.json();
@@ -154,6 +199,9 @@ export function ProfileSettings() {
           if (userData.avatar) {
             setAvatar(userData.avatar);
           }
+
+          // Update cache
+          profileCache.set(userData);
         } else {
           toast({
             title: "Error",
@@ -193,16 +241,20 @@ export function ProfileSettings() {
         updateData.avatar = avatar;
       }
 
-      // Call API to update profile
+      // Call API to update profile with optimized headers
       const response = await fetch("/api/users/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Prefer: "return=minimal", // Prisma optimization hint
         },
         body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
+        // Clear cache to force refresh on next load
+        profileCache.clear();
+
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
@@ -210,6 +262,10 @@ export function ProfileSettings() {
 
         // Update session with new data to reflect changes immediately
         await updateSession();
+
+        // Update cache with new data
+        const updatedData = { ...updateData };
+        profileCache.set(updatedData);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -233,11 +289,12 @@ export function ProfileSettings() {
     try {
       setIsPasswordSubmitting(true);
 
-      // Call API to update password
+      // Call API to update password with optimized headers
       const response = await fetch("/api/users/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Prefer: "return=minimal", // Prisma optimization hint
         },
         body: JSON.stringify({
           currentPassword: data.currentPassword,
@@ -321,8 +378,8 @@ export function ProfileSettings() {
           width: croppedAreaPixels.width,
           height: croppedAreaPixels.height,
         },
-        256,
-        256
+        512,
+        512
       );
       setAvatar(croppedImage);
 
@@ -403,10 +460,15 @@ export function ProfileSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={avatar || ""} alt="Profile Avatar" />
-              <AvatarFallback>
-                <User className="h-12 w-12" />
+            {/* Increased the size of the Avatar component */}
+            <Avatar className="h-40 w-40 border-4 border-muted">
+              <AvatarImage
+                src={avatar || ""}
+                alt="Profile Avatar"
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-muted">
+                <User className="h-20 w-20 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
 
@@ -451,11 +513,12 @@ export function ProfileSettings() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel htmlFor="username">Name</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="username"
                           className="pl-10"
                           placeholder="Your name"
                           {...field}
@@ -473,11 +536,12 @@ export function ProfileSettings() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel htmlFor="email">Email</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="email"
                           className="pl-10"
                           placeholder="Your email"
                           type="email"
@@ -531,11 +595,14 @@ export function ProfileSettings() {
                 name="currentPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Password</FormLabel>
+                    <FormLabel htmlFor="currentPassword">
+                      Current Password
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="currentPassword"
                           className="pl-10"
                           type={showCurrentPassword ? "text" : "password"}
                           placeholder="Enter current password"
@@ -574,11 +641,12 @@ export function ProfileSettings() {
                 name="newPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>New Password</FormLabel>
+                    <FormLabel htmlFor="newPassword">New Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="newPassword"
                           className="pl-10"
                           type={showNewPassword ? "text" : "password"}
                           placeholder="Enter new password"
@@ -619,11 +687,14 @@ export function ProfileSettings() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormLabel htmlFor="confirmPassword">
+                      Confirm New Password
+                    </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
+                          id="confirmPassword"
                           className="pl-10"
                           type={showConfirmPassword ? "text" : "password"}
                           placeholder="Confirm new password"

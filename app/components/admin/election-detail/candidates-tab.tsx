@@ -41,7 +41,6 @@ const candidates = [
     name: "Jane Smith",
     position: "President",
     party: "Progressive Party",
-    status: "approved",
     votes: 1245,
     avatar: "/placeholder.svg?height=40&width=40",
   },
@@ -50,7 +49,6 @@ const candidates = [
     name: "John Doe",
     position: "President",
     party: "Conservative Party",
-    status: "approved",
     votes: 1120,
     avatar: "/placeholder.svg?height=40&width=40",
   },
@@ -59,7 +57,6 @@ const candidates = [
     name: "Alex Johnson",
     position: "Vice President",
     party: "Progressive Party",
-    status: "approved",
     votes: 980,
     avatar: "/placeholder.svg?height=40&width=40",
   },
@@ -68,7 +65,6 @@ const candidates = [
     name: "Sarah Williams",
     position: "Vice President",
     party: "Conservative Party",
-    status: "approved",
     votes: 850,
     avatar: "/placeholder.svg?height=40&width=40",
   },
@@ -77,7 +73,6 @@ const candidates = [
     name: "Michael Brown",
     position: "Secretary",
     party: "Independent",
-    status: "pending",
     votes: 0,
     avatar: "/placeholder.svg?height=40&width=40",
   },
@@ -222,7 +217,7 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
                 <TableHead>Candidate</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Party</TableHead>
-                <TableHead>Status</TableHead>
+
                 <TableHead>Votes</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -246,18 +241,7 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
                   </TableCell>
                   <TableCell>{candidate.position}</TableCell>
                   <TableCell>{candidate.party}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        candidate.status === "approved"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : "bg-yellow-500 hover:bg-yellow-600"
-                      }
-                    >
-                      {candidate.status.charAt(0).toUpperCase() +
-                        candidate.status.slice(1)}
-                    </Badge>
-                  </TableCell>
+
                   <TableCell>{candidate.votes.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

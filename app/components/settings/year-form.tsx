@@ -295,7 +295,7 @@ export function YearSettings() {
                   <FormItem>
                     <FormLabel>Year Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 7-Diamond" {...field} />
+                      <Input placeholder="e.g., First Year" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -3,6 +3,7 @@ import { ProfileSettings } from "@/app/components/settings/profile-setting";
 import { DepartmentSettings } from "@/app/components/settings/department-form";
 import { YearSettings } from "@/app/components/settings/year-form";
 import { DataLogs } from "@/app/components/settings/data-log";
+import { AccountSettings } from "@/app/components/settings/account-form";
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,7 @@ export default function SettingsPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="years">Years</TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="logs">Data Logs</TabsTrigger>
         </TabsList>
 
@@ -32,6 +34,10 @@ export default function SettingsPage() {
 
         <TabsContent value="years" className="space-y-4">
           <YearSettings />
+        </TabsContent>
+
+        <TabsContent value="account" className="space-y-4">
+          <AccountSettings />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">

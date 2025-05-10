@@ -4,7 +4,6 @@ import { AccelerateInfo } from "@prisma/extension-accelerate";
 
 export interface VoterData {
   id: number;
-  voterId: string;
   firstName: string;
   lastName: string;
   middleName: string;
@@ -14,7 +13,7 @@ export interface VoterData {
   credentialsSent: boolean;
   createdAt: Date;
   election: { name: string; id: number };
-  department: { name: string; id: number };
+  year: { name: string; id: number };
 }
 
 export interface StatsResult {
@@ -37,7 +36,6 @@ export class VoterDataService {
       .findMany({
         select: {
           id: true,
-          voterId: true,
           firstName: true,
           lastName: true,
           middleName: true,
@@ -47,7 +45,7 @@ export class VoterDataService {
           credentialsSent: true,
           createdAt: true,
           election: { select: { name: true, id: true } },
-          department: { select: { name: true, id: true } },
+          year: { select: { name: true, id: true } },
         },
         orderBy: { createdAt: "desc" },
       })
@@ -113,9 +111,20 @@ export class VoterDataService {
   }
 
   // Create a voter
-  static async createVoter(voterData: Omit<VoterData, "id" | "createdAt">) {
+  static async createVoter(voterData: {
+    firstName: string;
+    lastName: string;
+    middleName: string;
+    email: string;
+    hashpassword: string;
+    avatar: string;
+    electionId: number;
+    yearId: number;
+    credentialsSent?: boolean;
+    status?: VoterStatus;
+  }) {
     return prisma.voter.create({
-      data: voterData as any,
+      data: voterData,
     });
   }
 
@@ -127,7 +136,7 @@ export class VoterDataService {
     });
   }
 
-  // Delete votera
+  // Delete voter
   static async deleteVoter(id: number) {
     return prisma.voter.delete({
       where: { id },

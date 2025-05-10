@@ -24,7 +24,6 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-// Types for our data
 interface Department {
   id: string;
   name: string;
@@ -35,61 +34,56 @@ interface Election {
   name: string;
 }
 
+interface Year {
+  id: string;
+  name: string;
+  departmentId: string;
+}
+
 export function CreateVoterForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
-  const [isLoadingElections, setIsLoadingElections] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [years, setYears] = useState<Year[]>([]);
   const [elections, setElections] = useState<Election[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isLoadingYears, setIsLoadingYears] = useState(false);
+  const [isLoadingElections, setIsLoadingElections] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     middleName: "",
     email: "",
-    departmentId: "",
+    yearId: "",
     electionId: "",
   });
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // For displaying selected names
-  const [selectedDeptName, setSelectedDeptName] = useState<string>("");
-  const [selectedElectionName, setSelectedElectionName] = useState<string>("");
-
-  // Fetch departments and elections when the component mounts or dialog opens
   useEffect(() => {
     if (open) {
       fetchDepartments();
       fetchElections();
-      // Reset errors when dialog opens
       setErrors({});
     }
   }, [open]);
 
-  // Update displayed names when selection or data changes
   useEffect(() => {
-    if (formData.departmentId && departments.length > 0) {
-      const dept = departments.find((d) => d.id === formData.departmentId);
-      setSelectedDeptName(dept?.name || "");
+    if (selectedDepartmentId) {
+      fetchYears(selectedDepartmentId);
     } else {
-      setSelectedDeptName("");
+      setYears([]);
+      setFormData((prev) => ({ ...prev, yearId: "" }));
     }
-
-    if (formData.electionId && elections.length > 0) {
-      const election = elections.find((e) => e.id === formData.electionId);
-      setSelectedElectionName(election?.name || "");
-    } else {
-      setSelectedElectionName("");
-    }
-  }, [formData.departmentId, formData.electionId, departments, elections]);
+  }, [selectedDepartmentId]);
 
   const fetchDepartments = async () => {
     setIsLoadingDepartments(true);
     try {
-      const response = await fetch("/api/departments", {
-        cache: "force-cache",
-      });
+      const response = await fetch("/api/departments");
       if (response.ok) {
         const data = await response.json();
         setDepartments(data);
@@ -101,12 +95,25 @@ export function CreateVoterForm() {
     }
   };
 
+  const fetchYears = async (departmentId: string) => {
+    setIsLoadingYears(true);
+    try {
+      const response = await fetch(`/api/years?departmentId=${departmentId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setYears(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch years:", error);
+    } finally {
+      setIsLoadingYears(false);
+    }
+  };
+
   const fetchElections = async () => {
     setIsLoadingElections(true);
     try {
-      const response = await fetch("/api/elections", {
-        cache: "force-cache",
-      });
+      const response = await fetch("/api/elections");
       if (response.ok) {
         const data = await response.json();
         setElections(data);
@@ -121,41 +128,12 @@ export function CreateVoterForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Clear error for this field when user makes a selection
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-
-    // Update selected name immediately for better UX
-    if (name === "departmentId") {
-      const dept = departments.find((d) => d.id === value);
-      if (dept) {
-        setSelectedDeptName(dept.name);
-      }
-    } else if (name === "electionId") {
-      const election = elections.find((e) => e.id === value);
-      if (election) {
-        setSelectedElectionName(election.name);
-      }
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,16 +141,15 @@ export function CreateVoterForm() {
     setIsSubmitting(true);
     setErrors({});
 
-    // Check if all required fields are filled
     const requiredFields = [
       "firstName",
       "lastName",
       "email",
-      "departmentId",
-      "electionId",
+      "yearId",
+      // Removed "electionId" from required fields
     ];
+    const newErrors: { [key: string]: string } = {};
 
-    let newErrors: { [key: string]: string } = {};
     requiredFields.forEach((field) => {
       if (!formData[field as keyof typeof formData]) {
         newErrors[field] =
@@ -191,13 +168,17 @@ export function CreateVoterForm() {
       return;
     }
 
+    // Prepare data - if electionId is empty, set it to null for the API
+    const submissionData = {
+      ...formData,
+      electionId: formData.electionId || null,
+    };
+
     try {
       const response = await fetch("/api/voters", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submissionData),
       });
 
       const data = await response.json();
@@ -205,46 +186,43 @@ export function CreateVoterForm() {
       if (response.ok) {
         toast({
           title: "Success",
-          description:
-            "Voter has been successfully added. Temporary password: " +
-            data.tempPassword,
-          variant: "default",
+          description: `Voter added. Temporary password: ${data.tempPassword}`,
         });
         setOpen(false);
-        resetForm();
-
-        // Refresh the page to show the new voter
         router.refresh();
-
-        // Also invalidate any cached API requests
-        try {
-          await fetch("/api/revalidate?tag=voters", { method: "POST" });
-        } catch (error) {
-          console.error("Failed to revalidate data:", error);
-        }
+        setFormData({
+          firstName: "",
+          lastName: "",
+          middleName: "",
+          email: "",
+          yearId: "",
+          electionId: "",
+        });
+        setSelectedDepartmentId("");
       } else {
-        // Handle specific errors
-        if (response.status === 409 || data.code === "P2002") {
-          // Prisma unique constraint violation (P2002) - email already exists
-          setErrors({ email: "This email is already registered" });
+        if (response.status === 409) {
+          setErrors({ email: "Email already registered" });
           toast({
-            title: "Email Already Registered",
-            description:
-              "A voter with this email already exists in the system.",
+            title: "Registration Error",
+            description: "This email is already in use",
             variant: "destructive",
           });
         } else {
-          throw new Error(data.error || data.message || "Failed to add voter");
+          // Display specific error message from the API if available
+          console.error("API Error:", data.error);
+          toast({
+            title: "API Error",
+            description: data.error || "Failed to add voter",
+            variant: "destructive",
+          });
         }
       }
     } catch (error) {
-      console.error("Error adding voter:", error);
+      console.error("Error:", error);
       toast({
         title: "Error",
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to add voter. Please try again.",
+          error instanceof Error ? error.message : "Failed to add voter",
         variant: "destructive",
       });
     } finally {
@@ -252,33 +230,10 @@ export function CreateVoterForm() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      firstName: "",
-      lastName: "",
-      middleName: "",
-      email: "",
-      departmentId: "",
-      electionId: "",
-    });
-    setSelectedDeptName("");
-    setSelectedElectionName("");
-    setErrors({});
-  };
-
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          // Clear form and errors when closing the dialog
-          resetForm();
-        }
-        setOpen(newOpen);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="w-full md:w-auto">
+        <Button size="sm">
           <PlusIcon className="mr-2 h-4 w-4" />
           Add Voter
         </Button>
@@ -286,168 +241,131 @@ export function CreateVoterForm() {
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add New Voter</DialogTitle>
+            <DialogTitle>Add Voter</DialogTitle>
             <DialogDescription>
-              Fill in the voter's details. Click save when you're done.
+              Register a new voter with their academic year and optional
+              election.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-3 items-center gap-4">
-              <div className="col-span-3">
-                <Label
-                  htmlFor="firstName"
-                  className={errors.firstName ? "text-red-500" : ""}
-                >
-                  First Name
-                </Label>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className={`mt-1 ${errors.firstName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                  required
+                  className={errors.firstName ? "border-red-500" : ""}
                 />
                 {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.firstName}
                   </p>
                 )}
               </div>
-              <div className="col-span-3">
-                <Label
-                  htmlFor="lastName"
-                  className={errors.lastName ? "text-red-500" : ""}
-                >
-                  Last Name
-                </Label>
+
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
                 <Input
                   id="lastName"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className={`mt-1 ${errors.lastName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                  required
+                  className={errors.lastName ? "border-red-500" : ""}
                 />
                 {errors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
                 )}
               </div>
-              <div className="col-span-3">
-                <Label htmlFor="middleName">Middle Name</Label>
-                <Input
-                  id="middleName"
-                  name="middleName"
-                  value={formData.middleName}
-                  onChange={handleChange}
-                  className="mt-1"
-                />
-              </div>
-              <div className="col-span-3">
-                <Label
-                  htmlFor="email"
-                  className={errors.email ? "text-red-500" : ""}
-                >
-                  Email
-                </Label>
+
+              <div>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`mt-1 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                  required
+                  className={errors.email ? "border-red-500" : ""}
                 />
                 {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                )}
-              </div>
-              <div className="col-span-3">
-                <Label
-                  htmlFor="departmentId"
-                  className={errors.departmentId ? "text-red-500" : ""}
-                >
-                  Department
-                </Label>
-                <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("departmentId", value)
-                  }
-                  value={formData.departmentId}
-                  disabled={isLoadingDepartments}
-                >
-                  <SelectTrigger
-                    className={`mt-1 ${errors.departmentId ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                    id="departmentId"
-                  >
-                    <SelectValue placeholder="Select department">
-                      {selectedDeptName}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.length > 0 ? (
-                      departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        {isLoadingDepartments
-                          ? "Loading departments..."
-                          : "No departments available"}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.departmentId && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.departmentId}
-                  </p>
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
 
-              <div className="col-span-3">
-                <Label
-                  htmlFor="electionId"
-                  className={errors.electionId ? "text-red-500" : ""}
-                >
-                  Election
-                </Label>
+              <div>
+                <Label>Department</Label>
                 <Select
-                  onValueChange={(value) =>
-                    handleSelectChange("electionId", value)
-                  }
-                  value={formData.electionId}
-                  disabled={isLoadingElections}
+                  value={selectedDepartmentId}
+                  onValueChange={setSelectedDepartmentId}
+                  disabled={isLoadingDepartments}
                 >
-                  <SelectTrigger
-                    className={`mt-1 ${errors.electionId ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                    id="electionId"
-                  >
-                    <SelectValue placeholder="Select election">
-                      {selectedElectionName}
-                    </SelectValue>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {elections.length > 0 ? (
-                      elections.map((election) => (
-                        <SelectItem key={election.id} value={election.id}>
-                          {election.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        {isLoadingElections
-                          ? "Loading elections..."
-                          : "No elections available"}
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Year</Label>
+                <Select
+                  value={formData.yearId}
+                  onValueChange={(value) => handleSelectChange("yearId", value)}
+                  disabled={!selectedDepartmentId || isLoadingYears}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year.id} value={year.id}>
+                        {year.name}
+                      </SelectItem>
+                    ))}
+                    {years.length === 0 && (
+                      <SelectItem value="none" disabled>
+                        {isLoadingYears
+                          ? "Loading years..."
+                          : "No years available"}
                       </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
+                {errors.yearId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.yearId}</p>
+                )}
+              </div>
+
+              <div>
+                <Label>Election (Optional)</Label>
+                <Select
+                  value={formData.electionId}
+                  onValueChange={(value) =>
+                    handleSelectChange("electionId", value)
+                  }
+                  disabled={isLoadingElections}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select election (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {elections.map((election) => (
+                      <SelectItem key={election.id} value={election.id}>
+                        {election.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.electionId && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-red-500 text-sm mt-1">
                     {errors.electionId}
                   </p>
                 )}
@@ -455,25 +373,11 @@ export function CreateVoterForm() {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setOpen(false);
-                resetForm();
-              }}
-              disabled={isSubmitting}
-            >
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="bg-green-500 hover:bg-green-600"
-              disabled={
-                isSubmitting || isLoadingDepartments || isLoadingElections
-              }
-            >
-              {isSubmitting ? "Adding..." : "Add Voter"}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Voter"}
             </Button>
           </DialogFooter>
         </form>

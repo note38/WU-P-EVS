@@ -28,12 +28,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 enum VoterStatus {
   REGISTERED = "REGISTERED",
   VOTED = "VOTED",
-  DISQUALIFIED = "DISQUALIFIED",
 }
 
 type Voter = {
   id: number;
-  voterId: string;
   firstName: string;
   lastName: string;
   middleName: string;
@@ -42,11 +40,14 @@ type Voter = {
   avatar: string;
   credentialsSent: boolean;
   createdAt: Date;
-  election: {
+  election?: {
     name: string;
   };
-  department: {
+  year?: {
     name: string;
+    department?: {
+      name: string;
+    };
   };
   info?: any;
 };
@@ -72,7 +73,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
     return (
       fullName.toLowerCase().includes(searchLower) ||
       voter.email.toLowerCase().includes(searchLower) ||
-      voter.voterId.toLowerCase().includes(searchLower)
+      voter.id.toString().includes(searchLower)
     );
   });
 
@@ -101,7 +102,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
         <Input
-          placeholder="Search voters (name, email, voter ID)..."
+          placeholder="Search voters (name, email, ID)..."
           className="w-full sm:max-w-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -169,7 +170,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                         {voter.email}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        ID: {voter.voterId}
+                        ID: {voter.id}
                       </div>
                     </div>
                   </div>
@@ -218,11 +219,15 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                     </div>
                     <div className="text-sm line-clamp-1">
                       <span className="font-medium">Election:</span>{" "}
-                      {voter.election.name}
+                      {voter.election?.name || "Not assigned"}
+                    </div>
+                    <div className="text-sm line-clamp-1">
+                      <span className="font-medium">Year:</span>{" "}
+                      {voter.year?.name || "Not assigned"}
                     </div>
                     <div className="text-sm line-clamp-1">
                       <span className="font-medium">Department:</span>{" "}
-                      {voter.department.name}
+                      {voter.year?.department?.name || "Not assigned"}
                     </div>
                     <div className="text-sm">
                       {voter.credentialsSent ? (

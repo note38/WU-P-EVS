@@ -1,10 +1,5 @@
-import { Button } from "@/components/ui/button";
+// app/admin_dashboard/voters/page.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusIcon } from "lucide-react";
-import VoterCards from "@/app/components/admin/voter-detail/voter-card";
-import { VoterStatsWithAccelerate } from "@/app/components/admin/voter-detail/voter-stats";
-import { VoterActions } from "@/app/components/admin/voter-detail/voter-actions";
-import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import {
@@ -13,17 +8,17 @@ import {
   AccelerateResult,
 } from "@/lib/data/VoterDataService";
 import {
-  Skeleton,
   StatCardSkeleton,
   VoterCardsSkeleton,
 } from "@/app/components/ui/skeleton";
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
+import { VoterStatsWithAccelerate } from "@/app/components/admin/voter-detail/voter-stats";
+import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 
 // Define VoterStatus enum to match the one in DepartmentCard
 enum VoterStatus {
   REGISTERED = "REGISTERED",
   VOTED = "VOTED",
-  DISQUALIFIED = "DISQUALIFIED",
 }
 
 // Cached voter data fetch with Accelerate
@@ -32,7 +27,10 @@ const getCachedVoters = unstable_cache(
     return VoterDataService.getVoters();
   },
   ["all-voters"],
-  { tags: ["voters"], revalidate: 60 }
+  {
+    tags: ["voters"],
+    revalidate: 10, // Short revalidation time
+  }
 );
 
 // Async Components
@@ -61,14 +59,23 @@ async function DepartmentDisplay() {
   }
 }
 
-// Page Config
+// Page Config - these settings help prevent caching at the page level
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
+export const revalidate = 0; // Set to 0 to prevent caching
 
-// Main Page
+// Server action to handle revalidation - can be called from client components
+export async function refreshVotersData() {
+  "use server";
+
+  // Import revalidateTag inside server action to avoid mixing client/server code
+  const { revalidateTag } = await import("next/cache");
+  revalidateTag("voters");
+}
+
+// Main Page - Server Component
 export default function VotersPage() {
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
 
@@ -87,11 +94,6 @@ export default function VotersPage() {
       </Suspense>
 
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle>Voters by Department</CardTitle>
-          <div className="w-full sm:w-auto"></div>
-        </CardHeader>
-
         <CardContent>
           <Suspense fallback={<VoterCardsSkeleton />}>
             <DepartmentDisplay />
