@@ -88,8 +88,6 @@ export async function POST(
       );
     }
 
-    // For demo purposes, create a small batch of sample voters
-    // In a real app, replace this with actual data import logic
     const sampleVoters = [
       {
         firstName: "John",

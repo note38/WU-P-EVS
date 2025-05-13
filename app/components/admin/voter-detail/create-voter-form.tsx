@@ -141,13 +141,7 @@ export function CreateVoterForm() {
     setIsSubmitting(true);
     setErrors({});
 
-    const requiredFields = [
-      "firstName",
-      "lastName",
-      "email",
-      "yearId",
-      // Removed "electionId" from required fields
-    ];
+    const requiredFields = ["firstName", "lastName", "email", "yearId"];
     const newErrors: { [key: string]: string } = {};
 
     requiredFields.forEach((field) => {
@@ -172,9 +166,11 @@ export function CreateVoterForm() {
     const submissionData = {
       ...formData,
       electionId: formData.electionId || null,
+      middleName: formData.middleName || null,
     };
 
     try {
+      console.log("Submitting data:", submissionData); // Debug log
       const response = await fetch("/api/voters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,6 +178,7 @@ export function CreateVoterForm() {
       });
 
       const data = await response.json();
+      console.log("API Response:", response.status, data); // Debug log
 
       if (response.ok) {
         toast({
@@ -208,21 +205,19 @@ export function CreateVoterForm() {
             variant: "destructive",
           });
         } else {
-          // Display specific error message from the API if available
-          console.error("API Error:", data.error);
+          console.error("API Error Response:", data); // More detailed error logging
           toast({
-            title: "API Error",
+            title: "Error",
             description: data.error || "Failed to add voter",
             variant: "destructive",
           });
         }
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Submission Error:", error);
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to add voter",
+        description: "Failed to submit the form",
         variant: "destructive",
       });
     } finally {
@@ -250,6 +245,20 @@ export function CreateVoterForm() {
           <div className="grid gap-4 py-4">
             <div className="space-y-4">
               <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className={errors.lastName ? "border-red-500" : ""}
+                />
+                {errors.lastName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+                )}
+              </div>
+
+              <div>
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   id="firstName"
@@ -266,17 +275,13 @@ export function CreateVoterForm() {
               </div>
 
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="middleName">Middle Name (Optional)</Label>
                 <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
+                  id="middleName"
+                  name="middleName"
+                  value={formData.middleName}
                   onChange={handleChange}
-                  className={errors.lastName ? "border-red-500" : ""}
                 />
-                {errors.lastName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
-                )}
               </div>
 
               <div>

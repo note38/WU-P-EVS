@@ -2,16 +2,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
+import { VoterStatus } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    console.log("Received data:", data); // Debug log
 
-    // Validate required fields - election is no longer required
+    // Validate required fields
     if (!data.firstName || !data.lastName || !data.email || !data.yearId) {
+      console.log("Missing required fields:", { data }); // Debug log
       return NextResponse.json(
         {
           error: "Missing required fields",
+          details: {
+            firstName: !data.firstName,
+            lastName: !data.lastName,
+            email: !data.email,
+            yearId: !data.yearId,
+          },
         },
         { status: 400 }
       );
@@ -24,9 +33,7 @@ export async function POST(request: Request) {
 
     if (existingVoter) {
       return NextResponse.json(
-        {
-          error: "Email already registered",
-        },
+        { error: "Email already registered" },
         { status: 409 }
       );
     }
@@ -35,33 +42,24 @@ export async function POST(request: Request) {
     const tempPassword = Math.random().toString(36).slice(-8);
     const hashpassword = await bcrypt.hash(tempPassword, 10);
 
-    // Convert IDs to numbers
-    const yearId = parseInt(data.yearId);
-
-    // Create the base data object
-    const voterData = {
-      avatar: data.avatar || "default-avatar.png",
-      firstName: data.firstName,
-      lastName: data.lastName,
-      middleName: data.middleName || "",
-      email: data.email,
-      hashpassword: hashpassword,
-      electionId: "",
-      yearId: yearId,
-      status: "REGISTERED",
-      credentialsSent: false,
-    };
-
-    // Add electionId only if it exists
-    if (data.electionId) {
-      Object.assign(voterData, { electionId: parseInt(data.electionId) });
-    }
-
     try {
-      // Create voter with relations
+      // Create voter
       const voter = await prisma.voter.create({
-        data: voterData,
+        data: {
+          avatar: "default-avatar.png",
+          firstName: String(data.firstName).trim(),
+          lastName: String(data.lastName).trim(),
+          middleName: data.middleName ? String(data.middleName).trim() : "",
+          email: String(data.email).trim(),
+          hashpassword,
+          yearId: parseInt(data.yearId),
+          status: "REGISTERED" as VoterStatus,
+          credentialsSent: false,
+          ...(data.electionId ? { electionId: parseInt(data.electionId) } : {}),
+        },
       });
+
+      console.log("Voter created:", voter); // Debug log
 
       return NextResponse.json(
         {
@@ -82,10 +80,11 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error("Request error:", error);
+    console.error("Request parsing error:", error);
     return NextResponse.json(
       {
         error: "Invalid request",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 400 }
     );

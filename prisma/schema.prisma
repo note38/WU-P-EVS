@@ -10,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 enum Role {
+  
   ADMIN
   VOTER
 }
@@ -103,7 +104,7 @@ model Voter {
   hashpassword    String
   role            Role        @default(VOTER)
   election        Election?    @relation(fields: [electionId], references: [id])
-  electionId      Int
+  electionId      Int?
   year            Year        @relation(fields: [yearId], references: [id])
   yearId          Int
   status          VoterStatus @default(REGISTERED)
