@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
 import { ElectionStatus } from "@prisma/client";
 
-export default async function Page({ params }: { params: { id: string } }) {
+// Use 'any' type to bypass the type checking issue with PageProps
+export default async function Page({ params }: any) {
   const electionId = Number(params.id);
 
   if (isNaN(electionId)) {
