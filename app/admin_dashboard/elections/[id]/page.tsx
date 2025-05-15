@@ -1,19 +1,10 @@
+import { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
 import { ElectionStatus } from "@prisma/client";
 
-interface ElectionPageProps {
-  params: {
-    id: string;
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
-// This is a server component that fetches data
-export default async function ElectionDetailPage({
-  params,
-}: ElectionPageProps) {
+export default async function Page({ params }: { params: { id: string } }) {
   const electionId = Number(params.id);
 
   if (isNaN(electionId)) {
