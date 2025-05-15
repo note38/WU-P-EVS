@@ -6,10 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions
-export async function GET(
-  req: NextRequest,
-  context: { params: { electionId: string } }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -76,10 +73,7 @@ export async function GET(
 }
 
 // POST /api/elections/[electionId]/positions
-export async function POST(
-  req: NextRequest,
-  context: { params: { electionId: string } }
-) {
+export async function POST(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {

@@ -7,10 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions/[positionId]
-export async function GET(
-  req: NextRequest,
-  context: { params: { electionId: string; positionId: string } }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -75,10 +72,7 @@ export async function GET(
 }
 
 // PUT /api/elections/[electionId]/positions/[positionId]
-export async function PUT(
-  req: NextRequest,
-  context: { params: { electionId: string; positionId: string } }
-) {
+export async function PUT(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -159,10 +153,7 @@ export async function PUT(
 }
 
 // DELETE /api/elections/[electionId]/positions/[positionId]
-export async function DELETE(
-  req: NextRequest,
-  context: { params: { electionId: string; positionId: string } }
-) {
+export async function DELETE(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
