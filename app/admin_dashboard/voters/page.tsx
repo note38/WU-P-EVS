@@ -121,17 +121,6 @@ async function DepartmentDisplay() {
 export const dynamic = "force-dynamic";
 export const revalidate = 0; // Set to 0 to prevent caching
 
-// Server action to handle revalidation - can be called from client components
-export async function refreshVotersData() {
-  "use server";
-
-  // Import revalidateTag inside server action to avoid mixing client/server code
-  const { revalidateTag } = await import("next/cache");
-  revalidateTag("voters");
-  revalidateTag("departments");
-  revalidateTag("years");
-}
-
 // Main Page - Server Component
 export default function VotersPage() {
   return (

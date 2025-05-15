@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import VoterCards from "./voter-card";
+import { refreshVotersData } from "@/app/admin_dashboard/voters/actions";
 
 // Define VoterStatus enum since we don't have @prisma/client
 enum VoterStatus {
