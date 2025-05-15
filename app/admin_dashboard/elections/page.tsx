@@ -97,7 +97,7 @@ async function ElectionList() {
     return {
       id: election.id,
       name: election.name,
-      description: election.description,
+      description: election.description || undefined,
       startDate: startDate,
       startTime: startTime,
       endDate: endDate,

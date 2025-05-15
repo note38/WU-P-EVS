@@ -104,7 +104,7 @@ export function BallotForm({
       if (firstMissingIndex >= 0) {
         setCurrentPositionIndex(firstMissingIndex);
         alert(
-          `Please select a candidate for ${positions[firstMissingIndex].name || positions[firstMissingIndex].id}`
+          `Please select a candidate for ${positions[firstMissingIndex].title || positions[firstMissingIndex].id}`
         );
       }
       return;
@@ -180,7 +180,7 @@ export function BallotForm({
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-2xl text-center">
-              {currentPosition.name}
+              {currentPosition.title}
             </CardTitle>
           </CardHeader>
           <CardContent>
