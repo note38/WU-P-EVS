@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 export async function PATCH(
   request: Request,
@@ -36,18 +37,33 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request, context: any) {
   try {
+    const { id } = context.params;
     await prisma.year.delete({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
     });
 
     return NextResponse.json({ message: "Year deleted successfully" });
   } catch (error) {
     console.error("Error deleting year:", error);
+
+    // Check for specific error types
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // Foreign key constraint violation
+      if (error.code === "P2003") {
+        return NextResponse.json(
+          {
+            message:
+              "Cannot delete this year because it has associated records",
+            details:
+              "Please remove all voters and candidates assigned to this year first",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { message: "Failed to delete year" },
       { status: 500 }

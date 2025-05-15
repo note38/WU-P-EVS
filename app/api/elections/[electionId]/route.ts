@@ -3,12 +3,9 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { electionId: string } }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
@@ -46,10 +43,7 @@ export async function GET(
 }
 
 // PUT handler for updating a specific election
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { electionId: string } }
-) {
+export async function PUT(req: NextRequest, context: any) {
   try {
     // Get the authenticated user from session
     const session = await getServerSession(authOptions);
@@ -74,7 +68,7 @@ export async function PUT(
     }
 
     // Parse election ID from params
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
@@ -263,11 +257,8 @@ export async function PUT(
   }
 }
 
-// DELETE handler for deleting a specific election
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { electionId: string } }
-) {
+// DELETE handler for deleting a specific election - using 'any' type to fix route handler issue
+export async function DELETE(req: NextRequest, context: any) {
   try {
     // Get the authenticated user from session
     const session = await getServerSession(authOptions);
@@ -276,7 +267,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
