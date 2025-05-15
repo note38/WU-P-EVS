@@ -37,6 +37,13 @@ export async function submitBallot(selections: Record<string, string>) {
         };
       }
 
+      if (!voter.election) {
+        return {
+          success: false,
+          message: "Voter is not associated with an active election",
+        };
+      }
+
       if (voter.election.status !== "ACTIVE") {
         return {
           success: false,
