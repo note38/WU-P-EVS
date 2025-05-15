@@ -190,11 +190,11 @@ export function ElectionCard({ election }: ElectionCardProps) {
               className={
                 election.status === "active"
                   ? "bg-green-500 hover:bg-green-600"
-                  : election.status === "scheduled"
-                    ? "bg-blue-500 hover:bg-blue-600"
+                  : election.status === "inactive"
+                    ? "bg-yellow-500 hover:bg-yellow-600"
                     : election.status === "completed"
                       ? "bg-gray-500 hover:bg-gray-600"
-                      : "bg-yellow-500 hover:bg-yellow-600"
+                      : "bg-blue-500 hover:bg-blue-600"
               }
             >
               {election.status.charAt(0).toUpperCase() +
@@ -267,8 +267,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
                   <PauseIcon className="h-4 w-4 mr-2" />
                   Pause Election
                 </DropdownMenuItem>
-              ) : election.status === "scheduled" ||
-                election.status === "draft" ? (
+              ) : election.status === "inactive" ? (
                 <DropdownMenuItem onClick={() => handleStatusChange("start")}>
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Start Election

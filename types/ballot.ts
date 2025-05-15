@@ -15,7 +15,7 @@ export interface Election {
   id: string;
   name: string;
   description?: string;
-  status: "DRAFT" | "ACTIVE" | "COMPLETED";
+  status: "INACTIVE" | "ACTIVE" | "COMPLETED";
   startDate: Date;
   endDate: Date;
   positions: Position[];

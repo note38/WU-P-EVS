@@ -1,13 +1,19 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
+import { ElectionStatus } from "@prisma/client";
+
+interface ElectionPageProps {
+  params: {
+    id: string;
+  };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
 
 // This is a server component that fetches data
 export default async function ElectionDetailPage({
   params,
-}: {
-  params: { id: string };
-}) {
+}: ElectionPageProps) {
   const electionId = Number(params.id);
 
   if (isNaN(electionId)) {
@@ -60,6 +66,9 @@ export default async function ElectionDetailPage({
     const castVotesCount = election._count.votes;
     const uncastVotesCount = votersCount - castVotesCount;
 
+    // Map database status to the expected client status
+    const status = election.status as "INACTIVE" | "ACTIVE" | "COMPLETED";
+
     const formattedElection = {
       id: election.id,
       name: election.name,
@@ -68,9 +77,9 @@ export default async function ElectionDetailPage({
       endDate: election.endDate.toISOString(),
       startTime: election.startDate.toLocaleTimeString(),
       endTime: election.endDate.toLocaleTimeString(),
-      fullStartDate: election.startDate.toISOString(), // Convert to string instead of passing Date object
-      fullEndDate: election.endDate.toISOString(), // Convert to string instead of passing Date object
-      status: election.status,
+      fullStartDate: election.startDate.toISOString(),
+      fullEndDate: election.endDate.toISOString(),
+      status,
       candidatesCount,
       votersCount,
       castVotesCount,

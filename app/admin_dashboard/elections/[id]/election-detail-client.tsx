@@ -33,7 +33,7 @@ type Election = {
   endTime: string;
   fullStartDate: string;
   fullEndDate: string;
-  status: "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+  status: "INACTIVE" | "ACTIVE" | "COMPLETED";
   candidatesCount: number;
   votersCount: number;
   castVotesCount: number;
@@ -51,12 +51,10 @@ export default function ElectionDetailClient({
     switch (status.toLowerCase()) {
       case "active":
         return "bg-green-500 hover:bg-green-600";
-      case "draft":
+      case "inactive":
         return "bg-yellow-500 hover:bg-yellow-600";
       case "completed":
         return "bg-gray-500 hover:bg-gray-600";
-      case "archived":
-        return "bg-red-500 hover:bg-red-600";
       default:
         return "bg-blue-500 hover:bg-blue-600";
     }
