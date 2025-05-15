@@ -2,22 +2,14 @@
 
 import type React from "react";
 
-import { useState, useCallback, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Loader2, Lock, Mail, Upload, User } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import Cropper from "react-easy-crop";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  User,
-  Mail,
-  Upload,
-  Lock,
-  Eye,
-  EyeOff,
-  Loader2,
-  X,
-} from "lucide-react";
-import Cropper from "react-easy-crop";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,6 +18,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -36,22 +35,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogHeader,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  cropImageToSquare,
-  dataURLtoFile,
-  cropImage,
-} from "../../lib/image-utils";
+import { useRouter } from "next/navigation";
+import { cropImage } from "../../lib/image-utils";
 
 // Cache utility for profile data
 const profileCache = {

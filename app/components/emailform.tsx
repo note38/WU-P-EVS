@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { SendIcon } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 // Define the voter credentials interface

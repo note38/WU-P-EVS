@@ -1,14 +1,14 @@
 // File: src/components/Dashboard/index.tsx
 "use client";
 
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, BarChart2 } from "lucide-react";
-import StatsCards from "./stats-card";
+import { useState } from "react";
 import ActivityList from "./activity-list";
-import VoterList from "./voter-list";
 import ElectionResults from "./election-result";
 import { mockData } from "./moc-data";
+import StatsCards from "./stats-card";
+import VoterList from "./voter-list";
 
 export default function Dashboard() {
   const [isFullscreen] = useState(false);

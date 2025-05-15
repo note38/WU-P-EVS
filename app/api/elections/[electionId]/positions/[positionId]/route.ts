@@ -1,15 +1,15 @@
 // app/api/elections/[electionId]/positions/[positionId]/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions/[positionId]
 export async function GET(
   req: NextRequest,
-  { params }: { params: { electionId: string; positionId: string } }
+  context: { params: { electionId: string; positionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,8 +17,24 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const electionId = parseInt(params.electionId);
-    const positionId = parseInt(params.positionId);
+    // Safely extract and parse the electionId and positionId from context params
+    if (
+      !context.params ||
+      !context.params.electionId ||
+      !context.params.positionId
+    ) {
+      return NextResponse.json(
+        { error: "Missing required parameters" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(context.params.electionId);
+    const positionId = parseInt(context.params.positionId);
+
+    if (isNaN(electionId) || isNaN(positionId)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
 
     const position = await prisma.position.findUnique({
       where: {
@@ -61,7 +77,7 @@ export async function GET(
 // PUT /api/elections/[electionId]/positions/[positionId]
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { electionId: string; positionId: string } }
+  context: { params: { electionId: string; positionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -69,8 +85,25 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const electionId = parseInt(params.electionId);
-    const positionId = parseInt(params.positionId);
+    // Safely extract and parse the electionId and positionId from context params
+    if (
+      !context.params ||
+      !context.params.electionId ||
+      !context.params.positionId
+    ) {
+      return NextResponse.json(
+        { error: "Missing required parameters" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(context.params.electionId);
+    const positionId = parseInt(context.params.positionId);
+
+    if (isNaN(electionId) || isNaN(positionId)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
     const { name, maxCandidates, yearId } = await req.json();
 
     // Validate input
@@ -128,7 +161,7 @@ export async function PUT(
 // DELETE /api/elections/[electionId]/positions/[positionId]
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { electionId: string; positionId: string } }
+  context: { params: { electionId: string; positionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -136,8 +169,24 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const electionId = parseInt(params.electionId);
-    const positionId = parseInt(params.positionId);
+    // Safely extract and parse the electionId and positionId from context params
+    if (
+      !context.params ||
+      !context.params.electionId ||
+      !context.params.positionId
+    ) {
+      return NextResponse.json(
+        { error: "Missing required parameters" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(context.params.electionId);
+    const positionId = parseInt(context.params.positionId);
+
+    if (isNaN(electionId) || isNaN(positionId)) {
+      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
+    }
 
     // Check if position exists
     const position = await prisma.position.findUnique({

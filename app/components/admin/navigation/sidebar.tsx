@@ -1,25 +1,12 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { usePathname } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import {
-  LayoutDashboardIcon,
-  Vote,
-  BarChart,
-  Settings,
-  HelpCircle,
-  MessageSquare,
-  Archive,
-  FileText,
-  Bell,
-  X,
-  User,
-} from "lucide-react";
+import { LayoutDashboardIcon, Settings, User, Vote, X } from "lucide-react";
 
 const sidebarItems = [
   { name: "Dashboard", icon: LayoutDashboardIcon, href: "/admin_dashboard" },

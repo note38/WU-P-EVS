@@ -1,19 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  EditIcon,
-  TrashIcon,
-  EyeIcon,
-  PrinterIcon,
-  SendIcon,
-  MoreHorizontal,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +13,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  EditIcon,
+  MoreHorizontal,
+  PrinterIcon,
+  School,
+  SendIcon,
+  TrashIcon,
+} from "lucide-react";
+import { useState } from "react";
 
 // Define VoterStatus enum since we don't have @prisma/client
 enum VoterStatus {
@@ -42,12 +49,11 @@ type Voter = {
   createdAt: Date;
   election?: {
     name: string;
+    id: number;
   };
   year?: {
     name: string;
-    department?: {
-      name: string;
-    };
+    id: number;
   };
   info?: any;
 };
@@ -60,6 +66,7 @@ interface VoterCardsProps {
 export default function VoterCards({ voters, info }: VoterCardsProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
+  const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
 
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
@@ -67,14 +74,34 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
       .replace(/\s+/g, " ");
   };
 
+  // Get unique year names for filtering
+  const yearNames = Array.from(
+    new Set(
+      voters.map((voter) => {
+        const parts = voter.year?.name?.split(" - ");
+        return parts && parts.length > 0
+          ? parts[0]
+          : voter.year?.name || "Unknown";
+      })
+    )
+  );
+
   const filteredVoters = voters.filter((voter) => {
     const fullName = getFullName(voter);
     const searchLower = searchTerm.toLowerCase();
-    return (
+
+    // Search match
+    const matchesSearch =
       fullName.toLowerCase().includes(searchLower) ||
       voter.email.toLowerCase().includes(searchLower) ||
-      voter.id.toString().includes(searchLower)
-    );
+      voter.id.toString().includes(searchLower);
+
+    // Year filter match
+    const matchesYearFilter =
+      selectedYearFilter === "all" ||
+      voter.year?.name?.split(" - ")[0] === selectedYearFilter;
+
+    return matchesSearch && matchesYearFilter;
   });
 
   const toggleVoterSelection = (voterId: number) => {
@@ -101,12 +128,33 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
-        <Input
-          placeholder="Search voters (name, email, ID)..."
-          className="w-full sm:max-w-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
+          <Input
+            placeholder="Search voters (name, email, ID)..."
+            className="w-full sm:max-w-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          {yearNames.length > 1 && (
+            <Select
+              value={selectedYearFilter}
+              onValueChange={setSelectedYearFilter}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by year" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
+                {yearNames.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
         {selectedVoters.length > 0 && (
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -147,6 +195,13 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVoters.map((voter) => {
             const fullName = getFullName(voter);
+            // Extract the year and department parts if available
+            const yearParts = voter.year?.name
+              ? voter.year.name.split(" - ")
+              : [];
+            const yearName = yearParts[0] || "Unknown";
+            const departmentName = yearParts[1] || "General";
+
             return (
               <Card key={voter.id} className="overflow-hidden group">
                 <CardHeader className="flex flex-row items-center justify-between p-4 pb-0">
@@ -157,7 +212,10 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                     />
                     <Avatar className="h-10 w-10">
                       <AvatarImage
-                        src={voter.avatar || "/placeholder.svg"}
+                        src={
+                          voter.avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`
+                        }
                         alt={fullName}
                       />
                       <AvatarFallback>
@@ -221,13 +279,14 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       <span className="font-medium">Election:</span>{" "}
                       {voter.election?.name || "Not assigned"}
                     </div>
-                    <div className="text-sm line-clamp-1">
-                      <span className="font-medium">Year:</span>{" "}
-                      {voter.year?.name || "Not assigned"}
+                    <div className="text-sm line-clamp-1 flex items-center">
+                      <School className="h-3 w-3 mr-1" />
+                      <span className="font-medium mr-1">Year:</span>{" "}
+                      {yearName || "Not assigned"}
                     </div>
                     <div className="text-sm line-clamp-1">
                       <span className="font-medium">Department:</span>{" "}
-                      {voter.year?.department?.name || "Not assigned"}
+                      {departmentName || "Not assigned"}
                     </div>
                     <div className="text-sm">
                       {voter.credentialsSent ? (

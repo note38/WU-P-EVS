@@ -1,8 +1,8 @@
 // app/api/voters/route.ts
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import bcrypt from "bcrypt";
 import { VoterStatus } from "@prisma/client";
+import bcrypt from "bcrypt";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {

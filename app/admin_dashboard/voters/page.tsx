@@ -12,8 +12,8 @@ import {
   VoterCardsSkeleton,
 } from "@/app/components/ui/skeleton";
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
-import { VoterStatsWithAccelerate } from "@/app/components/admin/voter-detail/voter-stats";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
+import { prisma } from "@/lib/db";
 
 // Define VoterStatus enum to match the one in DepartmentCard
 enum VoterStatus {
@@ -33,19 +33,77 @@ const getCachedVoters = unstable_cache(
   }
 );
 
+// Fetch departments and years to get their proper relationships
+const getCachedDepartmentsAndYears = unstable_cache(
+  async () => {
+    const departments = await prisma.department.findMany({
+      include: {
+        years: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return departments;
+  },
+  ["all-departments-and-years"],
+  {
+    tags: ["departments", "years"],
+    revalidate: 60, // Cache for a minute
+  }
+);
+
 // Async Components
 async function DepartmentDisplay() {
   try {
     const { data: votersData = [], info } = await getCachedVoters();
+    const departments = await getCachedDepartmentsAndYears();
 
-    // Map VoterData to the Voter format expected by DepartmentCard
-    const voters = votersData.map((voter) => ({
-      ...voter,
-      // Ensure status is properly typed as VoterStatus
-      status: voter.status as unknown as VoterStatus,
-    }));
+    // Create a mapping from year ID to department and year names
+    const yearMapping = new Map();
+    departments.forEach((dept) => {
+      dept.years.forEach((year) => {
+        yearMapping.set(year.id, {
+          departmentName: dept.name,
+          departmentId: dept.id,
+          yearName: year.name,
+          yearId: year.id,
+          // Use department image if available
+          departmentImage: dept.image || null,
+        });
+      });
+    });
 
-    return <DepartmentCard voters={voters} info={info} />;
+    // Map VoterData to the Voter format expected by DepartmentCard with enhanced data
+    const voters = votersData.map((voter) => {
+      const yearInfo = yearMapping.get(voter.year.id);
+      const yearFullName = yearInfo
+        ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
+        : voter.year.name;
+
+      return {
+        ...voter,
+        // Ensure status is properly typed as VoterStatus
+        status: voter.status as unknown as VoterStatus,
+        // Enhance year data with department relationship
+        year: {
+          ...voter.year,
+          name: yearFullName,
+          departmentName: yearInfo?.departmentName || "Unknown",
+          departmentId: yearInfo?.departmentId || 0,
+          departmentImage: yearInfo?.departmentImage || null,
+        },
+      };
+    });
+
+    return (
+      <DepartmentCard
+        voters={voters}
+        info={info}
+        departmentsData={departments}
+      />
+    );
   } catch (error) {
     console.error("Error fetching voters:", error);
     // Return empty state with error message
@@ -70,6 +128,8 @@ export async function refreshVotersData() {
   // Import revalidateTag inside server action to avoid mixing client/server code
   const { revalidateTag } = await import("next/cache");
   revalidateTag("voters");
+  revalidateTag("departments");
+  revalidateTag("years");
 }
 
 // Main Page - Server Component
@@ -88,10 +148,6 @@ export default function VotersPage() {
           <CreateVoterForm />
         </div>
       </div>
-
-      <Suspense fallback={<StatCardSkeleton />}>
-        <VoterStatsWithAccelerate />
-      </Suspense>
 
       <Card>
         <CardContent>

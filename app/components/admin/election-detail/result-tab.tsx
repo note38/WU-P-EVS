@@ -2,9 +2,8 @@
 
 import type React from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, PrinterIcon, ShareIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DownloadIcon, PrinterIcon, ShareIcon } from "lucide-react";
 
 interface ResultsTabProps {
   electionId: number;

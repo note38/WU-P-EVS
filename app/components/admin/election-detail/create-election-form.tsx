@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlusIcon, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { PlusIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function CreateElectionForm() {
   const { toast } = useToast();
@@ -139,15 +139,13 @@ export function CreateElectionForm() {
 
       const formattedData = {
         name: formData.name,
-        description: formData.description,
-        startDate: startDateTime.toISOString().split("T")[0], // YYYY-MM-DD format
-        startTime: formData.startTime || "00:00:00",
-        endDate: endDateTime.toISOString().split("T")[0], // YYYY-MM-DD format
-        endTime: formData.endTime || "23:59:59",
-        partyList: formData.partyList,
+        description: formData.description || "", // Ensure description is never undefined
+        startDate: startDateTime.toISOString(), // Send full ISO string
+        endDate: endDateTime.toISOString(), // Send full ISO string
+        partyList: formData.partyList, // Send party list array directly
       };
 
-      console.log("Submitting formatted data:", formattedData);
+      console.log("Sending data to API:", JSON.stringify(formattedData));
 
       const response = await fetch("/api/elections", {
         method: "POST",
@@ -157,41 +155,28 @@ export function CreateElectionForm() {
         body: JSON.stringify(formattedData),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response headers:", response.headers);
-
-      // Try to get the response text first
-      const responseText = await response.text();
-      console.log("Response text:", responseText);
-
-      let data;
-      if (responseText) {
-        try {
-          data = JSON.parse(responseText);
-          console.log("Parsed response data:", data);
-        } catch (parseError) {
-          console.error("Error parsing response as JSON:", parseError);
-          // Not valid JSON
-        }
-      }
-
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        // Create a detailed error message
-        let errorMessage;
-        if (data && typeof data === "object" && "error" in data) {
-          errorMessage = data.error;
-        } else if (responseText) {
-          errorMessage = `Server error: ${responseText.substring(0, 100)}${responseText.length > 100 ? "..." : ""}`;
-        } else {
-          errorMessage = `Error: ${response.status} ${response.statusText}`;
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+
+        try {
+          // Only try to parse JSON if there's actually content
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            if (errorData && typeof errorData === "object" && errorData.error) {
+              errorMessage = errorData.error;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
         }
 
-        console.error("Error details:", {
-          status: response.status,
-          errorMessage,
-        });
         throw new Error(errorMessage);
       }
+
+      // Only parse response as JSON if we know it's ok
+      const responseData = await response.json();
 
       // Show success message
       toast({
@@ -200,9 +185,8 @@ export function CreateElectionForm() {
         variant: "default",
       });
 
-      // Close the dialog and refresh the page
+      // Close the dialog
       setOpen(false);
-      router.refresh();
 
       // Reset form
       setFormData({
@@ -214,6 +198,9 @@ export function CreateElectionForm() {
         endTime: "",
         partyList: [],
       });
+
+      // Force refresh the page to show the new election
+      router.refresh();
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({

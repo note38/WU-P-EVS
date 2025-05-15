@@ -1,25 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  UploadIcon,
-  PrinterIcon,
-  SendIcon,
-  EditIcon,
-  TrashIcon,
-} from "lucide-react";
-import { SearchInput } from "../search-input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -28,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -35,8 +19,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import {
+  EditIcon,
+  PrinterIcon,
+  SendIcon,
+  TrashIcon,
+  UploadIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { SearchInput } from "../search-input";
 
 // Define types for the components
 interface Year {
@@ -44,13 +44,24 @@ interface Year {
   name: string;
 }
 
-interface Voter {
+interface Department {
   id: number;
   name: string;
+}
+
+interface Voter {
+  id: number;
+  firstName: string;
+  lastName: string;
+  middleName: string;
   email: string;
-  year: string;
+  avatar?: string;
+  year: { id: number; name: string } | null;
+  department?: { id: number; name: string } | null;
   status: string;
-  votedAt: string | null;
+  votedAt?: string;
+  electionId: number | null;
+  credentialsSent?: boolean;
 }
 
 // Import Voters Dialog Component
@@ -62,14 +73,17 @@ function ImportVotersDialog({
   onImportSuccess: () => void;
 }) {
   const [selectedYear, setSelectedYear] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
   const [years, setYears] = useState<Year[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Fetch available years when dialog opens
+  // Fetch available years and departments when dialog opens
   useEffect(() => {
     if (open) {
       fetchYears();
+      fetchDepartments();
     }
   }, [open]);
 
@@ -82,6 +96,18 @@ function ImportVotersDialog({
       }
     } catch (error) {
       console.error("Error fetching years:", error);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch("/api/departments");
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(data);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
     }
   };
 
@@ -104,7 +130,10 @@ function ImportVotersDialog({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ yearId: selectedYear }),
+          body: JSON.stringify({
+            yearId: selectedYear,
+            departmentId: selectedDepartment || undefined,
+          }),
         }
       );
 
@@ -145,7 +174,7 @@ function ImportVotersDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Import Voters by Year</DialogTitle>
+          <DialogTitle>Import Voters by Year and Department</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -163,6 +192,27 @@ function ImportVotersDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="department">Department (Optional)</Label>
+            <Select
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+            >
+              <SelectTrigger id="department">
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id.toString()}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button
             type="submit"
             className="mt-2"
@@ -185,14 +235,17 @@ export function VotersTab({ electionId }: VotersTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [yearFilter, setYearFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [voters, setVoters] = useState<Voter[]>([]);
   const [years, setYears] = useState<Year[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch voters when component mounts
+  // Fetch voters and filter options when component mounts
   useEffect(() => {
     fetchVoters();
     fetchYears();
+    fetchDepartments();
   }, [electionId]);
 
   const fetchVoters = async () => {
@@ -201,6 +254,16 @@ export function VotersTab({ electionId }: VotersTabProps) {
       const response = await fetch(`/api/elections/${electionId}/voters`);
       if (response.ok) {
         const data = await response.json();
+        console.log("Voters data from API:", data);
+
+        // Check if any voters exist for this election
+        const electionVoters = data.filter(
+          (voter: Voter) => voter.electionId === electionId
+        );
+        console.log(
+          `Found ${electionVoters.length} voters for election ${electionId}`
+        );
+
         setVoters(data);
       } else {
         toast({
@@ -225,6 +288,18 @@ export function VotersTab({ electionId }: VotersTabProps) {
       }
     } catch (error) {
       console.error("Error fetching years:", error);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch("/api/departments");
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(data);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
     }
   };
 
@@ -297,13 +372,47 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
-  const filteredVoters = voters.filter(
-    (voter) =>
-      (voter.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        voter.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        voter.id.toString().includes(searchTerm.toLowerCase())) &&
-      (yearFilter === "all" || voter.year === yearFilter)
-  );
+  const filteredVoters = voters.filter((voter) => {
+    // Only include voters assigned to this election
+    if (voter.electionId !== electionId) {
+      return false;
+    }
+
+    const firstName = voter.firstName || "";
+    const lastName = voter.lastName || "";
+    const middleName = voter.middleName || "";
+    const fullName = `${firstName} ${middleName} ${lastName}`
+      .toLowerCase()
+      .trim();
+    const voterEmail = voter.email ? voter.email.toLowerCase() : "";
+    const voterId = voter.id ? voter.id.toString() : "";
+
+    // Handle year that could be an object or string
+    let voterYear = "";
+    if (voter.year && typeof voter.year === "object" && "name" in voter.year) {
+      voterYear = voter.year.name;
+    }
+
+    // Get department name if exists
+    let voterDepartment = "";
+    if (
+      voter.department &&
+      typeof voter.department === "object" &&
+      "name" in voter.department
+    ) {
+      voterDepartment = voter.department.name;
+    }
+
+    const searchTermLower = searchTerm.toLowerCase();
+
+    return (
+      (fullName.includes(searchTermLower) ||
+        voterEmail.includes(searchTermLower) ||
+        voterId.includes(searchTermLower)) &&
+      (yearFilter === "all" || voterYear === yearFilter) &&
+      (departmentFilter === "all" || voterDepartment === departmentFilter)
+    );
+  });
 
   const toggleSelectAll = () => {
     if (selectedVoters.length === filteredVoters.length) {
@@ -379,6 +488,20 @@ export function VotersTab({ electionId }: VotersTabProps) {
             </SelectContent>
           </Select>
 
+          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((department) => (
+                <SelectItem key={department.id} value={department.name}>
+                  {department.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           {selectedVoters.length > 0 && (
             <div className="flex items-center gap-2 ml-2">
               <span className="text-sm text-muted-foreground">
@@ -416,6 +539,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Year</TableHead>
+                <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Voted At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -424,13 +548,13 @@ export function VotersTab({ electionId }: VotersTabProps) {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10">
+                  <TableCell colSpan={9} className="text-center py-10">
                     Loading voters...
                   </TableCell>
                 </TableRow>
               ) : filteredVoters.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-10">
+                  <TableCell colSpan={9} className="text-center py-10">
                     No voters found
                   </TableCell>
                 </TableRow>
@@ -441,22 +565,25 @@ export function VotersTab({ electionId }: VotersTabProps) {
                       <Checkbox
                         checked={selectedVoters.includes(voter.id)}
                         onCheckedChange={() => toggleSelectVoter(voter.id)}
-                        aria-label={`Select ${voter.name}`}
+                        aria-label={`Select voter ${voter.id}`}
                       />
                     </TableCell>
                     <TableCell className="font-medium">{voter.id}</TableCell>
-                    <TableCell>{voter.name}</TableCell>
-                    <TableCell>{voter.email}</TableCell>
-                    <TableCell>{voter.year}</TableCell>
+                    <TableCell>
+                      {`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}
+                    </TableCell>
+                    <TableCell>{voter.email || "N/A"}</TableCell>
+                    <TableCell>{voter.year?.name || "N/A"}</TableCell>
+                    <TableCell>{voter.department?.name || "N/A"}</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          voter.status === "voted"
+                          voter.status === "VOTED"
                             ? "bg-green-500 hover:bg-green-600"
                             : "bg-gray-500 hover:bg-gray-600"
                         }
                       >
-                        {voter.status === "voted" ? "Voted" : "Not Voted"}
+                        {voter.status === "VOTED" ? "Voted" : "Not Voted"}
                       </Badge>
                     </TableCell>
                     <TableCell>{voter.votedAt || "N/A"}</TableCell>

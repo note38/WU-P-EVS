@@ -1,6 +1,6 @@
 // hooks/useIdleTimeout.js
-import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 export function useIdleTimeout({ timeout = 300000, isActive = true }) {
   const [isIdle, setIsIdle] = useState(false);

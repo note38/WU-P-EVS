@@ -1,12 +1,12 @@
-// /app/api/elections/[electionId]/voters/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
+// GET /api/elections/[electionId]/voters
 export async function GET(
   req: NextRequest,
-  { params }: { params: { electionId: string } }
+  context: { params: { electionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,8 +19,16 @@ export async function GET(
       );
     }
 
+    // Safely extract and parse the electionId from context params
+    if (!context.params || !context.params.electionId) {
+      return NextResponse.json(
+        { error: "Missing election ID" },
+        { status: 400 }
+      );
+    }
+
     // Convert electionId to number
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
     if (isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },
@@ -28,11 +36,10 @@ export async function GET(
       );
     }
 
-    // Check if the election exists and the user has permission to view it
+    // Check if the election exists
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        // Based on your schema, the relation is through createdById
         createdById: parseInt(session.user.id),
       },
     });
@@ -44,29 +51,44 @@ export async function GET(
       );
     }
 
-    // Fetch all voters for this election
-    // Your Voter model has direct fields, not a user relation
+    // Fetch voters with their department and year information
     const voters = await prisma.voter.findMany({
       where: {
-        electionId: electionId,
+        // Either get voters assigned to this election, or unassigned voters
+        OR: [{ electionId: electionId }, { electionId: null }],
       },
       include: {
-        year: true,
+        year: {
+          include: {
+            department: true, // Include department information
+          },
+        },
       },
-      orderBy: {
-        lastName: "asc",
-      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
 
-    // Format the response according to your schema
+    // Format the voters for the frontend
     const formattedVoters = voters.map((voter) => ({
       id: voter.id,
-      name: `${voter.lastName}, ${voter.firstName} ${voter.middleName}`,
+      firstName: voter.firstName,
+      lastName: voter.lastName,
+      middleName: voter.middleName,
       email: voter.email,
-      department: "N/A", // You'll need to join with Department if needed
-      year: voter.year?.name || "N/A",
-      status: voter.status === "VOTED" ? "voted" : "not_voted",
-      votedAt: voter.status === "VOTED" ? new Date().toLocaleString() : null, // You may need to find the vote timestamp
+      avatar: voter.avatar,
+      status: voter.status,
+      yearId: voter.yearId,
+      year: voter.year
+        ? {
+            id: voter.year.id,
+            name: voter.year.name,
+          }
+        : null,
+      department: voter.year?.department
+        ? {
+            id: voter.year.department.id,
+            name: voter.year.department.name,
+          }
+        : null,
     }));
 
     return NextResponse.json(formattedVoters);
@@ -74,65 +96,6 @@ export async function GET(
     console.error("Error fetching voters:", error);
     return NextResponse.json(
       { error: "Failed to fetch voters" },
-      { status: 500 }
-    );
-  }
-}
-
-// /app/api/elections/[electionId]/voters/[voterId]/route.ts
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { electionId: string; voterId: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    // Check if the user is authenticated
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "You must be logged in" },
-        { status: 401 }
-      );
-    }
-
-    // Convert electionId to number
-    const electionId = parseInt(params.electionId);
-    const voterId = parseInt(params.voterId);
-
-    if (isNaN(electionId) || isNaN(voterId)) {
-      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
-    }
-
-    // Check if the election exists and the user has permission
-    const election = await prisma.election.findFirst({
-      where: {
-        id: electionId,
-        createdById: parseInt(session.user.id),
-      },
-    });
-
-    if (!election) {
-      return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
-        { status: 404 }
-      );
-    }
-
-    // Delete the voter
-    await prisma.voter.delete({
-      where: {
-        id: voterId,
-        electionId: electionId,
-      },
-    });
-
-    return NextResponse.json({
-      message: "Voter removed successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting voter:", error);
-    return NextResponse.json(
-      { error: "Failed to delete voter" },
       { status: 500 }
     );
   }

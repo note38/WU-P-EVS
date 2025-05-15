@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
+import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
 
 // GET all users - only for admins
 export async function GET() {

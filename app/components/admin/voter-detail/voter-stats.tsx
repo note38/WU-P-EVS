@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UsersIcon, UserCheckIcon, UserXIcon, MailIcon } from "lucide-react";
-import { unstable_cache } from "next/cache";
 import {
-  VoterDataService,
-  StatsResult,
   AccelerateResult,
+  StatsResult,
+  VoterDataService,
 } from "@/lib/data/VoterDataService";
+import { MailIcon, UserCheckIcon, UsersIcon, UserXIcon } from "lucide-react";
+import { unstable_cache } from "next/cache";
 
 // Cached stats fetch with Accelerate
 const getCachedStats = unstable_cache(

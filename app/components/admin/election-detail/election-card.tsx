@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { DeleteConfirmationDialog } from "@/app/components/admin/delete-confirmation-dialog";
+import { EditElectionForm } from "@/app/components/admin/election-detail/edit-election-form";
+import { StatusChangeDialog } from "@/app/components/admin/status-change-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,21 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  MoreHorizontalIcon,
-  EditIcon,
-  TrashIcon,
-  EyeIcon,
-  PlayIcon,
-  PauseIcon,
-  UsersIcon,
-  VoteIcon,
-} from "lucide-react";
-import { EditElectionForm } from "@/app/components/admin/election-detail/edit-election-form";
-import { DeleteConfirmationDialog } from "@/app/components/admin/delete-confirmation-dialog";
-import { StatusChangeDialog } from "@/app/components/admin/status-change-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +20,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import {
+  EditIcon,
+  EyeIcon,
+  MoreHorizontalIcon,
+  PauseIcon,
+  PlayIcon,
+  TrashIcon,
+  UsersIcon,
+  VoteIcon,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface ElectionCardProps {
   election: {
     id: number;
     name: string;
+    description?: string;
     status: string;
     candidates: number;
     voters: number;
@@ -44,11 +46,13 @@ interface ElectionCardProps {
     uncastVotes: number;
     fullStartDate: string;
     fullEndDate: string;
+    partyList?: string[];
   };
 }
 
 export function ElectionCard({ election }: ElectionCardProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -71,18 +75,92 @@ export function ElectionCard({ election }: ElectionCardProps) {
     setStatusDialogOpen(true);
   };
 
-  const handleStatusConfirm = () => {
-    console.log(
-      `${statusAction === "start" ? "Starting" : "Pausing"} election ${
-        election.id
-      }`
-    );
-    // Here you would typically send the request to your backend
+  const handleStatusConfirm = async () => {
+    try {
+      const newStatus = statusAction === "start" ? "ACTIVE" : "INACTIVE";
+
+      const response = await fetch(`/api/elections/${election.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && typeof errorData === "object" && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If there's an error parsing JSON, use the status text we already have
+          console.error("Error parsing response JSON:", e);
+        }
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "Success",
+        description: `Election has been ${statusAction === "start" ? "started" : "paused"} successfully`,
+        variant: "default",
+      });
+
+      // Refresh the page to show the updated status
+      router.refresh();
+    } catch (error) {
+      console.error(`Error ${statusAction}ing election:`, error);
+
+      toast({
+        title: "Status Update Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : `Failed to ${statusAction} election`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDelete = () => {
-    console.log(`Deleting election ${election.id}`);
-    // Here you would typically send the request to your backend
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/elections/${election.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && typeof errorData === "object" && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If there's an error parsing JSON, use the status text we already have
+          console.error("Error parsing response JSON:", e);
+        }
+        throw new Error(errorMessage);
+      }
+
+      toast({
+        title: "Success",
+        description: "Election has been deleted successfully",
+        variant: "default",
+      });
+
+      // Refresh the page to show the updated list
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting election:", error);
+
+      toast({
+        title: "Delete Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete election",
+        variant: "destructive",
+      });
+    }
   };
 
   const navigateToElectionDetail = () => {
@@ -215,8 +293,10 @@ export function ElectionCard({ election }: ElectionCardProps) {
         election={{
           id: election.id,
           name: election.name,
+          description: election.description,
           startDate: election.fullStartDate,
           endDate: election.fullEndDate,
+          partyList: election.partyList || [],
         }}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}

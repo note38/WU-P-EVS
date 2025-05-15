@@ -1,18 +1,19 @@
-import { prisma } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// API route for handling elections
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    // Get the authenticated user from session
+    // Get the authenticated user
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the user ID from the session
+    // Get user ID from session
     let userId: number;
     try {
       userId =
@@ -27,25 +28,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    // Parse the request body
+    // Parse request body
     let data;
     try {
-      const text = await req.text();
-      console.log("Raw request body:", text);
+      const rawText = await req.text();
+      console.log("Raw request body:", rawText);
 
-      if (!text || text.trim() === "") {
+      if (!rawText || rawText.trim() === "") {
         return NextResponse.json(
           { error: "Empty request body" },
           { status: 400 }
         );
       }
 
-      data = JSON.parse(text);
-      console.log("Parsed request data:", data);
+      try {
+        data = JSON.parse(rawText);
+        console.log("Parsed request data:", data);
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        return NextResponse.json(
+          { error: "Invalid JSON format in request" },
+          { status: 400 }
+        );
+      }
     } catch (e) {
-      console.error("JSON parsing error:", e);
+      console.error("Request body error:", e);
       return NextResponse.json(
-        { error: "Invalid JSON in request data" },
+        { error: "Failed to read request body" },
         { status: 400 }
       );
     }
@@ -72,42 +81,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse dates from the form data
+    // Parse dates
     let startDateTime, endDateTime;
     try {
-      console.log("Date strings:", {
-        startDate: data.startDate,
-        startTime: data.startTime,
-        endDate: data.endDate,
-        endTime: data.endTime,
-      });
-
-      // Ensure we have the correct format YYYY-MM-DD and HH:MM:SS
-      const startTimeString = data.startTime?.includes(":")
-        ? data.startTime
-        : "00:00:00";
-      const endTimeString = data.endTime?.includes(":")
-        ? data.endTime
-        : "23:59:59";
-
-      startDateTime = new Date(`${data.startDate}T${startTimeString}`);
-      endDateTime = new Date(`${data.endDate}T${endTimeString}`);
-
-      console.log("Parsed dates:", {
-        startDateTime,
-        endDateTime,
-        startValid: !isNaN(startDateTime.getTime()),
-        endValid: !isNaN(endDateTime.getTime()),
-      });
+      startDateTime = new Date(data.startDate);
+      endDateTime = new Date(data.endDate);
 
       if (isNaN(startDateTime.getTime())) {
-        throw new Error(
-          `Invalid start date: ${data.startDate}T${startTimeString}`
-        );
+        throw new Error(`Invalid start date: ${data.startDate}`);
       }
 
       if (isNaN(endDateTime.getTime())) {
-        throw new Error(`Invalid end date: ${data.endDate}T${endTimeString}`);
+        throw new Error(`Invalid end date: ${data.endDate}`);
       }
     } catch (e) {
       console.error("Date parsing error:", e);
@@ -125,87 +110,108 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Create election in a transaction to ensure data consistency
     try {
-      // First create the election
-      const newElection = await prisma.election.create({
-        data: {
-          name: data.name,
-          description: data.description || "",
-          startDate: startDateTime,
-          endDate: endDateTime,
-          status: "INACTIVE",
-          createdById: userId,
-        },
+      console.log("Creating election with partyList:", data.partyList);
+
+      const election = await prisma.$transaction(async (tx) => {
+        // First create the election
+        const newElection = await tx.election.create({
+          data: {
+            name: data.name,
+            description: data.description || "",
+            startDate: startDateTime,
+            endDate: endDateTime,
+            createdById: userId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+
+        // If there are partylists, create them
+        if (Array.isArray(data.partyList) && data.partyList.length > 0) {
+          const partylistsData = data.partyList.map((name: string) => ({
+            name: String(name).trim(),
+            electionId: newElection.id,
+            createdById: userId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+
+          await tx.partylist.createMany({
+            data: partylistsData,
+          });
+        }
+
+        return newElection;
       });
 
-      console.log("Created election:", newElection);
-
-      // Then create partylists if provided
-      if (Array.isArray(data.partyList) && data.partyList.length > 0) {
-        const partylistsData = data.partyList.map((name: string) => ({
-          name: String(name),
-          electionId: newElection.id,
-          createdById: userId,
-        }));
-
-        console.log("Creating partylists:", partylistsData);
-
-        await prisma.partylist.createMany({
-          data: partylistsData,
-        });
-      }
-
-      // Get the complete election with partylists
       const completeElection = await prisma.election.findUnique({
-        where: { id: newElection.id },
+        where: { id: election.id },
         include: { partylists: true },
       });
+
+      if (!completeElection) {
+        return NextResponse.json(
+          { error: "Failed to retrieve created election" },
+          { status: 500 }
+        );
+      }
+
+      // Format the response to match the expected format in the client
+      const formattedElection = {
+        ...completeElection,
+        partyList: completeElection.partylists.map((p) => p.name) || [],
+      };
+
+      console.log("Created election:", formattedElection);
 
       return NextResponse.json(
         {
           message: "Election created successfully",
-          election: completeElection,
+          election: formattedElection,
         },
         { status: 201 }
       );
     } catch (dbError) {
       console.error("Database operation error:", dbError);
-
-      // More specific error for debugging
-      const errorMessage =
-        dbError instanceof Error ? dbError.message : "Unknown database error";
-
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+      return NextResponse.json(
+        {
+          error:
+            dbError instanceof Error
+              ? dbError.message
+              : "Failed to create election",
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error("Error creating election:", error);
-
-    // Detailed error handling
-    let errorMessage = "Failed to create election";
-    let status = 500;
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-
-      // Handle common errors
-      if (errorMessage.includes("Unique constraint failed")) {
-        errorMessage = "An election with this name already exists";
-        status = 409;
-      }
-    }
-
-    return NextResponse.json({ error: errorMessage }, { status });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create election",
+      },
+      { status: 500 }
+    );
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Get elections with partylists
     const elections = await prisma.election.findMany({
-      orderBy: { name: "asc" },
       include: { partylists: true },
+      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(elections);
+    // Format elections to include partyList in the expected format
+    const formattedElections = elections.map((election) => ({
+      ...election,
+      partyList: election.partylists.map((p) => p.name),
+    }));
+
+    return NextResponse.json(formattedElections);
   } catch (error) {
     console.error("Error fetching elections:", error);
     return NextResponse.json(

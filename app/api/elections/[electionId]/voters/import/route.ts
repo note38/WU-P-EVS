@@ -1,10 +1,10 @@
 // /app/api/elections/[electionId]/voters/import/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/db";
 import { Role, VoterStatus } from "@prisma/client"; // Import the enums
+import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   req: NextRequest,

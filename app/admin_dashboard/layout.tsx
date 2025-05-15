@@ -1,11 +1,11 @@
 "use client";
 
-import type React from "react";
-import { useState, useEffect } from "react";
-import { Sidebar } from "@/app/components/admin/navigation/sidebar";
-import { Header } from "@/app/components/admin/navigation/header";
 import { useIdleTimeout } from "@/app/admin_dashboard/hooks/useIdleTimeout";
+import { Header } from "@/app/components/admin/navigation/header";
+import { Sidebar } from "@/app/components/admin/navigation/sidebar";
 import { useSession } from "next-auth/react";
+import type React from "react";
+import { useState } from "react";
 import { Footer } from "../components/admin/navigation/footer";
 
 export default function DashboardLayout({

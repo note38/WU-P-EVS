@@ -1,5 +1,5 @@
 // File: src/components/Dashboard/mockData.ts
-import { Vote, Users, Flag, Award } from "lucide-react";
+import { Award, Flag, Users } from "lucide-react";
 
 export interface Candidate {
   name: string;

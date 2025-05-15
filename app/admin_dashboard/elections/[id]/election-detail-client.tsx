@@ -1,7 +1,10 @@
 "use client";
 
-// app/admin_dashboard/elections/[id]/election-detail-client.tsx
-import { useRouter } from "next/navigation";
+import { CandidatesTab } from "@/app/components/admin/election-detail/candidates-tab";
+import { PositionsTab } from "@/app/components/admin/election-detail/positions-tab";
+import { ResultsTab } from "@/app/components/admin/election-detail/result-tab";
+import { VotersTab } from "@/app/components/admin/election-detail/voter-tab";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,20 +14,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeftIcon,
-  UsersIcon,
-  VoteIcon,
   BarChart3Icon,
   ListIcon,
+  UsersIcon,
+  VoteIcon,
 } from "lucide-react";
-import { PositionsTab } from "@/app/components/admin/election-detail/positions-tab";
-import { CandidatesTab } from "@/app/components/admin/election-detail/candidates-tab";
-import { VotersTab } from "@/app/components/admin/election-detail/voter-tab";
-import { ResultsTab } from "@/app/components/admin/election-detail/result-tab";
+import { useRouter } from "next/navigation";
 
-// Define the Election type based on your schema
 type Election = {
   id: number;
   name: string;
@@ -49,7 +47,6 @@ export default function ElectionDetailClient({
 }) {
   const router = useRouter();
 
-  // Map status to style classes
   const getStatusClassName = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":

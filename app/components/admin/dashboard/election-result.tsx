@@ -1,17 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Maximize2,
-  Minimize2,
-  Eye,
-  EyeOff,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -20,6 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Function to generate random avatar URL
 function getRandomAvatar() {

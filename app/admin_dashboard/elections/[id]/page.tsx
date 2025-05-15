@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
 
 // This is a server component that fetches data

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { getVoterSession } from "@/action/auth";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
   // Check if user is already logged in as a voter

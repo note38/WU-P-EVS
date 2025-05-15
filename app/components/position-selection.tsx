@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Position } from "@/types/ballot";
+import Image from "next/image";
 
 interface PositionSelectionProps {
   position: Position;

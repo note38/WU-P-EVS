@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { PositionSelection } from "@/app/components/position-selection";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
-import { PositionSelection } from "@/app/components/position-selection";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Position } from "@/types/ballot";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 interface BallotFormProps {

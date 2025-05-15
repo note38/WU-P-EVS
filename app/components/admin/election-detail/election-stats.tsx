@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, BarChart2, CalendarIcon, CheckCircle } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { unstable_cache } from "next/cache";
 import { AccelerateInfo } from "@prisma/extension-accelerate";
+import { BarChart2, CalendarIcon, CheckCircle, PieChart } from "lucide-react";
+import { unstable_cache } from "next/cache";
 
 type StatsResult = {
   totalElections: number;

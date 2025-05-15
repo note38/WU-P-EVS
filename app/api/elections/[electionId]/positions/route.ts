@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions
 export async function GET(
   req: NextRequest,
-  { params }: { params: { electionId: string } }
+  context: { params: { electionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,9 +16,22 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // First, safely extract and parse the electionId
-    const electionIdString = params.electionId;
-    const electionId = parseInt(electionIdString);
+    // Safely extract and parse the electionId from context params
+    if (!context.params || !context.params.electionId) {
+      return NextResponse.json(
+        { error: "Missing election ID" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(context.params.electionId);
+
+    if (isNaN(electionId)) {
+      return NextResponse.json(
+        { error: "Invalid election ID format" },
+        { status: 400 }
+      );
+    }
 
     // Verify the election exists
     const election = await prisma.election.findUnique({
@@ -65,7 +78,7 @@ export async function GET(
 // POST /api/elections/[electionId]/positions
 export async function POST(
   req: NextRequest,
-  { params }: { params: { electionId: string } }
+  context: { params: { electionId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -73,9 +86,22 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // First, safely extract and parse the electionId
-    const electionIdString = params.electionId;
-    const electionId = parseInt(electionIdString);
+    // Safely extract and parse the electionId from context params
+    if (!context.params || !context.params.electionId) {
+      return NextResponse.json(
+        { error: "Missing election ID" },
+        { status: 400 }
+      );
+    }
+
+    const electionId = parseInt(context.params.electionId);
+
+    if (isNaN(electionId)) {
+      return NextResponse.json(
+        { error: "Invalid election ID format" },
+        { status: 400 }
+      );
+    }
 
     // Then process the request body
     const { name, maxCandidates, yearId } = await req.json();
