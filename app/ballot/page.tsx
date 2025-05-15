@@ -1,4 +1,4 @@
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/auth-options";
 import { BallotForm } from "@/components/ballot-form";
 import { getElectionForVoter } from "@/lib/data/elections";
 import { getServerSession } from "next-auth/next";
