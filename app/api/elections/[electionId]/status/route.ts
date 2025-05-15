@@ -3,11 +3,8 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-// PATCH handler to update the status of an election
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { electionId: string } }
-) {
+// PATCH handler to update the status of an election - using any type for context
+export async function PATCH(req: NextRequest, context: any) {
   try {
     // Get the authenticated user from session
     const session = await getServerSession(authOptions);
@@ -17,7 +14,7 @@ export async function PATCH(
     }
 
     // Parse election ID from params
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(

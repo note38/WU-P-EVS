@@ -2,14 +2,11 @@ import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, context: any) {
   try {
     const body = await request.json();
     const year = await prisma.year.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(context.params.id) },
       data: {
         name: body.name,
         departmentId: parseInt(body.departmentId),
