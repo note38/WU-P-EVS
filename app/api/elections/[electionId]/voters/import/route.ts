@@ -6,10 +6,7 @@ import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { electionId: string } }
-) {
+export async function POST(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -34,7 +31,7 @@ export async function POST(
     }
 
     // Convert IDs to numbers
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(context.params.electionId);
     const yearIdNum = parseInt(yearId);
 
     if (isNaN(electionId) || isNaN(yearIdNum)) {

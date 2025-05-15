@@ -4,10 +4,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/elections/[electionId]/candidates
-export async function GET(
-  req: NextRequest,
-  context: { params: { electionId: string } }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -90,11 +87,8 @@ export async function GET(
   }
 }
 
-// POST /api/elections/[electionId]/candidates
-export async function POST(
-  req: NextRequest,
-  context: { params: { electionId: string } }
-) {
+// POST /api/elections/[electionId]/candidates - using any type for context
+export async function POST(req: NextRequest, context: any) {
   try {
     const session = await getServerSession(authOptions);
 
