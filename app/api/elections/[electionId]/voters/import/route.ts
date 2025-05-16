@@ -1,5 +1,5 @@
 // /app/api/elections/[electionId]/voters/import/route.ts
-import { authOptions } from "@/lib/draft";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Role, VoterStatus } from "@prisma/client"; // Import the enums
 import bcrypt from "bcryptjs";

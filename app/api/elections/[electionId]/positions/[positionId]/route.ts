@@ -1,5 +1,5 @@
 // app/api/elections/[electionId]/positions/[positionId]/route.ts
-import { authOptions } from "@/lib/draft";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
