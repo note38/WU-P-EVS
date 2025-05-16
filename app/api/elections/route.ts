@@ -1,5 +1,5 @@
 // API route for handling elections
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/draft";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";

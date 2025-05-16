@@ -1,4 +1,4 @@
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/draft";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth";

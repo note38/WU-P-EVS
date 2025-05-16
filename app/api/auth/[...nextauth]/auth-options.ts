@@ -124,11 +124,12 @@ export const authOptions: NextAuthOptions = {
 
             if (!isValidPassword) return null;
 
+            // Return a properly typed user object
             return {
               id: user.id.toString(),
               name: user.username,
               email: user.email,
-              role: user.role,
+              role: user.role.toString(),
               userType: "admin",
             };
           } else {
@@ -181,11 +182,12 @@ export const authOptions: NextAuthOptions = {
               throw new Error("Voter not associated with any election");
             }
 
+            // Return a properly typed voter object
             return {
               id: voter.id.toString(),
               name: `${voter.firstName} ${voter.lastName}`,
               email: voter.email,
-              role: voter.role,
+              role: voter.role.toString(),
               userType: "voter",
               status: voter.status,
               electionId: voter.electionId,
