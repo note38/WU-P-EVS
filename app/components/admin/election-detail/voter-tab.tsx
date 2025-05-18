@@ -5,14 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,15 +20,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import {
-  EditIcon,
-  PrinterIcon,
-  SendIcon,
-  TrashIcon,
-  UploadIcon,
-} from "lucide-react";
+import { EditIcon, PrinterIcon, SendIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SearchInput } from "../search-input";
+import { ImportVotersDialog } from "./import-voter";
 
 // Define types for the components
 interface Year {
@@ -59,172 +46,9 @@ interface Voter {
   year: { id: number; name: string } | null;
   department?: { id: number; name: string } | null;
   status: string;
-  votedAt?: string;
+  votedAt?: string | null;
   electionId: number | null;
   credentialsSent?: boolean;
-}
-
-// Import Voters Dialog Component
-function ImportVotersDialog({
-  electionId,
-  onImportSuccess,
-}: {
-  electionId: number;
-  onImportSuccess: () => void;
-}) {
-  const [selectedYear, setSelectedYear] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [years, setYears] = useState<Year[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  // Fetch available years and departments when dialog opens
-  useEffect(() => {
-    if (open) {
-      fetchYears();
-      fetchDepartments();
-    }
-  }, [open]);
-
-  const fetchYears = async () => {
-    try {
-      const response = await fetch("/api/years");
-      if (response.ok) {
-        const data = await response.json();
-        setYears(data);
-      }
-    } catch (error) {
-      console.error("Error fetching years:", error);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const response = await fetch("/api/departments");
-      if (response.ok) {
-        const data = await response.json();
-        setDepartments(data);
-      }
-    } catch (error) {
-      console.error("Error fetching departments:", error);
-    }
-  };
-
-  const handleImport = async () => {
-    if (!selectedYear) {
-      toast({
-        title: "Error",
-        description: "Please select a year",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/elections/${electionId}/voters/import`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            yearId: selectedYear,
-            departmentId: selectedDepartment || undefined,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: `${data.count} voters imported successfully`,
-        });
-        setOpen(false);
-        if (onImportSuccess) onImportSuccess();
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to import voters",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <UploadIcon className="h-4 w-4 mr-2" />
-          Import Voters
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Import Voters by Year and Department</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="year">Year</Label>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger id="year">
-                <SelectValue placeholder="Select year" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year.id} value={year.id.toString()}>
-                    {year.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="department">Department (Optional)</Label>
-            <Select
-              value={selectedDepartment}
-              onValueChange={setSelectedDepartment}
-            >
-              <SelectTrigger id="department">
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Departments</SelectItem>
-                {departments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id.toString()}>
-                    {dept.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button
-            type="submit"
-            className="mt-2"
-            onClick={handleImport}
-            disabled={loading}
-          >
-            {loading ? "Importing..." : "Import Selected Voters"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 interface VotersTabProps {
@@ -252,28 +76,26 @@ export function VotersTab({ electionId }: VotersTabProps) {
     setLoading(true);
     try {
       const response = await fetch(`/api/elections/${electionId}/voters`);
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
         console.log("Voters data from API:", data);
-
-        // Check if any voters exist for this election
-        const electionVoters = data.filter(
-          (voter: Voter) => voter.electionId === electionId
-        );
-        console.log(
-          `Found ${electionVoters.length} voters for election ${electionId}`
-        );
-
         setVoters(data);
       } else {
+        console.error("Error response:", data);
         toast({
           title: "Error",
-          description: "Failed to fetch voters",
+          description: data.error || "Failed to fetch voters",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error fetching voters:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch voters. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -373,11 +195,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
   };
 
   const filteredVoters = voters.filter((voter) => {
-    // Only include voters assigned to this election
-    if (voter.electionId !== electionId) {
-      return false;
-    }
-
     const firstName = voter.firstName || "";
     const lastName = voter.lastName || "";
     const middleName = voter.middleName || "";
@@ -443,24 +260,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
           <Button variant="outline" size="sm">
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print Voters
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (selectedVoters.length > 0) {
-                handleSendCredentials(selectedVoters);
-              } else {
-                toast({
-                  title: "Selection Required",
-                  description: "Please select voters to send credentials",
-                  variant: "default",
-                });
-              }
-            }}
-          >
-            <SendIcon className="h-4 w-4 mr-2" />
-            Send Credentials
           </Button>
         </div>
       </div>
@@ -555,7 +354,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
               ) : filteredVoters.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-10">
-                    No voters found
+                    No voters found for this election. Use the "Import Voters"
+                    button to add voters.
                   </TableCell>
                 </TableRow>
               ) : (

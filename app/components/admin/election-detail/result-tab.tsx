@@ -32,10 +32,6 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             <DownloadIcon className="h-4 w-4 mr-2" />
             Export Results
           </Button>
-          <Button variant="outline" size="sm">
-            <ShareIcon className="h-4 w-4 mr-2" />
-            Share Results
-          </Button>
         </div>
       </div>
 

@@ -1,98 +1,121 @@
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET /api/elections/[electionId]/voters
-export async function GET(req: NextRequest, context: any) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { electionId: string } }
+) {
   try {
-    const session = await getServerSession(authOptions);
+    const electionId = parseInt(params.electionId);
 
-    // Check if the user is authenticated
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "You must be logged in" },
-        { status: 401 }
-      );
-    }
-
-    // Safely extract and parse the electionId from context params
-    if (!context.params || !context.params.electionId) {
-      return NextResponse.json(
-        { error: "Missing election ID" },
-        { status: 400 }
-      );
-    }
-
-    // Convert electionId to number
-    const electionId = parseInt(context.params.electionId);
-    if (isNaN(electionId)) {
-      return NextResponse.json(
-        { error: "Invalid election ID" },
-        { status: 400 }
-      );
-    }
-
-    // Check if the election exists
-    const election = await prisma.election.findFirst({
-      where: {
-        id: electionId,
-        createdById: parseInt(session.user.id),
-      },
+    // Validate that the election exists
+    const election = await prisma.election.findUnique({
+      where: { id: electionId },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }
 
-    // Fetch voters with their department and year information
+    // Fetch voters for this specific election with their related year and department info
     const voters = await prisma.voter.findMany({
       where: {
-        // Either get voters assigned to this election, or unassigned voters
-        OR: [{ electionId: electionId }, { electionId: null }],
+        electionId: electionId,
       },
       include: {
         year: {
           include: {
-            department: true, // Include department information
+            department: true,
           },
         },
       },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     });
 
-    // Format the voters for the frontend
-    const formattedVoters = voters.map((voter) => ({
-      id: voter.id,
-      firstName: voter.firstName,
-      lastName: voter.lastName,
-      middleName: voter.middleName,
-      email: voter.email,
-      avatar: voter.avatar,
-      status: voter.status,
-      yearId: voter.yearId,
-      year: voter.year
-        ? {
-            id: voter.year.id,
-            name: voter.year.name,
-          }
-        : null,
-      department: voter.year?.department
-        ? {
-            id: voter.year.department.id,
-            name: voter.year.department.name,
-          }
-        : null,
-    }));
-
-    return NextResponse.json(formattedVoters);
+    return NextResponse.json(voters);
   } catch (error) {
     console.error("Error fetching voters:", error);
     return NextResponse.json(
       { error: "Failed to fetch voters" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { electionId: string } }
+) {
+  try {
+    const electionId = parseInt(params.electionId);
+    const body = await request.json();
+    const { yearId, departmentId, allDepartments } = body;
+
+    // Validate that yearId exists
+    if (!yearId) {
+      return NextResponse.json({ error: "Year is required" }, { status: 400 });
+    }
+
+    // Validate that the election exists
+    const election = await prisma.election.findUnique({
+      where: { id: electionId },
+    });
+
+    if (!election) {
+      return NextResponse.json(
+        { error: "Election not found" },
+        { status: 404 }
+      );
+    }
+
+    // Build the query to find all voters based on year and department criteria
+    let query: any = {
+      where: {
+        yearId: parseInt(yearId),
+        electionId: null, // Only get voters not already assigned to an election
+      },
+      select: {
+        id: true,
+      },
+    };
+
+    // If not "all departments" and a specific department was selected
+    if (!allDepartments && departmentId) {
+      query.where.departmentId = parseInt(departmentId);
+    }
+
+    // Find voters matching the criteria
+    const voters = await prisma.voter.findMany(query);
+
+    if (voters.length === 0) {
+      return NextResponse.json(
+        { error: "No unassigned voters found with the specified criteria" },
+        { status: 404 }
+      );
+    }
+
+    // Update all found voters to assign them to this election
+    const bulkUpdateResult = await prisma.voter.updateMany({
+      where: {
+        id: {
+          in: voters.map((voter) => voter.id),
+        },
+      },
+      data: {
+        electionId: electionId,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Voters imported successfully",
+      count: bulkUpdateResult.count,
+    });
+  } catch (error) {
+    console.error("Error importing voters:", error);
+    return NextResponse.json(
+      { error: "Failed to import voters" },
       { status: 500 }
     );
   }
