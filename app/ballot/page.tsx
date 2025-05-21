@@ -1,5 +1,5 @@
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth-options";
-import { BallotForm } from "@/components/ballot-form";
+import { BallotForm } from "@/app/components/ballot/ballot-form";
 import { getElectionForVoter } from "@/lib/data/elections";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";

@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true, // This will allow Vercel to build even with type errors
   },
+  images: {
+    domains: ["api.dicebear.com"],
+  },
 };
 
 export default nextConfig;

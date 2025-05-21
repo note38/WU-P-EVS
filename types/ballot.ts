@@ -3,11 +3,14 @@ export interface Candidate {
   name: string;
   party: string;
   avatar?: string;
+  avatarUrl?: string;
+  description?: string;
 }
 
 export interface Position {
   id: string;
   title: string;
+  description?: string;
   candidates: Candidate[];
 }
 
