@@ -62,9 +62,9 @@ model Position {
   id            Int          @id @default(autoincrement())
   name          String
   maxCandidates Int          @default(1)
-  year        Year?     @relation(fields: [yearId], references: [id])
-  yearId      Int?
-  election      Election     @relation(fields: [electionId], references: [id])
+  year          Year?        @relation(fields: [yearId], references: [id])
+  yearId        Int?
+  election      Election     @relation(fields: [electionId], references: [id], onDelete: Cascade)
   electionId    Int
   candidates    Candidate[]
   votes         Vote[]
@@ -78,11 +78,11 @@ model Candidate {
   id          Int       @id @default(autoincrement())
   avatar      String?
   name        String
-  position    Position  @relation(fields: [positionId], references: [id])
+  position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
   positionId  Int
-  partylist   Partylist @relation(fields: [partylistId], references: [id])
+  partylist   Partylist @relation(fields: [partylistId], references: [id], onDelete: Cascade)
   partylistId Int
-  election    Election  @relation(fields: [electionId], references: [id])
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
   electionId  Int
   year        Year?     @relation(fields: [yearId], references: [id])
   yearId      Int?
@@ -103,7 +103,7 @@ model Voter {
   email           String      @unique
   hashpassword    String
   role            Role        @default(VOTER)
-  election        Election?    @relation(fields: [electionId], references: [id])
+  election        Election?   @relation(fields: [electionId], references: [id], onDelete: SetNull)
   electionId      Int?
   year            Year        @relation(fields: [yearId], references: [id])
   yearId          Int
@@ -119,8 +119,8 @@ model Voter {
 model Vote {
   id          Int       @id @default(autoincrement())
   voter       Voter     @relation(fields: [voterId], references: [id])
-  position    Position  @relation(fields: [positionId], references: [id])
-  election    Election  @relation(fields: [electionId], references: [id])
+  position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
   voterId     Int
   candidateId Int
   positionId  Int
@@ -134,7 +134,7 @@ model Vote {
 model Partylist {
   id          Int         @id @default(autoincrement())
   name        String
-  election    Election    @relation(fields: [electionId], references: [id])
+  election    Election    @relation(fields: [electionId], references: [id], onDelete: Cascade)
   electionId  Int
   candidates  Candidate[]
   createdAt   DateTime    @default(now())

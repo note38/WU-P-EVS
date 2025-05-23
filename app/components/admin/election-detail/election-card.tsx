@@ -127,25 +127,30 @@ export function ElectionCard({ election }: ElectionCardProps) {
     try {
       const response = await fetch(`/api/elections/${election.id}`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      if (!response.ok) {
-        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
         try {
-          const errorData = await response.json();
-          if (errorData && typeof errorData === "object" && errorData.error) {
-            errorMessage = errorData.error;
-          }
+          data = await response.json();
         } catch (e) {
-          // If there's an error parsing JSON, use the status text we already have
-          console.error("Error parsing response JSON:", e);
+          console.error("Error parsing JSON response:", e);
         }
-        throw new Error(errorMessage);
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || `Failed to delete election (${response.status})`
+        );
       }
 
       toast({
         title: "Success",
-        description: "Election has been deleted successfully",
+        description: data?.message || "Election has been deleted successfully",
         variant: "default",
       });
 
@@ -160,6 +165,9 @@ export function ElectionCard({ election }: ElectionCardProps) {
           error instanceof Error ? error.message : "Failed to delete election",
         variant: "destructive",
       });
+    } finally {
+      // Close the delete confirmation dialog
+      setDeleteDialogOpen(false);
     }
   };
 

@@ -128,20 +128,33 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // If there are partylists, create them
-        if (Array.isArray(data.partyList) && data.partyList.length > 0) {
-          const partylistsData = data.partyList.map((name: string) => ({
-            name: String(name).trim(),
-            electionId: newElection.id,
-            createdById: userId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }));
+        // Prepare partylist data, always including "Independent" by default
+        const initialNames: string[] = Array.isArray(data.partyList)
+          ? data.partyList.map((n: string) => String(n).trim())
+          : [];
 
-          await tx.partylist.createMany({
-            data: partylistsData,
-          });
+        if (!initialNames.some((n) => n.toLowerCase() === "independent")) {
+          initialNames.push("Independent");
         }
+
+        // Remove duplicates (case-insensitive)
+        const uniqueNames = Array.from(
+          new Set(initialNames.map((n) => n.toLowerCase()))
+        ).map(
+          (lowerName) =>
+            initialNames.find((n) => n.toLowerCase() === lowerName) as string
+        );
+
+        const partylistsData = uniqueNames.map((name: string) => ({
+          name,
+          electionId: newElection.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        await tx.partylist.createMany({
+          data: partylistsData,
+        });
 
         return newElection;
       });

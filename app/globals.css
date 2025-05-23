@@ -11,7 +11,10 @@ body {
     --background: 150 30% 98%;
     --foreground: 150 45% 10%;
     --card: 150 25% 99%;
+    --card-ba: 10 105% 99%;
     --card-foreground: 150 45% 10%;
+    --card-gradient-from: 150 35% 99%;
+    --card-gradient-to: 150 25% 99%;
     --popover: 150 25% 99%;
     --popover-foreground: 150 45% 10%;
     --primary: 142 70% 45%;
@@ -39,6 +42,8 @@ body {
     --foreground: 150 10% 90%;
     --card: 150 25% 12%;
     --card-foreground: 150 10% 90%;
+    --card-gradient-from: 150 38% 15%;
+    --card-gradient-to: 70 0% 7%;
     --popover: 150 25% 12%;
     --popover-foreground: 150 10% 90%;
     --primary: 142 65% 40%;
@@ -68,5 +73,11 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .card-gradient {
+    @apply bg-gradient-to-br from-[hsl(var(--card-gradient-from))] to-[hsl(var(--card-gradient-to))];
   }
 }

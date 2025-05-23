@@ -10,55 +10,50 @@ import {
   ElectionCardsSkeleton,
   ElectionStatsSkeleton,
 } from "@/app/components/ui/skeleton";
-import { unstable_cache } from "next/cache";
 
-// Cached election data fetch
-const getElectionsData = unstable_cache(
-  async () => {
-    return prisma.election.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        startDate: true,
-        endDate: true,
-        status: true,
-        createdAt: true,
-        _count: {
-          select: {
-            positions: true,
-            voters: true,
-            votes: true,
-          },
+// Remove caching and use direct data fetch
+const getElectionsData = async () => {
+  return await prisma.election.findMany({
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      status: true,
+      createdAt: true,
+      _count: {
+        select: {
+          positions: true,
+          voters: true,
+          votes: true,
         },
-        positions: {
-          select: {
-            _count: {
-              select: {
-                candidates: true,
-              },
+      },
+      voters: {
+        select: {
+          status: true,
+        },
+      },
+      positions: {
+        select: {
+          _count: {
+            select: {
+              candidates: true,
             },
           },
         },
-        createdBy: {
-          select: {
-            username: true,
-          },
+      },
+      createdBy: {
+        select: {
+          username: true,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      // Enable caching for this query
-      cacheStrategy: {
-        ttl: 60, // Cache for 60 seconds
-        swr: 120, // Stale-while-revalidate for 120 seconds
-      },
-    });
-  },
-  ["elections-data"],
-  { tags: ["elections"], revalidate: 60 }
-);
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
 // Async Election List Component
 async function ElectionList() {
@@ -72,8 +67,14 @@ async function ElectionList() {
     );
 
     const totalVoters = election._count.voters;
-    const castVotes = election._count.votes;
-    const uncastVotes = totalVoters - castVotes;
+    // Count voters with VOTED status
+    const castVotes = election.voters.filter(
+      (voter) => voter.status === "VOTED"
+    ).length;
+    // Count voters with REGISTERED status
+    const uncastVotes = election.voters.filter(
+      (voter) => voter.status === "REGISTERED"
+    ).length;
 
     // Convert string dates to Date objects if necessary
     const startDateObj = new Date(election.startDate);
@@ -122,9 +123,9 @@ async function ElectionList() {
   );
 }
 
-// Page Config
+// Page Config - Enable dynamic rendering and disable caching
 export const dynamic = "force-dynamic";
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default function ElectionsPage() {
   return (

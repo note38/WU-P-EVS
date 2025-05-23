@@ -81,7 +81,7 @@ export default function ElectionDetailClient({
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold text-black">{election.name}</h1>
+        <h1 className="text-3xl font-bold">{election.name}</h1>
         <Badge className={getStatusClassName(election.status)}>
           {formatStatus(election.status)}
         </Badge>

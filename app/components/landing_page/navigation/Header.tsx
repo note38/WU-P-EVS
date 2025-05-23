@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { LogIn, Award } from "lucide-react";
+import { ThemeToggle } from "@/app/components/admin/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { LogIn } from "lucide-react";
+import Link from "next/link";
 
 interface HeaderProps {
   onSwitchElection?: () => void;
@@ -18,6 +18,7 @@ export function Header({ onSwitchElection }: HeaderProps) {
           <h1 className="text-xl font-bold">AWUP Voting System</h1>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="outline" onClick={onSwitchElection}>
             Switch Election
           </Button>

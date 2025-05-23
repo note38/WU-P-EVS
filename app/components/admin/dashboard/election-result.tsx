@@ -221,7 +221,7 @@ export default function VoterPage() {
 
   return (
     <div
-      className={`min-h-screen bg-slate-50 p-1 ${isFullscreen ? "fixed inset-0 z-50 bg-slate-100" : ""}`}
+      className={`min-h-screen  p-1 ${isFullscreen ? "fixed inset-0 z-50 " : ""}`}
     >
       <div className="container mx-auto ">
         <div className="mb-2 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
@@ -326,7 +326,7 @@ export default function VoterPage() {
 
             return (
               <Card key={position.id} className="overflow-hidden">
-                <CardHeader className="bg-slate-200 py-1 px-2">
+                <CardHeader className=" py-1 px-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xs">{position.name}</CardTitle>
                     <Button
@@ -357,10 +357,10 @@ export default function VoterPage() {
                         return (
                           <div
                             key={candidate.id}
-                            className="rounded-md border bg-white p-1 shadow-sm"
+                            className="rounded-md border  p-1 shadow-sm"
                           >
                             <div className="mb-1 flex items-center gap-1">
-                              <div className="h-6 w-6 overflow-hidden rounded-full border border-slate-300">
+                              <div className="h-6 w-6 overflow-hidden rounded-full border">
                                 <img
                                   src={candidate.avatar || "/placeholder.svg"}
                                   alt={`Avatar for ${candidate.name}`}

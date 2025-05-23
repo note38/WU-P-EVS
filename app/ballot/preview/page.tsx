@@ -1,15 +1,14 @@
 "use client";
 
-import { logoutVoter } from "@/action/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Position } from "@/types/ballot";
-import { Check } from "lucide-react";
+import { ChevronLeft, Check } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function ResultsPage() {
+export default function PreviewPage() {
   const router = useRouter();
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [positions, setPositions] = useState<Position[]>([]);
@@ -31,21 +30,42 @@ export default function ResultsPage() {
     setLoading(false);
   }, [router]);
 
-  const handleDone = async () => {
+  const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Clear localStorage
-      localStorage.removeItem("ballotSelections");
-      localStorage.removeItem("ballotPositions");
+      // Submit the ballot
+      const response = await fetch("/api/ballot/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          selections,
+        }),
+      });
 
-      // Log out the voter
-      await logoutVoter();
+      const result = await response.json();
 
-      // Will be redirected by the logout function
+      if (result.success) {
+        // Clear localStorage
+        localStorage.removeItem("ballotSelections");
+        localStorage.removeItem("ballotPositions");
+
+        // Redirect to thank you page
+        router.push("/ballot/thank-you");
+      } else {
+        alert(result.error || "Failed to submit ballot. Please try again.");
+        setSubmitting(false);
+      }
     } catch (error) {
-      console.error("Error logging out:", error);
+      console.error("Error submitting ballot:", error);
+      alert("An error occurred. Please try again.");
       setSubmitting(false);
     }
+  };
+
+  const handleBack = () => {
+    router.push("/ballot");
   };
 
   if (loading) {
@@ -57,17 +77,16 @@ export default function ResultsPage() {
   return (
     <main className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold text-center mb-2">
-        Thank You For Voting
+        Review Your Ballot
       </h1>
-      <p className="text-center mb-8 text-muted-foreground">
-        Your ballot has been submitted successfully
+      <p className="text-center text-muted-foreground mb-8">
+        Please review your selections before final submission
       </p>
 
-      <div className="max-w-3xl mx-auto space-y-6 mb-8">
-        {positions.map((position: Position) => {
-          const selectedCandidateId = selections[position.id];
+      <div className="max-w-3xl mx-auto space-y-6">
+        {positions.map((position) => {
           const selectedCandidate = position.candidates.find(
-            (c) => c.id === selectedCandidateId
+            (c) => c.id === selections[position.id]
           );
 
           if (!selectedCandidate) return null;
@@ -78,8 +97,8 @@ export default function ResultsPage() {
                 <CardTitle>{position.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="relative h-20 w-20 overflow-hidden rounded-full border">
+                <div className="flex items-center space-x-4">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full border">
                     <Image
                       src={selectedCandidate.avatar || "/placeholder.svg"}
                       alt={selectedCandidate.name}
@@ -88,9 +107,7 @@ export default function ResultsPage() {
                     />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium">
-                      {selectedCandidate.name}
-                    </h3>
+                    <h3 className="font-medium">{selectedCandidate.name}</h3>
                     <p className="text-sm text-muted-foreground">
                       {selectedCandidate.party}
                     </p>
@@ -100,17 +117,27 @@ export default function ResultsPage() {
             </Card>
           );
         })}
-      </div>
 
-      <div className="max-w-3xl mx-auto flex justify-center">
-        <Button
-          onClick={handleDone}
-          disabled={submitting}
-          className="flex items-center"
-        >
-          <Check className="mr-2 h-4 w-4" />
-          {submitting ? "Processing..." : "Done"}
-        </Button>
+        <div className="flex justify-between pt-6">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            className="flex items-center"
+            disabled={submitting}
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Ballot
+          </Button>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex items-center"
+          >
+            <Check className="mr-2 h-4 w-4" />
+            {submitting ? "Submitting..." : "Submit Ballot"}
+          </Button>
+        </div>
       </div>
     </main>
   );

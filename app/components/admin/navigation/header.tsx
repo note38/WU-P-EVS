@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/app/components/admin/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +47,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
   };
 
   return (
-    <header className="border-b bg-green-50">
+    <header className="border-b bg-card">
       <div className="flex h-16 items-center px-4">
         <Button
           variant="ghost"
@@ -57,6 +58,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
           <Menu className="h-6 w-6" />
         </Button>
         <div className="ml-auto flex items-center space-x-4">
+          <ThemeToggle />
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
           </Button>
@@ -71,11 +73,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-56 bg-white"
-              align="end"
-              forceMount
-            >
+            <DropdownMenuContent className="w-56 " align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">

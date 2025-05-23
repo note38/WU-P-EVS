@@ -1,7 +1,8 @@
-"use client";
-
-import { prisma } from "@/lib/db";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+
+// Add runtime configuration
+export const runtime = "nodejs";
 
 export async function POST(
   request: NextRequest,
@@ -12,9 +13,30 @@ export async function POST(
     const body = await request.json();
     const { yearId, departmentId, allDepartments } = body;
 
-    // Validate that yearId exists
-    if (!yearId) {
-      return NextResponse.json({ error: "Year is required" }, { status: 400 });
+    console.log("Import request params:", {
+      electionId,
+      yearId,
+      departmentId,
+      allDepartments,
+    });
+
+    // Validate input parameters
+    if (!electionId || isNaN(electionId)) {
+      return NextResponse.json(
+        { error: "Invalid election ID" },
+        { status: 400 }
+      );
+    }
+
+    if (!yearId || isNaN(parseInt(yearId))) {
+      return NextResponse.json({ error: "Invalid year ID" }, { status: 400 });
+    }
+
+    if (departmentId && isNaN(parseInt(departmentId))) {
+      return NextResponse.json(
+        { error: "Invalid department ID" },
+        { status: 400 }
+      );
     }
 
     // Validate that the election exists
@@ -30,54 +52,116 @@ export async function POST(
     }
 
     // Build the query to find all voters based on year and department criteria
-    let query: any = {
+    const query = {
       where: {
         yearId: parseInt(yearId),
-        electionId: null, // Only get voters not already assigned to an election
+        ...(!allDepartments &&
+          departmentId && {
+            year: {
+              departmentId: parseInt(departmentId),
+            },
+          }),
       },
       select: {
         id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
       },
     };
 
-    // If not "all departments" and a specific department was selected
-    if (!allDepartments && departmentId) {
-      // Add the year's department filter
-      query.where.year = {
-        departmentId: parseInt(departmentId),
-      };
-    }
+    console.log("Voter query:", JSON.stringify(query, null, 2));
 
     // Find voters matching the criteria
     const voters = await prisma.voter.findMany(query);
+    console.log(
+      "Found voters:",
+      voters.length,
+      "First few voters:",
+      voters.slice(0, 3)
+    );
 
     if (voters.length === 0) {
       return NextResponse.json(
-        { error: "No unassigned voters found with the specified criteria" },
+        { error: "No voters found with the specified criteria" },
         { status: 404 }
       );
     }
 
-    // Update all found voters to assign them to this election
-    const bulkUpdateResult = await prisma.voter.updateMany({
-      where: {
-        id: {
-          in: voters.map((voter) => voter.id),
-        },
-      },
-      data: {
-        electionId: electionId,
-      },
-    });
+    const BATCH_SIZE = 25; // Reduced batch size
+    let updatedCount = 0;
+    let errors = [];
+
+    for (let i = 0; i < voters.length; i += BATCH_SIZE) {
+      const batch = voters.slice(i, i + BATCH_SIZE);
+      try {
+        console.log(
+          `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(voters.length / BATCH_SIZE)}`
+        );
+        const result = await prisma.voter.updateMany({
+          where: {
+            id: {
+              in: batch.map((voter) => voter.id),
+            },
+          },
+          data: {
+            electionId: electionId,
+            status: "REGISTERED",
+          },
+        });
+        console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} result:`, result);
+        updatedCount += result.count;
+      } catch (batchError) {
+        const errorMessage =
+          batchError instanceof Error
+            ? batchError.message
+            : "Unknown batch error";
+        console.error(
+          `Error updating batch ${Math.floor(i / BATCH_SIZE) + 1}:`,
+          {
+            error: batchError,
+            message: errorMessage,
+            batchIds: batch.map((v) => v.id),
+          }
+        );
+        errors.push({
+          batch: Math.floor(i / BATCH_SIZE) + 1,
+          error: errorMessage,
+          voterIds: batch.map((v) => v.id),
+        });
+      }
+    }
+
+    if (updatedCount === 0) {
+      console.warn(
+        "No voters needed updating; they may already belong to this election."
+      );
+    }
 
     return NextResponse.json({
-      message: "Voters imported successfully",
-      count: bulkUpdateResult.count,
+      message: "Voter import processed",
+      updated: updatedCount,
+      count: updatedCount,
+      totalMatched: voters.length,
+      alreadyAssigned: voters.length - updatedCount,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error("Error importing voters:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("Error details:", {
+      message: errorMessage,
+      stack: errorStack,
+      params: { electionId: params.electionId },
+    });
+
     return NextResponse.json(
-      { error: "Failed to import voters" },
+      {
+        error: `Failed to import voters: ${errorMessage}`,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
+      },
       { status: 500 }
     );
   }

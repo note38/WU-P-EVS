@@ -53,13 +53,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <div
       className={`${
         isOpen ? "block" : "hidden"
-      } lg:block fixed inset-y-0 left-0 z-50 w-64 bg-green-100 border-r lg:relative`}
+      } lg:block fixed inset-y-0 left-0 z-50 w-64 bg-card border-r lg:relative`}
     >
       <div className="flex items-center justify-between p-4">
         {/* Logo Section */}
         <Link href="/" className="flex items-center gap-2">
           <img src="/wup-logo.png" className="h-14 w-auto" />
-          <span className="text-xl font-bold tracking-tight">WUP EVS</span>
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            WUP EVS
+          </span>
         </Link>
         <Button
           variant="ghost"
@@ -82,7 +84,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-gray-700 hover:bg-gray-100"
+                    : "text-foreground hover:bg-accent"
                 )}
               >
                 <link.icon className="h-4 w-4" />

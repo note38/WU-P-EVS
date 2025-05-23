@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -7,6 +7,11 @@ export async function GET(
 ) {
   try {
     const electionId = parseInt(params.electionId);
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "8");
+    const search = searchParams.get("search");
+    const skip = (page - 1) * limit;
 
     // Validate that the election exists
     const election = await prisma.election.findUnique({
@@ -20,21 +25,104 @@ export async function GET(
       );
     }
 
-    // Fetch voters for this specific election with their related year and department info
+    // Build the where clause with search functionality
+    const whereClause = {
+      electionId: electionId,
+      ...(search && {
+        OR: [
+          {
+            firstName: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            lastName: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          // Combined search for full name (firstName + lastName)
+          {
+            AND: [
+              {
+                firstName: {
+                  contains: search.split(" ")[0] || "",
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                lastName: {
+                  contains: search.split(" ")[1] || search.split(" ")[0] || "",
+                  mode: "insensitive" as const,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    };
+
+    // Get total count for pagination
+    const totalVoters = await prisma.voter.count({
+      where: whereClause,
+    });
+
+    // Fetch voters for this specific election with their related data
     const voters = await prisma.voter.findMany({
-      where: {
-        electionId: electionId,
-      },
+      where: whereClause,
       include: {
         year: {
           include: {
             department: true,
           },
         },
+        votes: {
+          where: {
+            electionId: electionId,
+          },
+          select: {
+            votedAt: true,
+          },
+          orderBy: {
+            votedAt: "desc",
+          },
+          take: 1,
+        },
       },
+      orderBy: {
+        id: "asc",
+      },
+      skip: skip,
+      take: limit,
     });
 
-    return NextResponse.json(voters);
+    // Transform the data to include department and latest vote information
+    const transformedVoters = voters.map((voter) => ({
+      id: voter.id,
+      firstName: voter.firstName,
+      lastName: voter.lastName,
+      middleName: voter.middleName,
+      email: voter.email,
+      avatar: voter.avatar,
+      year: voter.year,
+      department: voter.year?.department || null,
+      status: voter.status,
+      votedAt:
+        voter.votes.length > 0 ? voter.votes[0].votedAt.toISOString() : null,
+      electionId: voter.electionId,
+      credentialsSent: voter.credentialsSent,
+    }));
+
+    return NextResponse.json({
+      voters: transformedVoters,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalVoters / limit),
+        totalVoters: totalVoters,
+        hasMore: page < Math.ceil(totalVoters / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching voters:", error);
     return NextResponse.json(

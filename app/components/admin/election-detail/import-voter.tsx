@@ -50,56 +50,31 @@ export function ImportVotersDialog({
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [allYears, setAllYears] = useState<Year[]>([]);
-  const [filteredYears, setFilteredYears] = useState<Year[]>([]);
+  const [years, setYears] = useState<Year[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [yearDepartmentRelations, setYearDepartmentRelations] = useState<
-    YearDepartmentRelation[]
-  >([]);
 
-  // Fetch available departments and years when dialog opens
+  // Fetch available departments when dialog opens
   useEffect(() => {
     if (open) {
       fetchDepartments();
-      fetchYears();
-      // For debugging purposes, let's fetch and log year-department relations
-      fetchYearDepartmentRelations();
     } else {
       // Reset selections when dialog closes
       setSelectedDepartment("");
       setSelectedYear("");
-      setFilteredYears([]);
+      setYears([]);
     }
   }, [open]);
 
-  // Filter years when department changes
+  // Fetch years when department changes
   useEffect(() => {
     if (selectedDepartment) {
-      const departmentId = parseInt(selectedDepartment);
-
-      // Get the yearIds related to this department
-      const yearIds = yearDepartmentRelations
-        .filter((relation) => relation.departmentId === departmentId)
-        .map((relation) => relation.yearId);
-
-      // Filter years based on these yearIds
-      const yearsInDepartment = allYears.filter((year) =>
-        yearIds.includes(year.id)
-      );
-
-      setFilteredYears(yearsInDepartment);
-
-      // Add debug logs
-      console.log("Selected department:", departmentId);
-      console.log("Year IDs for department:", yearIds);
-      console.log("Filtered years:", yearsInDepartment);
-
+      fetchYearsByDepartment(parseInt(selectedDepartment));
       setSelectedYear(""); // Reset year selection when department changes
     } else {
-      setFilteredYears([]);
+      setYears([]);
     }
-  }, [selectedDepartment, allYears, yearDepartmentRelations]);
+  }, [selectedDepartment]);
 
   const fetchDepartments = async () => {
     try {
@@ -107,7 +82,6 @@ export function ImportVotersDialog({
       if (response.ok) {
         const data = await response.json();
         setDepartments(data);
-        console.log("Fetched departments:", data);
       }
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -119,13 +93,12 @@ export function ImportVotersDialog({
     }
   };
 
-  const fetchYears = async () => {
+  const fetchYearsByDepartment = async (departmentId: number) => {
     try {
-      const response = await fetch("/api/years");
+      const response = await fetch(`/api/years/by-department/${departmentId}`);
       if (response.ok) {
         const data = await response.json();
-        setAllYears(data);
-        console.log("Fetched years:", data);
+        setYears(data);
       }
     } catch (error) {
       console.error("Error fetching years:", error);
@@ -134,68 +107,6 @@ export function ImportVotersDialog({
         description: "Failed to load years",
         variant: "destructive",
       });
-    }
-  };
-
-  // New function to fetch the relationships between years and departments
-  const fetchYearDepartmentRelations = async () => {
-    try {
-      // You'll need to create this API endpoint if it doesn't exist yet
-      const response = await fetch("/api/year-department-relations");
-      if (response.ok) {
-        const data = await response.json();
-        setYearDepartmentRelations(data);
-        console.log("Fetched year-department relations:", data);
-      } else {
-        // If the API doesn't exist, we'll use a fallback approach
-        // For now, we'll assume all years are available for all departments
-        console.log(
-          "Year-department relations API not available, using fallback"
-        );
-        const fallbackRelations: YearDepartmentRelation[] = [];
-
-        // This is a temporary workaround until you create the proper API
-        setTimeout(() => {
-          const departments = Array.from(
-            document.querySelectorAll("#department option")
-          )
-            .map((option) => parseInt((option as HTMLOptionElement).value))
-            .filter((id) => !isNaN(id));
-
-          const years = Array.from(document.querySelectorAll("#year option"))
-            .map((option) => parseInt((option as HTMLOptionElement).value))
-            .filter((id) => !isNaN(id));
-
-          departments.forEach((deptId) => {
-            years.forEach((yearId) => {
-              fallbackRelations.push({
-                departmentId: deptId,
-                yearId: yearId,
-              });
-            });
-          });
-
-          setYearDepartmentRelations(fallbackRelations);
-        }, 1000);
-      }
-    } catch (error) {
-      console.error("Error fetching year-department relations:", error);
-
-      // Fallback: Show all years for all departments
-      console.log("Using fallback for year-department relations due to error");
-      const fallbackRelations: YearDepartmentRelation[] = [];
-
-      // Generate relations connecting all departments with all years
-      departments.forEach((dept) => {
-        allYears.forEach((year) => {
-          fallbackRelations.push({
-            departmentId: dept.id,
-            yearId: year.id,
-          });
-        });
-      });
-
-      setYearDepartmentRelations(fallbackRelations);
     }
   };
 
@@ -300,15 +211,15 @@ export function ImportVotersDialog({
               <SelectTrigger id="year">
                 <SelectValue
                   placeholder={
-                    filteredYears.length === 0 && selectedDepartment
+                    years.length === 0 && selectedDepartment
                       ? "No years available"
                       : "Select year"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {filteredYears.length > 0 ? (
-                  filteredYears.map((year) => (
+                {years.length > 0 ? (
+                  years.map((year) => (
                     <SelectItem key={year.id} value={year.id.toString()}>
                       {year.name}
                     </SelectItem>

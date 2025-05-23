@@ -1,6 +1,6 @@
 "use client";
 
-import { PositionSelection } from "@/app/components/position-selection";
+import { PositionSelection } from "@/app/components/ballot/position-selection";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,6 @@ import type { Position } from "@/types/ballot";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 interface BallotFormProps {
   positions: Position[];
@@ -33,10 +32,6 @@ export function BallotForm({
   const [isLoading, setIsLoading] = useState(
     !initialPositions || initialPositions.length === 0
   );
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Generate a voter ID for this ballot
-  const [voterId] = useState(() => uuidv4());
 
   useEffect(() => {
     // Only fetch positions if none were provided via props
@@ -92,7 +87,7 @@ export function BallotForm({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleReview = () => {
     // Check if all positions have selections
     const allSelected = positions.every((position) => selections[position.id]);
 
@@ -110,37 +105,12 @@ export function BallotForm({
       return;
     }
 
-    try {
-      setIsSubmitting(true);
+    // Store selections and positions in localStorage
+    localStorage.setItem("ballotSelections", JSON.stringify(selections));
+    localStorage.setItem("ballotPositions", JSON.stringify(positions));
 
-      // Submit the ballot to the API
-      const response = await fetch("/api/ballot/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          selections,
-          voterId,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Store selections in localStorage to access in results page
-        localStorage.setItem("ballotSelections", JSON.stringify(selections));
-        localStorage.setItem("ballotId", result.ballotId);
-        router.push("/results");
-      } else {
-        alert("Failed to submit ballot. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error submitting ballot:", error);
-      alert("An error occurred. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Redirect to preview page
+    router.push("/ballot/preview");
   };
 
   if (isLoading) {
@@ -205,14 +175,13 @@ export function BallotForm({
 
             {isLastPosition ? (
               <Button
-                onClick={handleSubmit}
+                onClick={handleReview}
                 disabled={
-                  !positions.every((position) => selections[position.id]) ||
-                  isSubmitting
+                  !positions.every((position) => selections[position.id])
                 }
                 className="flex items-center"
               >
-                {isSubmitting ? "Submitting..." : "Submit Ballot"}
+                Review Ballot
               </Button>
             ) : (
               <Button

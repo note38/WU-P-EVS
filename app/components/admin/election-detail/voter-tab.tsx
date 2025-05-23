@@ -64,23 +64,43 @@ export function VotersTab({ electionId }: VotersTabProps) {
   const [years, setYears] = useState<Year[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Fetch voters and filter options when component mounts
   useEffect(() => {
-    fetchVoters();
+    fetchVoters(1, true); // Reset to page 1 and replace voters
     fetchYears();
     fetchDepartments();
   }, [electionId]);
 
-  const fetchVoters = async () => {
-    setLoading(true);
+  const fetchVoters = async (page: number = 1, replace: boolean = false) => {
+    if (page === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const response = await fetch(`/api/elections/${electionId}/voters`);
+      const response = await fetch(
+        `/api/elections/${electionId}/voters?page=${page}&limit=8`
+      );
       const data = await response.json();
 
       if (response.ok) {
         console.log("Voters data from API:", data);
-        setVoters(data);
+
+        if (replace) {
+          setVoters(data.voters);
+        } else {
+          setVoters((prev) => [...prev, ...data.voters]);
+        }
+
+        setCurrentPage(data.pagination.currentPage);
+        setTotalPages(data.pagination.totalPages);
+        setHasMore(data.pagination.hasMore);
       } else {
         console.error("Error response:", data);
         toast({
@@ -98,6 +118,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -194,6 +215,17 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
+  const handleLoadMore = () => {
+    if (hasMore && !loadingMore) {
+      fetchVoters(currentPage + 1, false);
+    }
+  };
+
+  const handleImportSuccess = () => {
+    setCurrentPage(1);
+    fetchVoters(1, true); // Reset to page 1 and replace voters
+  };
+
   const filteredVoters = voters.filter((voter) => {
     const firstName = voter.firstName || "";
     const lastName = voter.lastName || "";
@@ -255,12 +287,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
         <div className="flex flex-wrap gap-2">
           <ImportVotersDialog
             electionId={electionId}
-            onImportSuccess={fetchVoters}
+            onImportSuccess={handleImportSuccess}
           />
-          <Button variant="outline" size="sm">
-            <PrinterIcon className="h-4 w-4 mr-2" />
-            Print Voters
-          </Button>
         </div>
       </div>
 
@@ -273,20 +301,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
         />
 
         <div className="flex flex-wrap gap-2 ml-auto">
-          <Select value={yearFilter} onValueChange={setYearFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Years</SelectItem>
-              {years.map((year) => (
-                <SelectItem key={year.id} value={year.name}>
-                  {year.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by Department" />
@@ -337,8 +351,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Year</TableHead>
                 <TableHead>Department</TableHead>
+                <TableHead>Year</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Voted At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -373,26 +387,28 @@ export function VotersTab({ electionId }: VotersTabProps) {
                       {`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}
                     </TableCell>
                     <TableCell>{voter.email || "N/A"}</TableCell>
-                    <TableCell>{voter.year?.name || "N/A"}</TableCell>
                     <TableCell>{voter.department?.name || "N/A"}</TableCell>
+                    <TableCell>{voter.year?.name || "N/A"}</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          voter.status === "VOTED"
+                          voter.votedAt
                             ? "bg-green-500 hover:bg-green-600"
                             : "bg-gray-500 hover:bg-gray-600"
                         }
                       >
-                        {voter.status === "VOTED" ? "Voted" : "Not Voted"}
+                        {voter.votedAt ? "Voted" : "Registered"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{voter.votedAt || "N/A"}</TableCell>
+                    <TableCell>
+                      {voter.votedAt
+                        ? new Date(voter.votedAt).toLocaleDateString() +
+                          " " +
+                          new Date(voter.votedAt).toLocaleTimeString()
+                        : "Not yet voted"}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <EditIcon className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
-                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -410,6 +426,19 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {hasMore && (
+        <div className="flex justify-center mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? "Loading more..." : "Load More"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

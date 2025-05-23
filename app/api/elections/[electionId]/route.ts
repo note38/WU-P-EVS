@@ -2,6 +2,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest, context: any) {
   try {
@@ -193,22 +194,35 @@ export async function PUT(req: NextRequest, context: any) {
               where: { electionId },
             });
 
-            // Add new partylists
-            if (data.partyList.length > 0) {
-              const partylistsData = data.partyList.map((name: string) => ({
-                name: String(name).trim(), // Ensure name is a string and trim whitespace
-                electionId,
-                // Use the ID of the user who created the election if createdById is missing
-                createdById: userId,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              }));
+            // Always ensure there is an "Independent" partylist and deduplicate names
+            const initialNames: string[] = data.partyList.map((n: string) =>
+              String(n).trim()
+            );
 
-              console.log("Creating new partylists:", partylistsData);
-              await tx.partylist.createMany({
-                data: partylistsData,
-              });
+            if (!initialNames.some((n) => n.toLowerCase() === "independent")) {
+              initialNames.push("Independent");
             }
+
+            const uniqueNames = Array.from(
+              new Set(initialNames.map((n) => n.toLowerCase()))
+            ).map(
+              (lowerName) =>
+                initialNames.find(
+                  (n) => n.toLowerCase() === lowerName
+                ) as string
+            );
+
+            const partylistsData = uniqueNames.map((name: string) => ({
+              name,
+              electionId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }));
+
+            console.log("Creating new partylists:", partylistsData);
+            await tx.partylist.createMany({
+              data: partylistsData,
+            });
           } catch (partylistError) {
             console.error("Error updating partylists:", partylistError);
             throw new Error(
@@ -276,30 +290,37 @@ export async function DELETE(req: NextRequest, context: any) {
       );
     }
 
-    // Check if election exists
-    const existingElection = await prisma.election.findUnique({
-      where: { id: electionId },
-    });
+    try {
+      // Delete the election directly - Prisma will handle cascading deletes
+      await prisma.election.delete({
+        where: { id: electionId },
+      });
 
-    if (!existingElection) {
+      return NextResponse.json({
+        message: "Election deleted successfully",
+      });
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+
+      // Check for specific Prisma errors
+      if (dbError instanceof Prisma.PrismaClientKnownRequestError) {
+        if (dbError.code === "P2025") {
+          return NextResponse.json(
+            { error: "Election not found" },
+            { status: 404 }
+          );
+        }
+      }
+
       return NextResponse.json(
-        { error: "Election not found" },
-        { status: 404 }
+        { error: "Failed to delete election" },
+        { status: 500 }
       );
     }
-
-    // Delete the election - this will cascade delete related entities if set up in the schema
-    await prisma.election.delete({
-      where: { id: electionId },
-    });
-
-    return NextResponse.json({
-      message: "Election deleted successfully",
-    });
   } catch (error) {
-    console.error("Error deleting election:", error);
+    console.error("Error in DELETE handler:", error);
     return NextResponse.json(
-      { error: "Failed to delete election" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

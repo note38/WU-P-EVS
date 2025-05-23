@@ -201,45 +201,22 @@ export async function POST(req: NextRequest, context: any) {
     // Check if the partylist exists
     let partyId = partylistId;
 
-    // Handle the special case for 'independent' or -1 (special Independent ID)
-    if (partylistId === "independent" || partylistId === "-1") {
-      // Check if an Independent partylist already exists
-      let independentPartylist = await prisma.partylist.findFirst({
-        where: {
-          name: { equals: "Independent", mode: "insensitive" },
-          electionId,
-        },
-      });
+    // For regular numeric party IDs, verify the partylist exists
+    const partylist = await prisma.partylist.findUnique({
+      where: {
+        id: parseInt(partylistId),
+        electionId,
+      },
+    });
 
-      // Create the Independent partylist if it doesn't exist
-      if (!independentPartylist) {
-        independentPartylist = await prisma.partylist.create({
-          data: {
-            name: "Independent",
-            electionId,
-          },
-        });
-      }
-
-      partyId = independentPartylist.id;
-    } else {
-      // For regular numeric party IDs, verify the partylist exists
-      const partylist = await prisma.partylist.findUnique({
-        where: {
-          id: parseInt(partylistId),
-          electionId,
-        },
-      });
-
-      if (!partylist) {
-        return NextResponse.json(
-          { error: "Party/Affiliation not found" },
-          { status: 404 }
-        );
-      }
-
-      partyId = partylist.id;
+    if (!partylist) {
+      return NextResponse.json(
+        { error: "Party/Affiliation not found" },
+        { status: 404 }
+      );
     }
+
+    partyId = partylist.id;
 
     // Get voter data if voterId is provided
     let yearId = null;

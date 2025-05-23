@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function CreateElectionForm() {
   const { toast } = useToast();
@@ -30,16 +30,31 @@ export function CreateElectionForm() {
     startTime: "",
     endDate: "",
     endTime: "",
-    partyList: [] as string[],
+    partyList: ["Independent"] as string[],
   });
   const [newParty, setNewParty] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Add useEffect for polling
+  useEffect(() => {
+    if (!open) {
+      // Refresh the router when dialog is closed
+      router.refresh();
+    }
+  }, [open, router]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Capitalize first letter for name and description fields
+    let modifiedValue = value;
+    if ((name === "name" || name === "description") && value.length > 0) {
+      modifiedValue = value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: modifiedValue }));
 
     // Clear error for this field if it exists
     if (formErrors[name]) {
@@ -53,20 +68,47 @@ export function CreateElectionForm() {
 
   const handleAddParty = () => {
     if (newParty.trim() !== "") {
+      // Prevent adding "Independent" as it's already included
+      if (newParty.trim().toLowerCase() === "independent") {
+        toast({
+          title: "Note",
+          description: "Independent party is already included by default",
+          variant: "default",
+        });
+        setNewParty("");
+        return;
+      }
+
+      // Capitalize first letter of party name
+      const capitalizedParty =
+        newParty.trim().charAt(0).toUpperCase() + newParty.trim().slice(1);
       setFormData((prev) => ({
         ...prev,
-        partyList: [...prev.partyList, newParty.trim()],
+        partyList: [...prev.partyList, capitalizedParty],
       }));
       setNewParty("");
     }
   };
 
   const handleRemoveParty = (index: number) => {
+    // Prevent removing Independent party
+    if (formData.partyList[index].toLowerCase() === "independent") {
+      toast({
+        title: "Note",
+        description: "The Independent party cannot be removed",
+        variant: "default",
+      });
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       partyList: prev.partyList.filter((_, i) => i !== index),
     }));
   };
+
+  // Get today's date in YYYY-MM-DD format for min date validation
+  const today = new Date().toISOString().split("T")[0];
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -196,7 +238,7 @@ export function CreateElectionForm() {
         startTime: "",
         endDate: "",
         endTime: "",
-        partyList: [],
+        partyList: ["Independent"],
       });
 
       // Force refresh the page to show the new election
@@ -280,6 +322,7 @@ export function CreateElectionForm() {
                 id="startDate"
                 name="startDate"
                 type="date"
+                min={today}
                 className={`col-span-2 ${formErrors.startDate ? "border-red-500" : ""}`}
                 value={formData.startDate}
                 onChange={handleChange}
@@ -311,6 +354,7 @@ export function CreateElectionForm() {
                 id="endDate"
                 name="endDate"
                 type="date"
+                min={formData.startDate || today}
                 className={`col-span-2 ${formErrors.endDate ? "border-red-500" : ""}`}
                 value={formData.endDate}
                 onChange={handleChange}
@@ -331,7 +375,7 @@ export function CreateElectionForm() {
               )}
             </div>
 
-            {/* Party List Section with Scrollable Container */}
+            {/* Party List Section */}
             <div className="grid grid-cols-4 items-start gap-4 mt-4">
               <Label className="col-span-4 font-medium text-lg">
                 Party List
@@ -339,27 +383,28 @@ export function CreateElectionForm() {
               <div className="col-span-4">
                 <div className="max-h-40 overflow-y-auto mb-2 border rounded-md">
                   <div className="p-2 space-y-2">
-                    {formData.partyList.length > 0 ? (
-                      formData.partyList.map((party, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div className="bg-gray-100 px-3 py-2 rounded flex-1">
-                            {party}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveParty(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                    {formData.partyList.map((party, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div
+                          className={`px-3 py-2 rounded flex-1 ${
+                            party.toLowerCase() === "independent"
+                              ? "bg-gray-200"
+                              : "bg-gray-100"
+                          }`}
+                        >
+                          {party}
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-gray-500 text-sm py-2 px-3">
-                        No parties added yet.
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveParty(index)}
+                          disabled={party.toLowerCase() === "independent"}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

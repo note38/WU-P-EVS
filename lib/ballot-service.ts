@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Position, BallotSubmission } from "@/types/ballot";
+import { VoterStatus } from "@prisma/client";
 
 export async function getPositionsWithCandidates(): Promise<Position[]> {
   try {
@@ -32,35 +33,57 @@ export async function submitBallot(submission: BallotSubmission) {
   try {
     const voterId = Number(submission.voterId);
 
-    const voter = await prisma.voter.findUnique({
-      where: { id: voterId },
-      select: { electionId: true },
+    // Use a transaction to ensure data consistency
+    return await prisma.$transaction(async (tx) => {
+      // Check if voter exists and hasn't voted yet
+      const voter = await tx.voter.findUnique({
+        where: { id: voterId },
+        select: {
+          id: true,
+          electionId: true,
+          status: true,
+        },
+      });
+
+      if (!voter) {
+        return { success: false, error: "Voter not found" };
+      }
+
+      if (!voter.electionId) {
+        return {
+          success: false,
+          error: "Voter is not assigned to an election",
+        };
+      }
+
+      if (voter.status === VoterStatus.VOTED) {
+        return { success: false, error: "Voter has already voted" };
+      }
+
+      const electionId = Number(voter.electionId);
+
+      // Create all votes within the transaction
+      await Promise.all(
+        Object.entries(submission.selections).map(([positionId, candidateId]) =>
+          tx.vote.create({
+            data: {
+              voterId,
+              positionId: Number(positionId),
+              candidateId: Number(candidateId),
+              electionId,
+            },
+          })
+        )
+      );
+
+      // Update voter status within the same transaction
+      await tx.voter.update({
+        where: { id: voterId },
+        data: { status: VoterStatus.VOTED },
+      });
+
+      return { success: true };
     });
-
-    if (!voter) {
-      return { success: false, error: "Voter not found" };
-    }
-
-    const selectionPromises = Object.entries(submission.selections).map(
-      ([positionId, candidateId]) =>
-        prisma.vote.create({
-          data: {
-            voterId: voterId,
-            positionId: Number(positionId),
-            candidateId: Number(candidateId),
-            electionId: voter.electionId,
-          },
-        })
-    );
-
-    await Promise.all(selectionPromises);
-
-    await prisma.voter.update({
-      where: { id: voterId },
-      data: { status: "VOTED" },
-    });
-
-    return { success: true };
   } catch (error) {
     console.error("Failed to submit ballot:", error);
     return { success: false, error: "Failed to submit ballot" };
