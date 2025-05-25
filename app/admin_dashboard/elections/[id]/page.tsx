@@ -4,9 +4,14 @@ import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
 import { ElectionStatus } from "@prisma/client";
 
-// Use 'any' type to bypass the type checking issue with PageProps
-export default async function Page({ params }: any) {
-  const electionId = Number(params.id);
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function Page({ params }: PageProps) {
+  // Await params before accessing properties (Next.js 15 requirement)
+  const { id } = await params;
+  const electionId = Number(id);
 
   if (isNaN(electionId)) {
     notFound();

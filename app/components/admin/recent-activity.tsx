@@ -29,7 +29,10 @@ export function RecentActivity() {
       {recentActivities.map((activity, index) => (
         <div key={index} className="flex items-center">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={`/avatars/0${index + 1}.png`} alt="Avatar" />
+            <AvatarImage
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(activity.user)}&size=36&background=random&format=svg`}
+              alt="Avatar"
+            />
             <AvatarFallback>
               {activity.user
                 .split(" ")

@@ -16,12 +16,23 @@ export async function GET() {
     );
   }
 }
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
+    // Validate required fields
+    if (!body.name) {
+      return NextResponse.json(
+        { message: "Department name is required" },
+        { status: 400 }
+      );
+    }
+
     const department = await prisma.department.create({
       data: {
         name: body.name,
+        image: body.image || null,
       },
     });
 

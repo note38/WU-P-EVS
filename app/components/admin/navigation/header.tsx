@@ -14,7 +14,9 @@ import {
 import { Bell, Loader2, Menu, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useUserAvatar } from "@/hooks/use-user-avatar";
 
 interface HeaderProps {
   onSidebarToggle: () => void;
@@ -23,7 +25,14 @@ interface HeaderProps {
 export function Header({ onSidebarToggle }: HeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
+  const { avatar } = useUserAvatar();
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted before rendering session-dependent content
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -59,58 +68,76 @@ export function Header({ onSidebarToggle }: HeaderProps) {
         </Button>
         <div className="ml-auto flex items-center space-x-4">
           <ThemeToggle />
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/avatars/01.png" alt="User Avatar" />
-                  <AvatarFallback>
-                    {getInitials(session?.user?.name)}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 " align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {session?.user?.name || "User"}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {session?.user?.email || "No email"}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <button
-                  onClick={async () => {
-                    await fetch("/api/emails", { method: "POST" });
-                  }}
+          <Link href="/admin_dashboard/notifications" legacyBehavior passHref>
+            <Button variant="ghost" size="icon" aria-label="Notifications">
+              <Bell className="h-5 w-5" />
+            </Button>
+          </Link>
+          {mounted && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
                 >
-                  Profile
-                </button>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleLogout}
-                disabled={isLoading}
-                className="flex items-center"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span>Logging out...</span>
-                  </>
-                ) : (
-                  <span>Log out</span>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={avatar || undefined} alt="User Avatar" />
+                    <AvatarFallback>
+                      {getInitials(session?.user?.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 " align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {session?.user?.name || "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {session?.user?.email || "No email"}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/admin_dashboard/settings"
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  disabled={isLoading}
+                  className="flex items-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span>Logging out...</span>
+                    </>
+                  ) : (
+                    <span>Log out</span>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {!mounted && (
+            // Placeholder to prevent layout shift
+            <Button
+              variant="ghost"
+              className="relative h-8 w-8 rounded-full"
+              disabled
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>UN</AvatarFallback>
+              </Avatar>
+            </Button>
+          )}
         </div>
       </div>
     </header>

@@ -19,11 +19,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { EditIcon, PrinterIcon, SendIcon, TrashIcon } from "lucide-react";
+import {
+  EditIcon,
+  PrinterIcon,
+  SendIcon,
+  TrashIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { SearchInput } from "../search-input";
 import { ImportVotersDialog } from "./import-voter";
+import { AddVoterForm } from "./add-voter-form";
 
 // Define types for the components
 interface Year {
@@ -57,6 +75,7 @@ interface VotersTabProps {
 
 export function VotersTab({ electionId }: VotersTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [yearFilter, setYearFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -66,41 +85,79 @@ export function VotersTab({ electionId }: VotersTabProps) {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalVoters, setTotalVoters] = useState(0);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [voterToRemove, setVoterToRemove] = useState<Voter | null>(null);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Fetch voters and filter options when component mounts
   useEffect(() => {
-    fetchVoters(1, true); // Reset to page 1 and replace voters
+    fetchVoters(1); // Reset to page 1
     fetchYears();
     fetchDepartments();
   }, [electionId]);
 
-  const fetchVoters = async (page: number = 1, replace: boolean = false) => {
-    if (page === 1) {
-      setLoading(true);
+  // Fetch voters when page changes or filters change
+  useEffect(() => {
+    fetchVoters(currentPage);
+  }, [currentPage, debouncedSearchTerm, yearFilter, departmentFilter]);
+
+  // Reset to page 1 when search or filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
     } else {
-      setLoadingMore(true);
+      fetchVoters(1);
     }
+  }, [debouncedSearchTerm, yearFilter, departmentFilter]);
+
+  const fetchVoters = async (page: number = 1) => {
+    setLoading(true);
 
     try {
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "8",
+        _t: Date.now().toString(), // Cache busting
+      });
+
+      // Add search term if present
+      if (debouncedSearchTerm.trim()) {
+        params.append("search", debouncedSearchTerm.trim());
+      }
+
+      // Add year filter if not 'all'
+      if (yearFilter !== "all") {
+        params.append("year", yearFilter);
+      }
+
+      // Add department filter if not 'all'
+      if (departmentFilter !== "all") {
+        params.append("department", departmentFilter);
+      }
+
       const response = await fetch(
-        `/api/elections/${electionId}/voters?page=${page}&limit=8`
+        `/api/elections/${electionId}/voters?${params.toString()}`
       );
       const data = await response.json();
 
       if (response.ok) {
         console.log("Voters data from API:", data);
 
-        if (replace) {
-          setVoters(data.voters);
-        } else {
-          setVoters((prev) => [...prev, ...data.voters]);
-        }
-
+        setVoters(data.voters);
+        setSelectedVoters([]); // Clear selections when changing pages
         setCurrentPage(data.pagination.currentPage);
         setTotalPages(data.pagination.totalPages);
-        setHasMore(data.pagination.hasMore);
+        setTotalVoters(data.pagination.total || 0);
       } else {
         console.error("Error response:", data);
         toast({
@@ -118,7 +175,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
       });
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
@@ -147,29 +203,47 @@ export function VotersTab({ electionId }: VotersTabProps) {
   };
 
   const handleDeleteVoter = async (voterId: number) => {
+    // Optimistic update: immediately remove from UI
+    const originalVoters = [...voters];
+    setVoters((prevVoters) =>
+      prevVoters.filter((voter) => voter.id !== voterId)
+    );
+    setSelectedVoters((prev) => prev.filter((id) => id !== voterId));
+
     try {
       const response = await fetch(
-        `/api/elections/${electionId}/voters/${voterId}`,
+        `/api/elections/${electionId}/voters/remove`,
         {
-          method: "DELETE",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ voterIds: [voterId] }),
         }
       );
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Voter removed successfully",
+          description: "Voter removed from election successfully",
         });
-        fetchVoters(); // Refresh the list
+        // Refresh in background to ensure consistency
+        setTimeout(() => {
+          fetchVoters(currentPage);
+        }, 500);
       } else {
+        // Revert optimistic update on error
+        setVoters(originalVoters);
         const data = await response.json();
         toast({
           title: "Error",
-          description: data.error || "Failed to remove voter",
+          description: data.error || "Failed to remove voter from election",
           variant: "destructive",
         });
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setVoters(originalVoters);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -197,7 +271,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
           title: "Success",
           description: `Credentials sent to ${data.count} voters`,
         });
-        fetchVoters(); // Refresh to update the sent status
+        fetchVoters(currentPage); // Refresh to update the sent status
       } else {
         const data = await response.json();
         toast({
@@ -215,59 +289,34 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
-  const handleLoadMore = () => {
-    if (hasMore && !loadingMore) {
-      fetchVoters(currentPage + 1, false);
-    }
-  };
-
   const handleImportSuccess = () => {
     setCurrentPage(1);
-    fetchVoters(1, true); // Reset to page 1 and replace voters
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+    setYearFilter("all");
+    setDepartmentFilter("all");
+    fetchVoters(1);
   };
 
-  const filteredVoters = voters.filter((voter) => {
-    const firstName = voter.firstName || "";
-    const lastName = voter.lastName || "";
-    const middleName = voter.middleName || "";
-    const fullName = `${firstName} ${middleName} ${lastName}`
-      .toLowerCase()
-      .trim();
-    const voterEmail = voter.email ? voter.email.toLowerCase() : "";
-    const voterId = voter.id ? voter.id.toString() : "";
+  const handleVoterAdded = (newVoter: any) => {
+    // Reset filters and search to show the new voter
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+    setYearFilter("all");
+    setDepartmentFilter("all");
+    setCurrentPage(1);
 
-    // Handle year that could be an object or string
-    let voterYear = "";
-    if (voter.year && typeof voter.year === "object" && "name" in voter.year) {
-      voterYear = voter.year.name;
-    }
-
-    // Get department name if exists
-    let voterDepartment = "";
-    if (
-      voter.department &&
-      typeof voter.department === "object" &&
-      "name" in voter.department
-    ) {
-      voterDepartment = voter.department.name;
-    }
-
-    const searchTermLower = searchTerm.toLowerCase();
-
-    return (
-      (fullName.includes(searchTermLower) ||
-        voterEmail.includes(searchTermLower) ||
-        voterId.includes(searchTermLower)) &&
-      (yearFilter === "all" || voterYear === yearFilter) &&
-      (departmentFilter === "all" || voterDepartment === departmentFilter)
-    );
-  });
+    // Refresh the data to show the new voter
+    setTimeout(() => {
+      fetchVoters(1);
+    }, 500);
+  };
 
   const toggleSelectAll = () => {
-    if (selectedVoters.length === filteredVoters.length) {
+    if (selectedVoters.length === voters.length) {
       setSelectedVoters([]);
     } else {
-      setSelectedVoters(filteredVoters.map((voter) => voter.id));
+      setSelectedVoters(voters.map((voter) => voter.id));
     }
   };
 
@@ -276,6 +325,58 @@ export function VotersTab({ electionId }: VotersTabProps) {
       setSelectedVoters(selectedVoters.filter((voterId) => voterId !== id));
     } else {
       setSelectedVoters([...selectedVoters, id]);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total pages is small
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Show current page and surrounding pages
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+    }
+
+    return pageNumbers;
+  };
+
+  const handleRemoveClick = (voter: Voter) => {
+    setVoterToRemove(voter);
+    setIsRemoveDialogOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    if (voterToRemove) {
+      handleDeleteVoter(voterToRemove.id);
+      setIsRemoveDialogOpen(false);
+      setVoterToRemove(null);
     }
   };
 
@@ -288,6 +389,10 @@ export function VotersTab({ electionId }: VotersTabProps) {
           <ImportVotersDialog
             electionId={electionId}
             onImportSuccess={handleImportSuccess}
+          />
+          <AddVoterForm
+            electionId={electionId}
+            onVoterAdded={handleVoterAdded}
           />
         </div>
       </div>
@@ -341,8 +446,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <TableHead className="w-[50px]">
                   <Checkbox
                     checked={
-                      selectedVoters.length === filteredVoters.length &&
-                      filteredVoters.length > 0
+                      selectedVoters.length === voters.length &&
+                      voters.length > 0
                     }
                     onCheckedChange={toggleSelectAll}
                     aria-label="Select all"
@@ -365,15 +470,15 @@ export function VotersTab({ electionId }: VotersTabProps) {
                     Loading voters...
                   </TableCell>
                 </TableRow>
-              ) : filteredVoters.length === 0 ? (
+              ) : voters.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-10">
                     No voters found for this election. Use the "Import Voters"
-                    button to add voters.
+                    or "Add Voter" button to add voters.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredVoters.map((voter) => (
+                voters.map((voter) => (
                   <TableRow key={voter.id}>
                     <TableCell>
                       <Checkbox
@@ -412,7 +517,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteVoter(voter.id)}
+                          onClick={() => handleRemoveClick(voter)}
                         >
                           <TrashIcon className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
@@ -427,18 +532,81 @@ export function VotersTab({ electionId }: VotersTabProps) {
         </CardContent>
       </Card>
 
-      {hasMore && (
-        <div className="flex justify-center mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLoadMore}
-            disabled={loadingMore}
-          >
-            {loadingMore ? "Loading more..." : "Load More"}
-          </Button>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * 8 + 1} to{" "}
+            {Math.min(currentPage * 8, totalVoters)} of {totalVoters} voters
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeftIcon className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  variant={currentPage === pageNumber ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageClick(pageNumber)}
+                  className="w-8 h-8 p-0"
+                >
+                  {pageNumber}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRightIcon className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         </div>
       )}
+
+      <AlertDialog
+        open={isRemoveDialogOpen}
+        onOpenChange={setIsRemoveDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Voter from Election</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{" "}
+              <strong>
+                {voterToRemove &&
+                  `${voterToRemove.firstName} ${voterToRemove.middleName ? voterToRemove.middleName + " " : ""}${voterToRemove.lastName}`.trim()}
+              </strong>{" "}
+              from this election? This will not delete the voter from the
+              system, only remove them from this specific election.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setVoterToRemove(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remove from Election
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

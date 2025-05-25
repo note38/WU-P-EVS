@@ -33,6 +33,13 @@ export async function GET(req: NextRequest, context: any) {
       );
     }
 
+    // Get pagination and search parameters
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "8");
+    const search = searchParams.get("search");
+    const skip = (page - 1) * limit;
+
     // Check if the election exists
     const election = await prisma.election.findFirst({
       where: {
@@ -48,20 +55,74 @@ export async function GET(req: NextRequest, context: any) {
       );
     }
 
-    // Fetch all candidates for this election with related data
+    // Build the where clause with search functionality
+    const whereClause = {
+      electionId: electionId,
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            position: {
+              name: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+          },
+        ],
+      }),
+    };
+
+    // Get total count for pagination
+    const totalCandidates = await prisma.candidate.count({
+      where: whereClause,
+    });
+
+    // Fetch candidates for this election with related data
     const candidates = await prisma.candidate.findMany({
-      where: {
-        electionId: electionId,
-      },
+      where: whereClause,
       include: {
         position: true,
         partylist: true,
-        year: true,
+        year: {
+          include: {
+            department: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
       },
+      skip: skip,
+      take: limit,
     });
+
+    // Get vote counts for each candidate
+    const candidateIds = candidates.map((c) => c.id);
+    const voteCounts = await prisma.vote.groupBy({
+      by: ["candidateId"],
+      where: {
+        candidateId: { in: candidateIds },
+        electionId: electionId,
+      },
+      _count: {
+        candidateId: true,
+      },
+    });
+
+    // Create a map of candidate ID to vote count
+    const voteCountMap = voteCounts.reduce(
+      (acc, vote) => {
+        acc[vote.candidateId] = vote._count.candidateId;
+        return acc;
+      },
+      {} as Record<number, number>
+    );
 
     // Format the response
     const formattedCandidates = candidates.map((candidate) => ({
@@ -72,12 +133,20 @@ export async function GET(req: NextRequest, context: any) {
       positionId: candidate.positionId,
       party: candidate.partylist.name,
       partylistId: candidate.partylistId,
-      year: candidate.year?.name || "N/A",
+      year: candidate.year || null,
       yearId: candidate.yearId,
-      votes: 0, // You would need to count votes from the Vote table if needed
+      votes: voteCountMap[candidate.id] || 0,
     }));
 
-    return NextResponse.json(formattedCandidates);
+    return NextResponse.json({
+      candidates: formattedCandidates,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCandidates / limit),
+        total: totalCandidates,
+        hasMore: page < Math.ceil(totalCandidates / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching candidates:", error);
     return NextResponse.json(

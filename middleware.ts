@@ -6,37 +6,67 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    if (path === "/api/voters") {
-      return NextResponse.next();
+    // Early return for public API routes
+    if (path === "/api/voters" || path.startsWith("/api/public")) {
+      const response = NextResponse.next();
+      // Add performance headers
+      response.headers.set(
+        "Cache-Control",
+        "public, max-age=300, stale-while-revalidate=60"
+      );
+      return response;
     }
 
-    // If there's no token, redirect to root path
+    // If there's no token, redirect to root path (only for protected routes)
     if (!token) {
       return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Handle admin routes
+    const userRole = token.role;
+    const isAdmin = userRole === "ADMIN";
+    const isVoter = userRole === "VOTER";
+
+    // Handle admin routes with optimized checks
     if (path.startsWith("/admin_dashboard")) {
-      if (token.role !== "ADMIN") {
-        // If user is not an admin, redirect appropriately
+      if (!isAdmin) {
         return NextResponse.redirect(
-          new URL(token.role === "USER" ? "/user_dashboard" : "/", req.url)
+          new URL(isVoter ? "/user_dashboard" : "/", req.url)
         );
       }
     }
 
-    // Handle user routes
+    // Handle user routes with optimized checks
     if (path.startsWith("/user_dashboard")) {
-      if (token.role !== "VOTER") {
-        // If user is not a regular user, redirect appropriately
+      if (!isVoter) {
         return NextResponse.redirect(
-          new URL(token.role === "ADMIN" ? "/admin_dashboard" : "/", req.url)
+          new URL(isAdmin ? "/admin_dashboard" : "/", req.url)
         );
       }
     }
 
-    // Allow the request to proceed
-    return NextResponse.next();
+    // Create response with performance headers
+    const response = NextResponse.next();
+
+    // Add security and performance headers
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("X-XSS-Protection", "1; mode=block");
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Add cache headers for static routes
+    if (path.includes("/static/") || path.includes("/_next/")) {
+      response.headers.set(
+        "Cache-Control",
+        "public, max-age=31536000, immutable"
+      );
+    } else {
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, must-revalidate"
+      );
+    }
+
+    return response;
   },
   {
     callbacks: {

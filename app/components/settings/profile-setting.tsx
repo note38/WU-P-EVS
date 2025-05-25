@@ -39,6 +39,7 @@ import { toast } from "@/hooks/use-toast";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { cropImage } from "../../lib/image-utils";
+import { useUserAvatar } from "@/hooks/use-user-avatar";
 
 // Cache utility for profile data
 const profileCache = {
@@ -104,7 +105,7 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 export function ProfileSettings() {
   const router = useRouter();
   const { data: session, update: updateSession } = useSession();
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const { avatar, updateAvatar, refreshAvatar } = useUserAvatar();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -158,10 +159,6 @@ export function ProfileSettings() {
             email: cachedData.email,
           });
 
-          if (cachedData.avatar) {
-            setAvatar(cachedData.avatar);
-          }
-
           setIsLoading(false);
           return;
         }
@@ -181,11 +178,6 @@ export function ProfileSettings() {
             username: userData.username,
             email: userData.email,
           });
-
-          // Set avatar if exists
-          if (userData.avatar) {
-            setAvatar(userData.avatar);
-          }
 
           // Update cache
           profileCache.set(userData);
@@ -253,6 +245,9 @@ export function ProfileSettings() {
         // Update cache with new data
         const updatedData = { ...updateData };
         profileCache.set(updatedData);
+
+        // Refresh avatar in global state
+        await refreshAvatar();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
@@ -368,7 +363,9 @@ export function ProfileSettings() {
         512,
         512
       );
-      setAvatar(croppedImage);
+
+      // Update global avatar state
+      updateAvatar(croppedImage);
 
       // Close the cropper
       setCropperOpen(false);
@@ -386,6 +383,14 @@ export function ProfileSettings() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleRemoveAvatar = () => {
+    updateAvatar(null);
+    // Mark form as dirty to enable save button
+    profileForm.setValue("username", profileForm.getValues("username"), {
+      shouldDirty: true,
+    });
   };
 
   if (isLoading) {
@@ -478,7 +483,7 @@ export function ProfileSettings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setAvatar(null)}
+                  onClick={handleRemoveAvatar}
                   aria-label="Remove avatar image"
                 >
                   Remove

@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { electionId: string } }
+  { params }: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const electionId = parseInt(params.electionId);
+    // Await params before accessing properties (Next.js 15 requirement)
+    const { electionId: electionIdStr } = await params;
+    const electionId = parseInt(electionIdStr);
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "8");
@@ -134,10 +137,13 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { electionId: string } }
+  { params }: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const electionId = parseInt(params.electionId);
+    // Await params before accessing properties (Next.js 15 requirement)
+    const { electionId: electionIdStr } = await params;
+    const electionId = parseInt(electionIdStr);
+
     const body = await request.json();
     const { yearId, departmentId, allDepartments } = body;
 

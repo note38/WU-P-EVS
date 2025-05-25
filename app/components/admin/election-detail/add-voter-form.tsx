@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { PlusIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Department {
@@ -29,28 +28,25 @@ interface Department {
   name: string;
 }
 
-interface Election {
-  id: number;
-  name: string;
-}
-
 interface Year {
   id: number;
   name: string;
-  departmentId?: number;
+  departmentId?: number; // Made optional since API might not return this
 }
 
-export function CreateVoterForm() {
-  const router = useRouter();
+interface AddVoterFormProps {
+  electionId: number;
+  onVoterAdded: (newVoter: any) => void;
+}
+
+export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [years, setYears] = useState<Year[]>([]);
-  const [elections, setElections] = useState<Election[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isLoadingYears, setIsLoadingYears] = useState(false);
-  const [isLoadingElections, setIsLoadingElections] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -58,7 +54,6 @@ export function CreateVoterForm() {
     middleName: "",
     email: "",
     yearId: "",
-    electionId: "",
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -66,20 +61,19 @@ export function CreateVoterForm() {
   useEffect(() => {
     if (open) {
       fetchDepartments();
-      fetchElections();
       setErrors({});
     } else {
       // Reset selections when dialog closes
       setSelectedDepartmentId("");
-      setFormData((prev) => ({ ...prev, yearId: "", electionId: "" }));
+      setFormData((prev) => ({ ...prev, yearId: "" }));
       setYears([]);
     }
   }, [open]);
 
   useEffect(() => {
     if (selectedDepartmentId) {
-      fetchYears(selectedDepartmentId);
-      setFormData((prev) => ({ ...prev, yearId: "" }));
+      fetchYearsByDepartment(parseInt(selectedDepartmentId));
+      setFormData((prev) => ({ ...prev, yearId: "" })); // Reset year selection when department changes
     } else {
       setYears([]);
       setFormData((prev) => ({ ...prev, yearId: "" }));
@@ -93,13 +87,6 @@ export function CreateVoterForm() {
       if (response.ok) {
         const data = await response.json();
         setDepartments(data);
-      } else {
-        console.error("Failed to fetch departments");
-        toast({
-          title: "Error",
-          description: "Failed to load departments",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -113,20 +100,13 @@ export function CreateVoterForm() {
     }
   };
 
-  const fetchYears = async (departmentId: string) => {
+  const fetchYearsByDepartment = async (departmentId: number) => {
     setIsLoadingYears(true);
     try {
       const response = await fetch(`/api/years/by-department/${departmentId}`);
       if (response.ok) {
         const data = await response.json();
         setYears(data);
-      } else {
-        console.error("Failed to fetch years");
-        toast({
-          title: "Error",
-          description: "Failed to load years",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Error fetching years:", error);
@@ -137,34 +117,6 @@ export function CreateVoterForm() {
       });
     } finally {
       setIsLoadingYears(false);
-    }
-  };
-
-  const fetchElections = async () => {
-    setIsLoadingElections(true);
-    try {
-      const response = await fetch("/api/elections");
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Elections data from API:", data); // Debug log
-        setElections(data);
-      } else {
-        console.error("Failed to fetch elections");
-        toast({
-          title: "Error",
-          description: "Failed to load elections",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching elections:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load elections",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingElections(false);
     }
   };
 
@@ -205,10 +157,10 @@ export function CreateVoterForm() {
       return;
     }
 
-    // Prepare data - if electionId is empty, set it to null for the API
+    // Prepare data with the election ID and other required fields
     const submissionData = {
       ...formData,
-      electionId: formData.electionId || null,
+      electionId: electionId.toString(),
       middleName: formData.middleName || null,
     };
 
@@ -226,17 +178,16 @@ export function CreateVoterForm() {
       if (response.ok) {
         toast({
           title: "Success",
-          description: `Voter added. Temporary password: ${data.tempPassword}`,
+          description: `Voter added to election. Temporary password: ${data.tempPassword}`,
         });
         setOpen(false);
-        router.refresh();
+        onVoterAdded(data.voter || data);
         setFormData({
           firstName: "",
           lastName: "",
           middleName: "",
           email: "",
           yearId: "",
-          electionId: "",
         });
         setSelectedDepartmentId("");
       } else {
@@ -279,10 +230,9 @@ export function CreateVoterForm() {
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Voter</DialogTitle>
+            <DialogTitle>Add Voter to Election</DialogTitle>
             <DialogDescription>
-              Register a new voter with their academic year and optional
-              election.
+              Register a new voter directly to this election.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -396,52 +346,6 @@ export function CreateVoterForm() {
                   <p className="text-red-500 text-sm mt-1">{errors.yearId}</p>
                 )}
               </div>
-
-              <div>
-                <Label>Election (Optional)</Label>
-                <Select
-                  value={formData.electionId}
-                  onValueChange={(value) =>
-                    handleSelectChange("electionId", value)
-                  }
-                  disabled={isLoadingElections}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        isLoadingElections
-                          ? "Loading elections..."
-                          : elections.length === 0
-                            ? "No elections available"
-                            : "Select election (optional)"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {elections.length > 0 ? (
-                      elections.map((election) => (
-                        <SelectItem
-                          key={election.id}
-                          value={election.id.toString()}
-                        >
-                          {election.name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="none" disabled>
-                        {isLoadingElections
-                          ? "Loading elections..."
-                          : "No elections available"}
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.electionId && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.electionId}
-                  </p>
-                )}
-              </div>
             </div>
           </div>
           <DialogFooter>
@@ -449,7 +353,7 @@ export function CreateVoterForm() {
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Voter"}
+              {isSubmitting ? "Adding..." : "Add Voter"}
             </Button>
           </DialogFooter>
         </form>

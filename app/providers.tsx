@@ -10,16 +10,18 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider
-      // Refetch session every hour
-      refetchInterval={60 * 60}
-      // Re-fetch session when window is focused
-      refetchOnWindowFocus={true}
+      // Reduce refetch frequency for better performance
+      refetchInterval={5 * 60} // 5 minutes instead of 1 hour
+      // Only refetch when window is focused
+      refetchOnWindowFocus={false}
+      refetchWhenOffline={false}
     >
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
         enableSystem
         disableTransitionOnChange
+        storageKey="wup-evs-theme"
       >
         {children}
       </ThemeProvider>

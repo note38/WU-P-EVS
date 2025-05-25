@@ -4,10 +4,20 @@ import { NextResponse } from "next/server";
 export async function PATCH(request: Request, context: any) {
   try {
     const body = await request.json();
+
+    // Validate required fields
+    if (!body.name) {
+      return NextResponse.json(
+        { message: "Department name is required" },
+        { status: 400 }
+      );
+    }
+
     const department = await prisma.department.update({
       where: { id: parseInt(context.params.id) },
       data: {
         name: body.name,
+        image: body.image !== undefined ? body.image : undefined,
       },
     });
 

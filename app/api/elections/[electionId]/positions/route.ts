@@ -6,22 +6,28 @@ import { NextRequest, NextResponse } from "next/server";
 const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions
-export async function GET(req: NextRequest, context: any) {
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ electionId: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Await params before accessing properties (Next.js 15 requirement)
+    const params = await context.params;
+
     // Safely extract and parse the electionId from context params
-    if (!context.params || !context.params.electionId) {
+    if (!params || !params.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
       );
     }
 
-    const electionId = parseInt(context.params.electionId);
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
@@ -73,22 +79,28 @@ export async function GET(req: NextRequest, context: any) {
 }
 
 // POST /api/elections/[electionId]/positions
-export async function POST(req: NextRequest, context: any) {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ electionId: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Await params before accessing properties (Next.js 15 requirement)
+    const params = await context.params;
+
     // Safely extract and parse the electionId from context params
-    if (!context.params || !context.params.electionId) {
+    if (!params || !params.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
       );
     }
 
-    const electionId = parseInt(context.params.electionId);
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
