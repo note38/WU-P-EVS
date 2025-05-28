@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { PlusIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function CreateElectionForm() {
   const { toast } = useToast();
@@ -35,13 +35,27 @@ export function CreateElectionForm() {
   const [newParty, setNewParty] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Add useEffect for polling
-  useEffect(() => {
-    if (!open) {
-      // Refresh the router when dialog is closed
-      router.refresh();
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      startDate: "",
+      startTime: "",
+      endDate: "",
+      endTime: "",
+      partyList: ["Independent"],
+    });
+    setNewParty("");
+    setFormErrors({});
+  };
+
+  const handleDialogChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen && !isSubmitting) {
+      // Reset form when dialog is closed (but not when submitting)
+      resetForm();
     }
-  }, [open, router]);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -231,15 +245,7 @@ export function CreateElectionForm() {
       setOpen(false);
 
       // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        startDate: "",
-        startTime: "",
-        endDate: "",
-        endTime: "",
-        partyList: ["Independent"],
-      });
+      resetForm();
 
       // Force refresh the page to show the new election
       router.refresh();
@@ -259,7 +265,7 @@ export function CreateElectionForm() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogTrigger asChild>
         <Button size="sm" className="w-full md:w-auto">
           <PlusIcon className="mr-2 h-4 w-4" />
@@ -381,15 +387,15 @@ export function CreateElectionForm() {
                 Party List
               </Label>
               <div className="col-span-4">
-                <div className="max-h-40 overflow-y-auto mb-2 border rounded-md">
+                <div className="max-h-40 overflow-y-auto mb-2 border rounded-md border-border">
                   <div className="p-2 space-y-2">
                     {formData.partyList.map((party, index) => (
                       <div key={index} className="flex items-center gap-2">
                         <div
                           className={`px-3 py-2 rounded flex-1 ${
                             party.toLowerCase() === "independent"
-                              ? "bg-gray-200"
-                              : "bg-gray-100"
+                              ? "bg-muted/70 text-muted-foreground"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {party}

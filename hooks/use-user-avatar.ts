@@ -51,6 +51,7 @@ export function useUserAvatar() {
 
       try {
         setIsLoading(true);
+
         const response = await fetch("/api/users/profile", {
           headers: {
             "Cache-Control": "no-cache",
@@ -87,7 +88,9 @@ export function useUserAvatar() {
 
   // Function to refresh avatar from server
   const refreshAvatar = useCallback(async () => {
-    if (!session?.user) return;
+    if (!session?.user) {
+      return;
+    }
 
     try {
       const response = await fetch("/api/users/profile", {

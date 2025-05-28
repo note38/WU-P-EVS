@@ -13,6 +13,7 @@ import {
 } from "@/app/components/ui/skeleton";
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
+import { ExportButtons } from "@/app/components/admin/voter-detail/export-buttons";
 import { prisma } from "@/lib/db";
 
 // Define VoterStatus enum to match the one in DepartmentCard
@@ -55,6 +56,83 @@ const getCachedDepartmentsAndYears = unstable_cache(
 );
 
 // Async Components
+async function HeaderWithActions() {
+  try {
+    const { data: votersData = [] } = await getCachedVoters();
+    const departments = await getCachedDepartmentsAndYears();
+
+    // Create a mapping from year ID to department and year names
+    const yearMapping = new Map();
+    departments.forEach((dept) => {
+      dept.years.forEach((year) => {
+        yearMapping.set(year.id, {
+          departmentName: dept.name,
+          departmentId: dept.id,
+          yearName: year.name,
+          yearId: year.id,
+          departmentImage: dept.image || null,
+        });
+      });
+    });
+
+    // Map VoterData to the Voter format for export
+    const voters = votersData.map((voter) => {
+      const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
+      const yearFullName = yearInfo
+        ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
+        : voter.year?.name || "Unknown Year";
+
+      return {
+        ...voter,
+        status: voter.status as unknown as VoterStatus,
+        year: voter.year
+          ? {
+              ...voter.year,
+              name: yearFullName,
+              departmentName: yearInfo?.departmentName || "Unknown",
+              departmentId: yearInfo?.departmentId || 0,
+              departmentImage: yearInfo?.departmentImage || null,
+            }
+          : {
+              id: 0,
+              name: "Unknown Year",
+              departmentName: "Unknown",
+              departmentId: 0,
+              departmentImage: null,
+            },
+        election: voter.election || { name: "No Election", id: 0 },
+      };
+    });
+
+    return (
+      <div className="flex flex-col sm:flex-row gap-2">
+        <ExportButtons voters={voters} title="All Voters Report" />
+
+        <div className="hidden md:block">
+          <CreateVoterForm />
+        </div>
+
+        {/* Mobile button - hidden on desktop */}
+        <div className="block md:hidden w-full">
+          <CreateVoterForm />
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error("Error fetching voters for header:", error);
+    return (
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="hidden md:block">
+          <CreateVoterForm />
+        </div>
+        <div className="block md:hidden w-full">
+          <CreateVoterForm />
+        </div>
+      </div>
+    );
+  }
+}
+
 async function DepartmentDisplay() {
   try {
     const { data: votersData = [], info } = await getCachedVoters();
@@ -77,23 +155,33 @@ async function DepartmentDisplay() {
 
     // Map VoterData to the Voter format expected by DepartmentCard with enhanced data
     const voters = votersData.map((voter) => {
-      const yearInfo = yearMapping.get(voter.year.id);
+      const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
       const yearFullName = yearInfo
         ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
-        : voter.year.name;
+        : voter.year?.name || "Unknown Year";
 
       return {
         ...voter,
         // Ensure status is properly typed as VoterStatus
         status: voter.status as unknown as VoterStatus,
         // Enhance year data with department relationship
-        year: {
-          ...voter.year,
-          name: yearFullName,
-          departmentName: yearInfo?.departmentName || "Unknown",
-          departmentId: yearInfo?.departmentId || 0,
-          departmentImage: yearInfo?.departmentImage || null,
-        },
+        year: voter.year
+          ? {
+              ...voter.year,
+              name: yearFullName,
+              departmentName: yearInfo?.departmentName || "Unknown",
+              departmentId: yearInfo?.departmentId || 0,
+              departmentImage: yearInfo?.departmentImage || null,
+            }
+          : {
+              id: 0,
+              name: "Unknown Year",
+              departmentName: "Unknown",
+              departmentId: 0,
+              departmentImage: null,
+            },
+        // Ensure election is not null
+        election: voter.election || { name: "No Election", id: 0 },
       };
     });
 
@@ -128,14 +216,9 @@ export default function VotersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
 
-        <div className="hidden md:block">
-          <CreateVoterForm />
-        </div>
-
-        {/* Mobile button - hidden on desktop */}
-        <div className="block md:hidden w-full">
-          <CreateVoterForm />
-        </div>
+        <Suspense fallback={<VoterCardsSkeleton />}>
+          <HeaderWithActions />
+        </Suspense>
       </div>
 
       <Card>

@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
 import {
   EditIcon,
   EyeIcon,
@@ -30,9 +31,10 @@ import {
   TrashIcon,
   UsersIcon,
   VoteIcon,
+  ClockIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ElectionCardProps {
   election: {
@@ -57,6 +59,31 @@ export function ElectionCard({ election }: ElectionCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusAction, setStatusAction] = useState<"start" | "pause">("start");
+  const [currentElectionStatus, setCurrentElectionStatus] = useState(
+    election.status
+  );
+
+  // Use the automatic status checking hook
+  useElectionAutoStatus({
+    enabled: true,
+    interval: 30000, // Check every 30 seconds
+    onStatusUpdate: (updates) => {
+      // Update local status if this election was updated
+      const thisElectionUpdate = updates.find(
+        (update) => update.id === election.id
+      );
+      if (thisElectionUpdate) {
+        setCurrentElectionStatus(
+          thisElectionUpdate.suggestedStatus.toLowerCase()
+        );
+      }
+    },
+  });
+
+  // Update local status when election prop changes
+  useEffect(() => {
+    setCurrentElectionStatus(election.status);
+  }, [election.status]);
 
   // Format date and time for display
   const formatDateTime = (isoString: string) => {
@@ -70,7 +97,38 @@ export function ElectionCard({ election }: ElectionCardProps) {
   const startDateTime = formatDateTime(election.fullStartDate);
   const endDateTime = formatDateTime(election.fullEndDate);
 
+  // Check if election should be automatically active or completed
+  const getExpectedStatus = () => {
+    const now = new Date();
+    const startDate = new Date(election.fullStartDate);
+    const endDate = new Date(election.fullEndDate);
+
+    if (now >= endDate) {
+      return "completed";
+    } else if (now >= startDate && now < endDate) {
+      return "active";
+    } else {
+      return "inactive";
+    }
+  };
+
+  const expectedStatus = getExpectedStatus();
+  const isStatusOutOfSync = currentElectionStatus !== expectedStatus;
+
   const handleStatusChange = (action: "start" | "pause") => {
+    const now = new Date();
+    const endDate = new Date(election.fullEndDate);
+
+    // Prevent starting an election that has already ended
+    if (action === "start" && now >= endDate) {
+      toast({
+        title: "Cannot Start Election",
+        description: "This election has already ended and cannot be started.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setStatusAction(action);
     setStatusDialogOpen(true);
   };
@@ -100,6 +158,9 @@ export function ElectionCard({ election }: ElectionCardProps) {
         }
         throw new Error(errorMessage);
       }
+
+      // Update local status
+      setCurrentElectionStatus(newStatus.toLowerCase());
 
       toast({
         title: "Success",
@@ -175,6 +236,20 @@ export function ElectionCard({ election }: ElectionCardProps) {
     router.push(`/admin_dashboard/elections/${election.id}`);
   };
 
+  // Get status badge styling
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-500 hover:bg-green-600";
+      case "inactive":
+        return "bg-yellow-500 hover:bg-yellow-600";
+      case "completed":
+        return "bg-gray-500 hover:bg-gray-600";
+      default:
+        return "bg-blue-500 hover:bg-blue-600";
+    }
+  };
+
   return (
     <>
       <Card
@@ -184,7 +259,12 @@ export function ElectionCard({ election }: ElectionCardProps) {
         <CardHeader>
           <div className="flex flex-wrap justify-between items-start gap-2">
             <div>
-              <CardTitle>{election.name}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                {election.name}
+                {isStatusOutOfSync && (
+                  <ClockIcon className="h-4 w-4 text-orange-500" />
+                )}
+              </CardTitle>
               <CardDescription>
                 <div>
                   Start: {startDateTime.date} {startDateTime.time}
@@ -192,21 +272,18 @@ export function ElectionCard({ election }: ElectionCardProps) {
                 <div>
                   End: {endDateTime.date} {endDateTime.time}
                 </div>
+                {isStatusOutOfSync && (
+                  <div className="text-orange-600 text-xs mt-1">
+                    Expected:{" "}
+                    {expectedStatus.charAt(0).toUpperCase() +
+                      expectedStatus.slice(1)}
+                  </div>
+                )}
               </CardDescription>
             </div>
-            <Badge
-              className={
-                election.status === "active"
-                  ? "bg-green-500 hover:bg-green-600"
-                  : election.status === "inactive"
-                    ? "bg-yellow-500 hover:bg-yellow-600"
-                    : election.status === "completed"
-                      ? "bg-gray-500 hover:bg-gray-600"
-                      : "bg-blue-500 hover:bg-blue-600"
-              }
-            >
-              {election.status.charAt(0).toUpperCase() +
-                election.status.slice(1)}
+            <Badge className={getStatusBadgeClass(currentElectionStatus)}>
+              {currentElectionStatus.charAt(0).toUpperCase() +
+                currentElectionStatus.slice(1)}
             </Badge>
           </div>
         </CardHeader>
@@ -270,12 +347,12 @@ export function ElectionCard({ election }: ElectionCardProps) {
                 Edit Election
               </DropdownMenuItem>
 
-              {election.status === "active" ? (
+              {currentElectionStatus === "active" ? (
                 <DropdownMenuItem onClick={() => handleStatusChange("pause")}>
                   <PauseIcon className="h-4 w-4 mr-2" />
                   Pause Election
                 </DropdownMenuItem>
-              ) : election.status === "inactive" ? (
+              ) : currentElectionStatus === "inactive" ? (
                 <DropdownMenuItem onClick={() => handleStatusChange("start")}>
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Start Election

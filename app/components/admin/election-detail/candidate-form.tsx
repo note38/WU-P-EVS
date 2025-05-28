@@ -26,9 +26,13 @@ import {
   UploadIcon,
   UserIcon,
   AlertCircle,
+  Loader2,
+  X,
 } from "lucide-react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useDebounce } from "../../../hooks/use-debounce";
+import { ImageCropDialog } from "./image-crop-dialog";
+import { toast } from "@/hooks/use-toast";
 
 interface Voter {
   id: number;
@@ -74,23 +78,34 @@ export function CandidateForm({
   const [formStep, setFormStep] = useState<"search" | "details">("search");
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [existingCandidates, setExistingCandidates] = useState<string[]>([]);
+  const [existingCandidatesLoading, setExistingCandidatesLoading] =
+    useState(false);
+  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debouncedSearchTerm = useDebounce(voterSearchTerm, 300);
 
   const fetchExistingCandidates = useCallback(async () => {
+    setExistingCandidatesLoading(true);
     try {
       const response = await fetch(`/api/elections/${electionId}/candidates`);
       if (response.ok) {
-        const candidates = await response.json();
-        const candidateNames = candidates.map(
-          (candidate: any) => candidate.name
-        );
+        const data = await response.json();
+        // Handle both array and object responses
+        const candidates = data.candidates || data;
+        const candidateNames = Array.isArray(candidates)
+          ? candidates.map((candidate: any) => candidate.name)
+          : [];
         setExistingCandidates(candidateNames);
       } else {
         console.error("Failed to fetch existing candidates");
       }
     } catch (error) {
       console.error("Error fetching existing candidates:", error);
+    } finally {
+      setExistingCandidatesLoading(false);
     }
   }, [electionId]);
 
@@ -140,16 +155,27 @@ export function CandidateForm({
   }, [isAddDialogOpen, formStep, fetchExistingCandidates]);
 
   useEffect(() => {
-    if (existingCandidates.length >= 0) {
+    if (!existingCandidatesLoading && existingCandidates.length >= 0) {
       fetchVoters();
     }
-  }, [isAddDialogOpen, formStep, fetchVoters, existingCandidates]);
+  }, [
+    isAddDialogOpen,
+    formStep,
+    fetchVoters,
+    existingCandidates,
+    existingCandidatesLoading,
+  ]);
 
   useEffect(() => {
-    if (existingCandidates.length >= 0) {
+    if (!existingCandidatesLoading && existingCandidates.length >= 0) {
       fetchVoters(debouncedSearchTerm);
     }
-  }, [debouncedSearchTerm, fetchVoters, existingCandidates]);
+  }, [
+    debouncedSearchTerm,
+    fetchVoters,
+    existingCandidates,
+    existingCandidatesLoading,
+  ]);
 
   const getPartylistOptions = () => {
     const hasIndependent = partylists.some(
@@ -194,16 +220,71 @@ export function CandidateForm({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setCustomAvatar(result);
-        setNewCandidate({
-          ...newCandidate,
-          avatar: result,
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "Please select an image file",
+          variant: "destructive",
         });
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store the selected file and open crop dialog
+      setSelectedImageFile(file);
+      setIsCropDialogOpen(true);
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File) => {
+    setAvatarFile(croppedFile);
+
+    // Create preview of cropped image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setAvatarPreview(result);
+      setCustomAvatar(result);
+      setNewCandidate({
+        ...newCandidate,
+        avatar: result,
+      });
+    };
+    reader.readAsDataURL(croppedFile);
+
+    setIsCropDialogOpen(false);
+    setSelectedImageFile(null);
+  };
+
+  const handleCropCancel = () => {
+    setIsCropDialogOpen(false);
+    setSelectedImageFile(null);
+    // Clear the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setCustomAvatar(null);
+    setNewCandidate({
+      ...newCandidate,
+      avatar: selectedVoter?.avatar || "/placeholder.svg",
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -228,6 +309,14 @@ export function CandidateForm({
     setCustomAvatar(null);
     setVoterSearchTerm("");
     setFormStep("search");
+    setExistingCandidatesLoading(false);
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setSelectedImageFile(null);
+    setIsCropDialogOpen(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleAddCandidate = async () => {
@@ -253,10 +342,12 @@ export function CandidateForm({
     }
 
     if (
+      !avatarFile &&
+      !avatarPreview &&
       !customAvatar &&
       newCandidate.avatar === (selectedVoter.avatar || "/placeholder.svg")
     ) {
-      setError("Please change the candidate's avatar");
+      setError("Please upload and crop a candidate avatar");
       setLoading(false);
       return;
     }
@@ -384,10 +475,11 @@ export function CandidateForm({
             </div>
 
             <div className="border rounded-md">
-              {votersLoading ? (
+              {existingCandidatesLoading || votersLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-pulse text-muted-foreground">
-                    Loading voters...
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Loading available voters...</span>
                   </div>
                 </div>
               ) : voters.length > 0 ? (
@@ -441,6 +533,7 @@ export function CandidateForm({
                   <Avatar className="h-24 w-24 border-2 border-border">
                     <AvatarImage
                       src={
+                        avatarPreview ||
                         customAvatar ||
                         selectedVoter?.avatar ||
                         "/placeholder.svg"
@@ -453,6 +546,18 @@ export function CandidateForm({
                       )}
                     </AvatarFallback>
                   </Avatar>
+                  {(avatarPreview || customAvatar) &&
+                    avatarPreview !==
+                      (selectedVoter?.avatar || "/placeholder.svg") && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                        onClick={handleRemoveAvatar}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
                   <div
                     className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
                     onClick={triggerFileInput}
@@ -467,14 +572,19 @@ export function CandidateForm({
                   accept="image/*"
                   className="hidden"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={triggerFileInput}
-                  className="text-xs"
-                >
-                  Change Avatar*
-                </Button>
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={triggerFileInput}
+                    className="text-xs"
+                  >
+                    {avatarFile ? "Change Photo" : "Upload Photo"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    PNG, JPG up to 5MB • Square crop recommended
+                  </p>
+                </div>
               </div>
               <div className="flex-1 space-y-2">
                 <div>
@@ -578,6 +688,15 @@ export function CandidateForm({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        isOpen={isCropDialogOpen}
+        onClose={handleCropCancel}
+        onCropComplete={handleCropComplete}
+        imageFile={selectedImageFile}
+        originalFileName={selectedImageFile?.name || "cropped-avatar.jpg"}
+      />
     </Dialog>
   );
 }

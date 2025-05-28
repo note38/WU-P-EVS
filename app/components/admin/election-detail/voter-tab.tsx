@@ -380,12 +380,190 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
+  const handlePrintAll = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>All Voters - Election Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
+            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Election Voters Report</h1>
+            <p>Total Voters: ${totalVoters}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table class="voter-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th>Voted At</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${voters
+                .map(
+                  (voter) => `
+                <tr>
+                  <td>${voter.id}</td>
+                  <td>${`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}</td>
+                  <td>${voter.email || "N/A"}</td>
+                  <td>${voter.department?.name || "N/A"}</td>
+                  <td>${voter.year?.name || "N/A"}</td>
+                  <td>
+                    <span class="${voter.votedAt ? "status-voted" : "status-registered"}">
+                      ${voter.votedAt ? "Voted" : "Registered"}
+                    </span>
+                  </td>
+                  <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>This report contains ${voters.length} voters from the current page.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const handlePrintSelected = () => {
+    if (selectedVoters.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select voters to print",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedVoterData = voters.filter((voter) =>
+      selectedVoters.includes(voter.id)
+    );
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Selected Voters - Election Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
+            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Selected Voters Report</h1>
+            <p>Selected Voters: ${selectedVoterData.length}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table class="voter-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Year</th>
+                <th>Status</th>
+                <th>Voted At</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${selectedVoterData
+                .map(
+                  (voter) => `
+                <tr>
+                  <td>${voter.id}</td>
+                  <td>${`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}</td>
+                  <td>${voter.email || "N/A"}</td>
+                  <td>${voter.department?.name || "N/A"}</td>
+                  <td>${voter.year?.name || "N/A"}</td>
+                  <td>
+                    <span class="${voter.votedAt ? "status-voted" : "status-registered"}">
+                      ${voter.votedAt ? "Voted" : "Registered"}
+                    </span>
+                  </td>
+                  <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>This report contains ${selectedVoterData.length} selected voters.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold">Election Voters</h2>
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={handlePrintAll}
+            disabled={voters.length === 0}
+          >
+            <PrinterIcon className="h-4 w-4 mr-2" />
+            Print All
+          </Button>
           <ImportVotersDialog
             electionId={electionId}
             onImportSuccess={handleImportSuccess}
@@ -432,6 +610,10 @@ export function VotersTab({ electionId }: VotersTabProps) {
               >
                 <SendIcon className="h-4 w-4 mr-2" />
                 Email Selected
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrintSelected}>
+                <PrinterIcon className="h-4 w-4 mr-2" />
+                Print Selected
               </Button>
             </div>
           )}

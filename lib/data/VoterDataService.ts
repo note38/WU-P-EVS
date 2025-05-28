@@ -12,8 +12,8 @@ export interface VoterData {
   avatar: string;
   credentialsSent: boolean;
   createdAt: Date;
-  election: { name: string; id: number };
-  year: { name: string; id: number };
+  election: { name: string; id: number } | null;
+  year: { name: string; id: number } | null;
 }
 
 export interface StatsResult {
@@ -32,26 +32,27 @@ export interface AccelerateResult<T> {
 export class VoterDataService {
   // Get all voters with pagination
   static async getVoters(): Promise<AccelerateResult<VoterData[]>> {
-    const result = await prisma.voter
-      .findMany({
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          middleName: true,
-          email: true,
-          status: true,
-          avatar: true,
-          credentialsSent: true,
-          createdAt: true,
-          election: { select: { name: true, id: true } },
-          year: { select: { name: true, id: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      })
-      .withAccelerateInfo();
+    const result = await prisma.voter.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        middleName: true,
+        email: true,
+        status: true,
+        avatar: true,
+        credentialsSent: true,
+        createdAt: true,
+        election: { select: { name: true, id: true } },
+        year: { select: { name: true, id: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-    return result as AccelerateResult<VoterData[]>;
+    return {
+      data: result,
+      info: null, // Accelerate info is available on the prisma client level
+    };
   }
 
   // Get voter statistics
@@ -66,47 +67,34 @@ export class VoterDataService {
       credentialsSentCount,
       newRegistrations,
     ] = await Promise.all([
-      prisma.voter.count().withAccelerateInfo(),
-      prisma.voter
-        .count({
-          where: { status: "VOTED" },
-        })
-        .withAccelerateInfo(),
-      prisma.voter
-        .count({
-          where: { status: "REGISTERED" },
-        })
-        .withAccelerateInfo(),
-      prisma.voter
-        .count({
-          where: { credentialsSent: true },
-        })
-        .withAccelerateInfo(),
-      prisma.voter
-        .count({
-          where: {
-            createdAt: {
-              gte: oneWeekAgo,
-            },
+      prisma.voter.count(),
+      prisma.voter.count({
+        where: { status: "VOTED" },
+      }),
+      prisma.voter.count({
+        where: { status: "REGISTERED" },
+      }),
+      prisma.voter.count({
+        where: { credentialsSent: true },
+      }),
+      prisma.voter.count({
+        where: {
+          createdAt: {
+            gte: oneWeekAgo,
           },
-        })
-        .withAccelerateInfo(),
+        },
+      }),
     ]);
 
     return {
       data: {
-        totalRegistered: totalRegistered.data,
-        votedCount: votedCount.data,
-        notVotedCount: notVotedCount.data,
-        credentialsSentCount: credentialsSentCount.data,
-        newRegistrations: newRegistrations.data,
+        totalRegistered,
+        votedCount,
+        notVotedCount,
+        credentialsSentCount,
+        newRegistrations,
       },
-      info:
-        totalRegistered.info ||
-        votedCount.info ||
-        notVotedCount.info ||
-        credentialsSentCount.info ||
-        newRegistrations.info,
+      info: null, // Accelerate info is available on the prisma client level
     };
   }
 

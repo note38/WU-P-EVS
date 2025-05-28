@@ -346,9 +346,7 @@ export function NotificationsPage() {
                 <p className="text-sm text-muted-foreground">
                   Credentials Sent
                 </p>
-                <p className="text-lg font-semibold">
-                  {notifications.filter((n) => n.type === "credential").length}
-                </p>
+                <p className="text-lg font-semibold">0</p>
               </div>
             </div>
           </CardContent>
@@ -364,7 +362,8 @@ export function NotificationsPage() {
                   Election Updates
                 </p>
                 <p className="text-lg font-semibold">
-                  {notifications.filter((n) => n.type === "election").length}
+                  0
+                  {/* {notifications.filter((n) => n.type === "election").length} */}
                 </p>
               </div>
             </div>
@@ -379,10 +378,11 @@ export function NotificationsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Announcements</p>
                 <p className="text-lg font-semibold">
-                  {
+                  0
+                  {/* {
                     notifications.filter((n) => n.type === "announcement")
                       .length
-                  }
+                  } */}
                 </p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export function NotificationsPage() {
             announcements.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        {/* <CardContent className="p-0">
           {filteredNotifications.length === 0 ? (
             <div className="text-center py-12">
               <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -427,7 +427,7 @@ export function NotificationsPage() {
               ))}
             </div>
           )}
-        </CardContent>
+        </CardContent> */}
       </Card>
     </div>
   );

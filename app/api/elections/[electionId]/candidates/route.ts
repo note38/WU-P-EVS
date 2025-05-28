@@ -17,7 +17,8 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     // Safely extract and parse the electionId from context params
-    if (!context.params || !context.params.electionId) {
+    const params = await context.params;
+    if (!params || !params.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     // Convert electionId to number
-    const electionId = parseInt(context.params.electionId);
+    const electionId = parseInt(params.electionId);
     if (isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },
@@ -170,7 +171,8 @@ export async function POST(req: NextRequest, context: any) {
     }
 
     // Safely extract and parse the electionId from context params
-    if (!context.params || !context.params.electionId) {
+    const params = await context.params;
+    if (!params || !params.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
@@ -178,7 +180,7 @@ export async function POST(req: NextRequest, context: any) {
     }
 
     // Convert electionId to number
-    const electionId = parseInt(context.params.electionId);
+    const electionId = parseInt(params.electionId);
     if (isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },

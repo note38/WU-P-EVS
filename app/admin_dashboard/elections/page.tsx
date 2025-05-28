@@ -10,6 +10,7 @@ import {
   ElectionCardsSkeleton,
   ElectionStatsSkeleton,
 } from "@/app/components/ui/skeleton";
+import { ElectionPageClient } from "@/app/admin_dashboard/elections/election-page-client";
 
 // Remove caching and use direct data fetch
 const getElectionsData = async () => {
@@ -22,6 +23,12 @@ const getElectionsData = async () => {
       endDate: true,
       status: true,
       createdAt: true,
+      partylists: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       _count: {
         select: {
           positions: true,
@@ -111,11 +118,12 @@ async function ElectionList() {
       castVotes,
       uncastVotes,
       createdBy: election.createdBy?.username || "System",
+      partyList: election.partylists.map((p) => p.name),
     };
   });
 
   return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {formattedElections.map((election) => (
         <ElectionCard key={election.id} election={election} />
       ))}
@@ -123,41 +131,35 @@ async function ElectionList() {
   );
 }
 
-// Page Config - Enable dynamic rendering and disable caching
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default function ElectionsPage() {
+export default async function ElectionsPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Elections Management</h1>
-
-        {/* Use the CreateElectionForm component */}
-        <div className="hidden md:block">
+    <ElectionPageClient>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Elections</h1>
+            <p className="text-muted-foreground">
+              Manage and monitor all elections
+            </p>
+          </div>
           <CreateElectionForm />
         </div>
 
-        {/* Mobile button - hidden on desktop */}
-        <div className="block md:hidden w-full">
-          <CreateElectionForm />
-        </div>
+        <Suspense fallback={<ElectionStatsSkeleton />}>
+          <ElectionStats />
+        </Suspense>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Elections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<ElectionCardsSkeleton />}>
+              <ElectionList />
+            </Suspense>
+          </CardContent>
+        </Card>
       </div>
-
-      <Suspense fallback={<ElectionStatsSkeleton />}>
-        <ElectionStats />
-      </Suspense>
-
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle>All Elections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Suspense fallback={<ElectionCardsSkeleton />}>
-            <ElectionList />
-          </Suspense>
-        </CardContent>
-      </Card>
-    </div>
+    </ElectionPageClient>
   );
 }

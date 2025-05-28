@@ -112,6 +112,8 @@ export function ProfileSettings() {
   const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
   const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [originalAvatar, setOriginalAvatar] = useState<string | null>(null);
+  const [avatarChanged, setAvatarChanged] = useState(false);
 
   // Cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -159,6 +161,10 @@ export function ProfileSettings() {
             email: cachedData.email,
           });
 
+          // Set original avatar for comparison
+          setOriginalAvatar(cachedData.avatar || null);
+          setAvatarChanged(false);
+
           setIsLoading(false);
           return;
         }
@@ -178,6 +184,10 @@ export function ProfileSettings() {
             username: userData.username,
             email: userData.email,
           });
+
+          // Set original avatar for comparison
+          setOriginalAvatar(userData.avatar || null);
+          setAvatarChanged(false);
 
           // Update cache
           profileCache.set(userData);
@@ -205,6 +215,11 @@ export function ProfileSettings() {
     }
   }, [session, profileForm]);
 
+  // Track avatar changes
+  useEffect(() => {
+    setAvatarChanged(avatar !== originalAvatar);
+  }, [avatar, originalAvatar]);
+
   async function onProfileSubmit(data: ProfileFormValues) {
     try {
       setIsProfileSubmitting(true);
@@ -213,12 +228,8 @@ export function ProfileSettings() {
       const updateData: any = {
         username: data.username,
         email: data.email,
+        avatar: avatar, // Always include avatar (can be string or null)
       };
-
-      // Include avatar if changed
-      if (avatar) {
-        updateData.avatar = avatar;
-      }
 
       // Call API to update profile with optimized headers
       const response = await fetch("/api/users/profile", {
@@ -248,12 +259,16 @@ export function ProfileSettings() {
 
         // Refresh avatar in global state
         await refreshAvatar();
+
+        // Reset avatar change tracking
+        setOriginalAvatar(avatar);
+        setAvatarChanged(false);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update profile");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Profile update error:", error);
       toast({
         title: "Error",
         description:
@@ -349,7 +364,9 @@ export function ProfileSettings() {
 
   const handleCropSave = async () => {
     try {
-      if (!imageSrc || !croppedAreaPixels) return;
+      if (!imageSrc || !croppedAreaPixels) {
+        return;
+      }
 
       // Apply the crop using advanced crop function
       const croppedImage = await cropImage(
@@ -371,9 +388,10 @@ export function ProfileSettings() {
       setCropperOpen(false);
       setImageSrc(null);
 
-      // Mark form as dirty to enable save button
-      profileForm.setValue("username", profileForm.getValues("username"), {
-        shouldDirty: true,
+      toast({
+        title: "Avatar cropped",
+        description:
+          "Your avatar has been cropped successfully. Don't forget to save your changes.",
       });
     } catch (error) {
       console.error("Error cropping image:", error);
@@ -387,10 +405,6 @@ export function ProfileSettings() {
 
   const handleRemoveAvatar = () => {
     updateAvatar(null);
-    // Mark form as dirty to enable save button
-    profileForm.setValue("username", profileForm.getValues("username"), {
-      shouldDirty: true,
-    });
   };
 
   if (isLoading) {
@@ -552,7 +566,10 @@ export function ProfileSettings() {
 
               <Button
                 type="submit"
-                disabled={isProfileSubmitting || !profileForm.formState.isDirty}
+                disabled={
+                  isProfileSubmitting ||
+                  (!profileForm.formState.isDirty && !avatarChanged)
+                }
                 className="w-full md:w-auto"
               >
                 {isProfileSubmitting ? (
@@ -561,7 +578,14 @@ export function ProfileSettings() {
                     Saving...
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    Save Changes
+                    {avatarChanged && (
+                      <span className="ml-2 text-xs bg-white/20 text-white px-2 py-1 rounded-full border border-white/30 backdrop-blur-sm">
+                        Avatar Updated
+                      </span>
+                    )}
+                  </>
                 )}
               </Button>
             </form>

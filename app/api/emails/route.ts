@@ -1,4 +1,5 @@
-import Welcome from "@/app/emails/welcome";
+import { EmailForm } from "@/app/components/emailform";
+
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
@@ -7,10 +8,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST() {
   try {
     const data = await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "awup-evs.site",
       to: "kupalkakupalka47@gmail.com",
       subject: "Your Voting Credentials",
-      react: Welcome(),
+      react: EmailForm(),
     });
 
     return NextResponse.json({ success: true, data });

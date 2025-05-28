@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
-import { AccelerateInfo } from "@prisma/extension-accelerate";
 import { BarChart2, CalendarIcon, CheckCircle, PieChart } from "lucide-react";
 import { unstable_cache } from "next/cache";
 
@@ -11,51 +10,34 @@ type StatsResult = {
   totalVoters: number;
 };
 
-type StatsWithAccelerate = {
-  data: StatsResult;
-  info: AccelerateInfo | null;
-};
-
-// Cached stats fetch with Accelerate
-const getAcceleratedElectionStats = unstable_cache(
-  async (): Promise<StatsWithAccelerate> => {
+// Cached stats fetch
+const getElectionStats = unstable_cache(
+  async (): Promise<StatsResult> => {
     const [totalElections, activeElections, completedElections, totalVoters] =
       await Promise.all([
-        prisma.election.count().withAccelerateInfo(),
-        prisma.election
-          .count({
-            where: { status: "ACTIVE" },
-          })
-          .withAccelerateInfo(),
-        prisma.election
-          .count({
-            where: { status: "COMPLETED" },
-          })
-          .withAccelerateInfo(),
-        prisma.voter.count().withAccelerateInfo(),
+        prisma.election.count(),
+        prisma.election.count({
+          where: { status: "ACTIVE" },
+        }),
+        prisma.election.count({
+          where: { status: "COMPLETED" },
+        }),
+        prisma.voter.count(),
       ]);
 
     return {
-      data: {
-        totalElections: totalElections.data,
-        activeElections: activeElections.data,
-        completedElections: completedElections.data,
-        totalVoters: totalVoters.data,
-      },
-      info:
-        totalElections.info ||
-        activeElections.info ||
-        completedElections.info ||
-        totalVoters.info,
+      totalElections,
+      activeElections,
+      completedElections,
+      totalVoters,
     };
   },
-  ["election-stats-accelerated"],
+  ["election-stats"],
   { tags: ["election-stats"], revalidate: 60 }
 );
 
 export async function ElectionStats() {
-  const result = await getAcceleratedElectionStats();
-  const stats = result.data;
+  const stats = await getElectionStats();
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

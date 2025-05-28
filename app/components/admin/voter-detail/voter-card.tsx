@@ -125,6 +125,194 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
     // Implement actual email logic
   };
 
+  const handlePrintAll = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>All Voters - Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
+            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>All Voters Report</h1>
+            <p>Total Voters: ${filteredVoters.length}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table class="voter-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Year</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Election</th>
+                <th>Created</th>
+                <th>Credentials</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredVoters
+                .map((voter) => {
+                  const fullName = getFullName(voter);
+                  const yearParts = voter.year?.name
+                    ? voter.year.name.split(" - ")
+                    : [];
+                  const yearName = yearParts[0] || "Unknown";
+                  const departmentName = yearParts[1] || "General";
+
+                  return `
+                    <tr>
+                      <td>${voter.id}</td>
+                      <td>${fullName}</td>
+                      <td>${voter.email}</td>
+                      <td>${yearName}</td>
+                      <td>${departmentName}</td>
+                      <td>
+                        <span class="${voter.status === "VOTED" ? "status-voted" : "status-registered"}">
+                          ${voter.status.toLowerCase()}
+                        </span>
+                      </td>
+                      <td>${voter.election?.name || "Not assigned"}</td>
+                      <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
+                      <td>${voter.credentialsSent ? "Sent" : "Pending"}</td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>This report contains ${filteredVoters.length} voters.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
+  const handlePrintSelected = () => {
+    if (selectedVoters.length === 0) {
+      alert("Please select voters to print");
+      return;
+    }
+
+    const selectedVoterData = filteredVoters.filter((voter) =>
+      selectedVoters.includes(voter.id)
+    );
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Selected Voters - Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
+            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Selected Voters Report</h1>
+            <p>Selected Voters: ${selectedVoterData.length}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table class="voter-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Year</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Election</th>
+                <th>Created</th>
+                <th>Credentials</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${selectedVoterData
+                .map((voter) => {
+                  const fullName = getFullName(voter);
+                  const yearParts = voter.year?.name
+                    ? voter.year.name.split(" - ")
+                    : [];
+                  const yearName = yearParts[0] || "Unknown";
+                  const departmentName = yearParts[1] || "General";
+
+                  return `
+                    <tr>
+                      <td>${voter.id}</td>
+                      <td>${fullName}</td>
+                      <td>${voter.email}</td>
+                      <td>${yearName}</td>
+                      <td>${departmentName}</td>
+                      <td>
+                        <span class="${voter.status === "VOTED" ? "status-voted" : "status-registered"}">
+                          ${voter.status.toLowerCase()}
+                        </span>
+                      </td>
+                      <td>${voter.election?.name || "Not assigned"}</td>
+                      <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
+                      <td>${voter.credentialsSent ? "Sent" : "Pending"}</td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>This report contains ${selectedVoterData.length} selected voters.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
@@ -156,21 +344,33 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
           )}
         </div>
 
-        {selectedVoters.length > 0 && (
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-sm text-muted-foreground">
-              {selectedVoters.length} selected
-            </span>
-            <Button variant="outline" size="sm" onClick={handleBulkEmail}>
-              <SendIcon className="mr-2 h-4 w-4" />
-              Email
-            </Button>
-            <Button variant="outline" size="sm">
-              <PrinterIcon className="mr-2 h-4 w-4" />
-              Print
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrintAll}
+            disabled={filteredVoters.length === 0}
+          >
+            <PrinterIcon className="mr-2 h-4 w-4" />
+            Print All
+          </Button>
+
+          {selectedVoters.length > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {selectedVoters.length} selected
+              </span>
+              <Button variant="outline" size="sm" onClick={handleBulkEmail}>
+                <SendIcon className="mr-2 h-4 w-4" />
+                Email
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrintSelected}>
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                Print Selected
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 mb-4">

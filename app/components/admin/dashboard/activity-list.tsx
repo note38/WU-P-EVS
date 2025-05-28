@@ -17,7 +17,9 @@ export default function ActivityList({ activities }: ActivityListProps) {
     <Card>
       <CardHeader>
         <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>Latest actions in the election system</CardDescription>
+        <CardDescription>
+          Latest actions and updates in the system
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px]">

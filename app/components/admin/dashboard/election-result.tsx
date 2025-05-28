@@ -20,113 +20,38 @@ import {
   Minimize2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ElectionResult } from "@/lib/data/dashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Function to generate random avatar URL
-function getRandomAvatar() {
-  const styles = [
-    "adventurer",
-    "avataaars",
-    "bottts",
-    "identicon",
-    "initials",
-    "micah",
-  ];
-  const style = styles[Math.floor(Math.random() * styles.length)];
-  return `https://api.dicebear.com/7.x/${style}/svg?seed=${Math.random().toString(36).substring(7)}`;
+// Function to generate consistent avatar URL for candidates without avatars
+function getCandidateAvatar(candidateId: number, candidateName: string) {
+  const styles = ["adventurer", "avataaars", "micah"];
+  const style = styles[candidateId % styles.length];
+  const seed = candidateName.toLowerCase().replace(/\s+/g, "");
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
 }
 
-// Generate a large number of positions for testing pagination
-function generatePositions(count: number) {
-  const positions = [];
-  const positionTitles = [
-    "President",
-    "Vice President",
-    "Secretary",
-    "Treasurer",
-    "Public Relations Officer",
-    "Event Coordinator",
-    "Social Media Manager",
-    "Community Outreach",
-    "Fundraising Chair",
-    "Membership Coordinator",
-    "Technology Officer",
-    "Volunteer Coordinator",
-    "Marketing Director",
-    "Education Chair",
-    "Sustainability Officer",
-    "Diversity Chair",
-    "Alumni Relations",
-    "Sports Coordinator",
-    "Arts Director",
-    "Health and Wellness Officer",
-  ];
-
-  for (let i = 0; i < count; i++) {
-    const candidateCount = Math.floor(Math.random() * 3) + 2; // 2-4 candidates per position
-    const candidates = [];
-
-    for (let j = 0; j < candidateCount; j++) {
-      candidates.push({
-        id: i * 10 + j,
-        name: `Candidate ${j + 1} for ${positionTitles[i % positionTitles.length]}`,
-        votes: Math.floor(Math.random() * 200) + 50,
-        avatar: getRandomAvatar(),
-      });
-    }
-
-    positions.push({
-      id: i + 1,
-      name:
-        positionTitles[i % positionTitles.length] +
-        (i >= positionTitles.length
-          ? ` ${Math.floor(i / positionTitles.length) + 1}`
-          : ""),
-      candidates,
-    });
-  }
-
-  return positions;
+// Function to generate anonymous avatar when names are hidden
+function getAnonymousAvatar(candidateId: number) {
+  const styles = ["bottts", "identicon", "shapes"];
+  const style = styles[candidateId % styles.length];
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=anonymous-${candidateId}`;
 }
-
-// Sample election data with many positions
-const elections = [
-  {
-    id: 1,
-    name: "Student Council Election 2025",
-    positions: generatePositions(15), // 15 positions to test pagination
-  },
-  {
-    id: 2,
-    name: "Faculty Board Election 2025",
-    positions: generatePositions(8),
-  },
-  {
-    id: 3,
-    name: "Homecoming Committee 2025",
-    positions: generatePositions(5),
-  },
-  {
-    id: 4,
-    name: "Large Election Example",
-    positions: generatePositions(50), // 50 positions to test pagination
-  },
-];
 
 // Number of positions to show per page
 const POSITIONS_PER_PAGE = 10;
 
 export default function VoterPage() {
-  const [selectedElectionId, setSelectedElectionId] = useState<string>(
-    elections[0].id.toString()
-  );
-  const [electionData, setElectionData] = useState(elections);
+  const [selectedElectionId, setSelectedElectionId] = useState<string>("");
+  const [electionData, setElectionData] = useState<ElectionResult[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showNames, setShowNames] = useState(true);
   const [minimizedPositions, setMinimizedPositions] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   const selectedElection = electionData.find(
-    (e) => e.id.toString() === selectedElectionId
+    (e: ElectionResult) => e.id.toString() === selectedElectionId
   );
 
   // Calculate total pages
@@ -142,31 +67,49 @@ export default function VoterPage() {
       )
     : [];
 
+  // Fetch election results data
+  useEffect(() => {
+    const fetchElectionResults = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/dashboard/results");
+        if (response.ok) {
+          const results: ElectionResult[] = await response.json();
+          setElectionData(results);
+
+          // Set the first election as selected if available
+          if (results.length > 0 && !selectedElectionId) {
+            setSelectedElectionId(results[0].id.toString());
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching election results:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchElectionResults();
+  }, [selectedElectionId]);
+
   // Reset to page 1 when changing elections
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedElectionId]);
 
-  // Simulate real-time vote updates
+  // Real-time vote updates (fetch fresh data every 30 seconds)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setElectionData((prevData) =>
-        prevData.map((election) => ({
-          ...election,
-          positions: election.positions.map((position) => ({
-            ...position,
-            candidates: position.candidates.map((candidate) => ({
-              ...candidate,
-              votes: Math.max(
-                0,
-                candidate.votes +
-                  (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 3)
-              ),
-            })),
-          })),
-        }))
-      );
-    }, 2000);
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/dashboard/results");
+        if (response.ok) {
+          const results: ElectionResult[] = await response.json();
+          setElectionData(results);
+        }
+      } catch (error) {
+        console.error("Error updating election results:", error);
+      }
+    }, 30000); // Update every 30 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -219,9 +162,73 @@ export default function VoterPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen p-1">
+        <div className="container mx-auto">
+          <div className="mb-2 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <Skeleton className="h-7 w-48" />
+            <div className="flex flex-wrap items-center gap-1">
+              <Skeleton className="h-7 w-[180px]" />
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-7 w-7" />
+            </div>
+          </div>
+          <div className="mb-1">
+            <Skeleton className="h-5 w-64" />
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="overflow-hidden">
+                <CardHeader className="py-1 px-2">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-5" />
+                  </div>
+                </CardHeader>
+                <CardContent className="p-1">
+                  <div className="grid grid-cols-3 gap-1">
+                    {Array.from({ length: 3 }).map((_, candidateIndex) => (
+                      <div
+                        key={candidateIndex}
+                        className="rounded-md border p-1 shadow-sm"
+                      >
+                        <div className="mb-1 flex items-center gap-1">
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <Skeleton className="h-3 w-16 flex-1" />
+                        </div>
+                        <div className="mb-0.5 flex items-center justify-between">
+                          <Skeleton className="h-2 w-8" />
+                          <Skeleton className="h-2 w-6" />
+                        </div>
+                        <Skeleton className="h-2 w-full rounded-full" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (electionData.length === 0) {
+    return (
+      <div className="w-full">
+        <div className="rounded-lg border bg-white p-8 shadow-sm">
+          <div className="flex items-center justify-center">
+            <div className="text-lg text-gray-500">No elections found</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`min-h-screen  p-1 ${isFullscreen ? "fixed inset-0 z-50 " : ""}`}
+      className={`min-h-screen p-1 ${isFullscreen ? "fixed inset-0 z-50 bg-background" : ""}`}
     >
       <div className="container mx-auto ">
         <div className="mb-2 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
@@ -248,24 +255,25 @@ export default function VoterPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center space-x-1">
-              <Switch
-                id="show-names"
-                checked={showNames}
-                onCheckedChange={setShowNames}
-                className="h-3 w-6"
-              />
-              <Label
-                htmlFor="show-names"
-                className="flex items-center gap-1 text-xs"
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setShowNames(!showNames)}
               >
                 {showNames ? (
-                  <Eye className="h-3 w-3" />
+                  <>
+                    <EyeOff className="h-3 w-3 mr-1" />
+                    Hide Names
+                  </>
                 ) : (
-                  <EyeOff className="h-3 w-3" />
+                  <>
+                    <Eye className="h-3 w-3 mr-1" />
+                    Show Names
+                  </>
                 )}
-                {showNames ? "Hide" : "Show"}
-              </Label>
+              </Button>
             </div>
 
             <Button
@@ -286,7 +294,7 @@ export default function VoterPage() {
 
         {selectedElection && (
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-800">
+            <h2 className="text-sm font-semibold text-foreground">
               {selectedElection.name}
             </h2>
 
@@ -362,8 +370,20 @@ export default function VoterPage() {
                             <div className="mb-1 flex items-center gap-1">
                               <div className="h-6 w-6 overflow-hidden rounded-full border">
                                 <img
-                                  src={candidate.avatar || "/placeholder.svg"}
-                                  alt={`Avatar for ${candidate.name}`}
+                                  src={
+                                    showNames
+                                      ? candidate.avatar ||
+                                        getCandidateAvatar(
+                                          candidate.id,
+                                          candidate.name
+                                        )
+                                      : getAnonymousAvatar(candidate.id)
+                                  }
+                                  alt={
+                                    showNames
+                                      ? `Avatar for ${candidate.name}`
+                                      : "Anonymous candidate"
+                                  }
                                   className="h-full w-full object-cover"
                                 />
                               </div>

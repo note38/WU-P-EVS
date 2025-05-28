@@ -5,7 +5,7 @@ import { SearchInput } from "../search-input";
 import { CandidateForm } from "./candidate-form";
 import { CandidatesTable } from "./candidates-table";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Loader2 } from "lucide-react";
 import { useOptimizedFetch, useDebounce } from "@/app/hooks/use-debounce";
 
 interface CandidatesTabProps {
@@ -16,6 +16,8 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [currentPage, setCurrentPage] = useState(1);
+  const [forceRefresh, setForceRefresh] = useState(0);
+  const [isHardReloading, setIsHardReloading] = useState(false);
 
   // Use optimized fetch hooks with caching
   const { data: positions } = useOptimizedFetch<any[]>(
@@ -30,7 +32,7 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
     [electionId]
   );
 
-  // Build query parameters for candidates
+  // Build query parameters for candidates with force refresh parameter
   const candidatesUrl = useMemo(() => {
     const params = new URLSearchParams({
       page: currentPage.toString(),
@@ -41,13 +43,19 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
       params.append("search", debouncedSearchTerm.trim());
     }
 
+    // Add timestamp to force cache bypass when needed
+    if (forceRefresh > 0) {
+      params.append("_t", Date.now().toString());
+    }
+
     return `/api/elections/${electionId}/candidates?${params.toString()}`;
-  }, [electionId, currentPage, debouncedSearchTerm]);
+  }, [electionId, currentPage, debouncedSearchTerm, forceRefresh]);
 
   const {
     data: candidatesData,
     loading,
     refetch: refetchCandidates,
+    forceRefetch: forceRefetchCandidates,
   } = useOptimizedFetch<any>(candidatesUrl, undefined, [candidatesUrl]);
 
   // Memoize candidates and pagination data
@@ -71,11 +79,40 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
     }
   }, [debouncedSearchTerm]);
 
+  // Hard reload function that bypasses cache
+  const hardReloadCandidates = useCallback(async () => {
+    console.log("🔄 Starting hard reload of candidates...");
+    setIsHardReloading(true);
+    setForceRefresh((prev) => prev + 1);
+
+    try {
+      // Use forceRefetch to bypass cache completely
+      await forceRefetchCandidates();
+      console.log("✅ Hard reload completed successfully");
+    } catch (error) {
+      console.error("❌ Error during hard reload:", error);
+    } finally {
+      // Add a small delay to ensure the UI updates properly
+      setTimeout(() => {
+        setIsHardReloading(false);
+        console.log("🏁 Hard reload state cleared");
+      }, 300);
+    }
+  }, [forceRefetchCandidates]);
+
   const handleCandidateAdded = useCallback(() => {
+    console.log("➕ Candidate added, triggering hard reload...");
     setSearchTerm("");
     setCurrentPage(1);
-    setTimeout(() => refetchCandidates(), 500);
-  }, [refetchCandidates]);
+    // Use hard reload instead of regular refetch
+    hardReloadCandidates();
+  }, [hardReloadCandidates]);
+
+  const handleCandidateUpdated = useCallback(() => {
+    console.log("✏️ Candidate updated, triggering hard reload...");
+    // Use hard reload for immediate visibility of changes
+    hardReloadCandidates();
+  }, [hardReloadCandidates]);
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -110,11 +147,19 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search candidates..."
-        />
+        <div className="flex items-center gap-2">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search candidates..."
+          />
+          {isHardReloading && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Refreshing...</span>
+            </div>
+          )}
+        </div>
         <CandidateForm
           electionId={electionId}
           positions={positions || []}
@@ -125,8 +170,8 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
 
       <CandidatesTable
         candidates={candidates}
-        loading={loading}
-        onCandidateUpdated={() => refetchCandidates()}
+        loading={loading || isHardReloading}
+        onCandidateUpdated={handleCandidateUpdated}
         electionId={electionId}
         positions={positions || []}
         partylists={partylists || []}

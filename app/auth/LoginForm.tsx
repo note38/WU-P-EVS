@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, User, UserCheck } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,7 +22,6 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [userType, setUserType] = useState("admin"); // Default to admin
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -42,7 +40,6 @@ export default function LoginForm() {
       const result = await signIn("credentials", {
         email,
         password,
-        userType, // Pass the user type to the authentication handler
         redirect: false,
       });
 
@@ -121,19 +118,6 @@ export default function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="admin" onValueChange={setUserType} className="mb-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <User size={16} />
-              Admin
-            </TabsTrigger>
-            <TabsTrigger value="voter" className="flex items-center gap-2">
-              <UserCheck size={16} />
-              Voter
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {formError && (
             <Alert variant="destructive" className="mb-4">
@@ -176,9 +160,7 @@ export default function LoginForm() {
               </button>
             </div>
 
-            <Button variant="link" className="p-0 h-auto text-xs" type="button">
-              Forgot password?
-            </Button>
+            <Button className="p-0 h-auto text-xs" type="button"></Button>
           </div>
 
           <Button type="submit" className="w-full mt-6" disabled={isLoading}>
@@ -188,7 +170,7 @@ export default function LoginForm() {
                 <span>Logging in...</span>
               </div>
             ) : (
-              `Sign in as ${userType === "admin" ? "Admin" : "Voter"}`
+              "Sign In"
             )}
           </Button>
         </form>

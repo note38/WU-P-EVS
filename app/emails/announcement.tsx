@@ -39,7 +39,9 @@ interface ElectionAnnouncementEmailProps {
   }[];
 }
 
-const baseUrl = process.env.BASE_URL || "https://yourelectionsite.com";
+const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : process.env.BASE_URL || "http://localhost:3000";
 
 export const ElectionAnnouncementEmail = ({
   firstName,
@@ -60,7 +62,7 @@ export const ElectionAnnouncementEmail = ({
 }: ElectionAnnouncementEmailProps) => {
   const fullName = `${firstName} ${middleName ? middleName + " " : ""}${lastName}`;
   const previewText = `Announcement: ${electionName}`;
-
+  const logoUrl = `${baseUrl}/wup-logo.png`;
   return (
     <Html>
       <Head />
@@ -70,10 +72,10 @@ export const ElectionAnnouncementEmail = ({
           <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
             <Section className="mt-[32px]">
               <Img
-                src={electionLogo || `${baseUrl}/static/election-logo.png`}
+                src={logoUrl}
                 width="80"
                 height="80"
-                alt={`${electionName} Logo`}
+                alt="WUP Logo"
                 className="my-0 mx-auto"
               />
             </Section>
@@ -106,59 +108,7 @@ export const ElectionAnnouncementEmail = ({
                   <strong>Time:</strong> {electionStartTime} - {electionEndTime}
                 </Text>
               )}
-              {departmentName && (
-                <Text className="text-black text-[14px] leading-[24px] mb-1">
-                  <strong>Department:</strong> {departmentName}
-                </Text>
-              )}
-              {pollingStation && (
-                <Text className="text-black text-[14px] leading-[24px]">
-                  <strong>Polling Station:</strong> {pollingStation}
-                </Text>
-              )}
             </Section>
-
-            {importantDates && importantDates.length > 0 && (
-              <>
-                <Text className="text-black text-[16px] font-semibold mt-6 mb-2">
-                  Important Dates
-                </Text>
-                {importantDates.map((item, index) => (
-                  <Text
-                    key={index}
-                    className="text-black text-[14px] leading-[24px] mb-1"
-                  >
-                    <strong>{item.event}:</strong> {item.date}
-                  </Text>
-                ))}
-              </>
-            )}
-
-            {candidates && candidates.length > 0 && (
-              <>
-                <Text className="text-black text-[16px] font-semibold mt-6 mb-2">
-                  Candidates
-                </Text>
-                {candidates.map((candidate, index) => (
-                  <Text
-                    key={index}
-                    className="text-black text-[14px] leading-[24px] mb-1"
-                  >
-                    <strong>{candidate.name}</strong> - {candidate.position}
-                  </Text>
-                ))}
-                {candidateInfoLink && (
-                  <Text className="text-black text-[14px] leading-[24px] mt-2">
-                    <Link
-                      href={candidateInfoLink}
-                      className="text-blue-600 no-underline"
-                    >
-                      View full candidate profiles
-                    </Link>
-                  </Text>
-                )}
-              </>
-            )}
 
             <Section className="text-center mt-[32px] mb-[32px]">
               <Button
@@ -191,12 +141,12 @@ ElectionAnnouncementEmail.PreviewProps = {
   electionName: "Student Council Election 2025",
   electionLogo: "https://yourelectionsite.com/static/election-logo.png",
   electionDescription:
-    "This election will determine the new Student Council representatives for the 2025-2026 academic year.",
+    "This election will determine the new Student Council representatives.",
   electionDate: "April 15, 2025",
   electionStartTime: "8:00 AM",
   electionEndTime: "5:00 PM",
   departmentName: "Computer Science",
-  pollingStation: "Building A, Room 101",
+
   loginLink: "https://yourelectionsite.com/election-info",
   candidateInfoLink: "https://yourelectionsite.com/candidates",
   candidates: [

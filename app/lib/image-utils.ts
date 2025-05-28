@@ -157,8 +157,11 @@ export async function cropImage(
     );
 
     // Convert to data URL with specified format
-    return getOptimizedDataURL(canvas, options);
+    const result = getOptimizedDataURL(canvas, options);
+
+    return result;
   } catch (error) {
+    console.error("cropImage error:", error);
     throw new Error(
       `Error cropping image: ${error instanceof Error ? error.message : "Unknown error"}`
     );

@@ -1,11 +1,38 @@
+"use client";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettings } from "@/app/components/settings/profile-setting";
 import { DepartmentSettings } from "@/app/components/settings/department-form";
 import { YearSettings } from "@/app/components/settings/year-form";
 import { DataLogs } from "@/app/components/settings/data-log";
 import { AccountSettings } from "@/app/components/settings/account-form";
+import {
+  SettingsProfileSkeleton,
+  SettingsTableSkeleton,
+  SettingsAccountSkeleton,
+  SettingsDataLogsSkeleton,
+} from "@/app/components/ui/skeleton";
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState("profile");
+  const [loading, setLoading] = useState(true);
+
+  // Simulate loading for demonstration - you can replace this with actual data fetching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  // Reset loading when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setLoading(true);
+  };
+
   return (
     <div className="container">
       <div className="mb-8">
@@ -15,7 +42,11 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
@@ -25,23 +56,23 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
-          <ProfileSettings />
+          {loading ? <SettingsProfileSkeleton /> : <ProfileSettings />}
         </TabsContent>
 
         <TabsContent value="departments" className="space-y-4">
-          <DepartmentSettings />
+          {loading ? <SettingsTableSkeleton /> : <DepartmentSettings />}
         </TabsContent>
 
         <TabsContent value="years" className="space-y-4">
-          <YearSettings />
+          {loading ? <SettingsTableSkeleton /> : <YearSettings />}
         </TabsContent>
 
         <TabsContent value="account" className="space-y-4">
-          <AccountSettings />
+          {loading ? <SettingsAccountSkeleton /> : <AccountSettings />}
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          <DataLogs />
+          {loading ? <SettingsDataLogsSkeleton /> : <DataLogs />}
         </TabsContent>
       </Tabs>
     </div>

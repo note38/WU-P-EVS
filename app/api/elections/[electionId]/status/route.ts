@@ -13,12 +13,12 @@ export async function PATCH(req: NextRequest, context: any) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse election ID from params
-    const electionId = parseInt(context.params.electionId);
+    const params = await context.params;
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
-        { error: "Invalid election ID format" },
+        { error: "Invalid election ID" },
         { status: 400 }
       );
     }
@@ -62,13 +62,42 @@ export async function PATCH(req: NextRequest, context: any) {
 
     // Check if the current time is within the election period
     const now = new Date();
+    const startDate = new Date(existingElection.startDate);
+    const endDate = new Date(existingElection.endDate);
+
+    // Enhanced validation for status changes
     if (data.status === "ACTIVE") {
-      if (now > new Date(existingElection.endDate)) {
+      if (now >= endDate) {
         return NextResponse.json(
           { error: "Cannot start an election that has already ended" },
           { status: 400 }
         );
       }
+      if (now < startDate) {
+        return NextResponse.json(
+          {
+            error: "Cannot start an election before its scheduled start time",
+            scheduledStart: startDate.toISOString(),
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Prevent manual changes to COMPLETED status if election hasn't ended
+    if (data.status === "COMPLETED" && now < endDate) {
+      return NextResponse.json(
+        {
+          error: "Cannot manually complete an election before its end time",
+          scheduledEnd: endDate.toISOString(),
+        },
+        { status: 400 }
+      );
+    }
+
+    // Allow pausing (INACTIVE) at any time during the election period
+    if (data.status === "INACTIVE" && existingElection.status === "ACTIVE") {
+      // This is allowed - admin can pause an active election
     }
 
     // Update the election status
@@ -83,6 +112,7 @@ export async function PATCH(req: NextRequest, context: any) {
     return NextResponse.json({
       message: `Election status updated to ${data.status.toLowerCase()}`,
       election: updatedElection,
+      automaticUpdate: false, // This was a manual update
     });
   } catch (error) {
     console.error("Error updating election status:", error);

@@ -62,7 +62,8 @@ export function EditElectionForm({
       return election.partyList;
     }
     if (election.partylists && election.partylists.length > 0) {
-      return election.partylists.map((p) => p.name);
+      const partyNames = election.partylists.map((p) => p.name);
+      return partyNames;
     }
     return [];
   };
@@ -359,12 +360,12 @@ export function EditElectionForm({
                 Party List
               </Label>
               <div className="col-span-4">
-                <div className="max-h-40 overflow-y-auto mb-2 border rounded-md">
+                <div className="max-h-40 overflow-y-auto mb-2 border rounded-md border-border">
                   <div className="p-2 space-y-2">
                     {formData.partyList.length > 0 ? (
                       formData.partyList.map((party, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+                          <div className="bg-muted text-muted-foreground px-3 py-2 rounded flex-1">
                             {party}
                           </div>
                           <Button
@@ -378,7 +379,7 @@ export function EditElectionForm({
                         </div>
                       ))
                     ) : (
-                      <div className="text-gray-500 text-sm py-2 px-3">
+                      <div className="text-muted-foreground text-sm py-2 px-3">
                         No parties added yet.
                       </div>
                     )}

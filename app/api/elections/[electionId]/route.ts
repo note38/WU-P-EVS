@@ -6,7 +6,8 @@ import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest, context: any) {
   try {
-    const electionId = parseInt(context.params.electionId);
+    const params = await context.params;
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
@@ -69,7 +70,8 @@ export async function PUT(req: NextRequest, context: any) {
     }
 
     // Parse election ID from params
-    const electionId = parseInt(context.params.electionId);
+    const params = await context.params;
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(
@@ -281,7 +283,8 @@ export async function DELETE(req: NextRequest, context: any) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const electionId = parseInt(context.params.electionId);
+    const params = await context.params;
+    const electionId = parseInt(params.electionId);
 
     if (isNaN(electionId)) {
       return NextResponse.json(

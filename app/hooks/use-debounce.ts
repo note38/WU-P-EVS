@@ -30,49 +30,64 @@ export function useOptimizedFetch<T>(
   );
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchData = useCallback(async () => {
-    // Check cache first (5 minute cache)
-    const cached = cacheRef.current.get(url);
-    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
-      setData(cached.data);
-      return;
-    }
-
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      // Check cache first (5 minute cache) unless force refresh is requested
+      const cached = cacheRef.current.get(url);
+      if (
+        !forceRefresh &&
+        cached &&
+        Date.now() - cached.timestamp < 5 * 60 * 1000
+      ) {
+        setData(cached.data);
+        return;
       }
 
-      const result = await response.json();
-      setData(result);
-
-      // Cache the result
-      cacheRef.current.set(url, { data: result, timestamp: Date.now() });
-    } catch (err) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        setError(err.message);
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [url, ...dependencies]);
+
+      abortControllerRef.current = new AbortController();
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        setData(result);
+
+        // Cache the result
+        cacheRef.current.set(url, { data: result, timestamp: Date.now() });
+      } catch (err) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          setError(err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [url, ...dependencies]
+  );
+
+  // Force refresh function that bypasses cache
+  const forceRefetch = useCallback(() => {
+    return fetchData(true);
+  }, [fetchData]);
 
   useEffect(() => {
-    fetchData();
+    // Check if URL contains timestamp parameter to force refresh
+    const urlObj = new URL(url, window.location.origin);
+    const hasTimestamp = urlObj.searchParams.has("_t");
+    fetchData(hasTimestamp);
 
     return () => {
       if (abortControllerRef.current) {
@@ -81,7 +96,7 @@ export function useOptimizedFetch<T>(
     };
   }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error, refetch: fetchData, forceRefetch };
 }
 
 // Throttle hook for reducing function call frequency

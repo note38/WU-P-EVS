@@ -59,7 +59,9 @@ export async function PATCH(request: Request) {
     // Update profile fields if provided
     if (data.username) updateData.username = data.username;
     if (data.email) updateData.email = data.email;
-    if (data.avatar) updateData.avatar = data.avatar;
+    if (data.hasOwnProperty("avatar")) {
+      updateData.avatar = data.avatar;
+    }
 
     // Update user in database with minimal data selection for faster response
     const updatedUser = await prisma.$transaction(

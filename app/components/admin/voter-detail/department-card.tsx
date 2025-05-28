@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import VoterCards from "./voter-card";
-import { refreshVotersData } from "@/app/admin_dashboard/voters/actions";
 
 // Define VoterStatus enum since we don't have @prisma/client
 enum VoterStatus {
@@ -430,16 +429,7 @@ export default function DepartmentCard({
                     Manage voters in this year level
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <SendIcon className="mr-2 h-4 w-4" />
-                    Email All
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <PrinterIcon className="mr-2 h-4 w-4" />
-                    Print List
-                  </Button>
-                </div>
+                <div className="flex gap-2"></div>
               </div>
             </CardHeader>
             <CardContent>

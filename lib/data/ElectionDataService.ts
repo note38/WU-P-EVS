@@ -27,55 +27,57 @@ export interface AccelerateResult<T> {
 export class ElectionDataService {
   // Get all elections
   static async getElections(): Promise<AccelerateResult<ElectionData[]>> {
-    const result = await prisma.election
-      .findMany({
-        include: {
-          _count: {
-            select: {
-              positions: true,
-              partylists: true,
-              voters: true,
-              votes: true,
-            },
+    const result = await prisma.election.findMany({
+      include: {
+        _count: {
+          select: {
+            positions: true,
+            partylists: true,
+            voters: true,
+            votes: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-      })
-      .withAccelerateInfo();
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-    return result as AccelerateResult<ElectionData[]>;
+    return {
+      data: result,
+      info: null, // Accelerate info is available on the prisma client level
+    };
   }
 
   // Get active elections
   static async getActiveElections(): Promise<AccelerateResult<ElectionData[]>> {
     const now = new Date();
 
-    const result = await prisma.election
-      .findMany({
-        where: {
-          status: "ACTIVE",
-          startDate: { lte: now },
-          endDate: { gte: now },
-        },
-        include: {
-          _count: {
-            select: {
-              positions: true,
-              partylists: true,
-              voters: true,
-              votes: true,
-            },
+    const result = await prisma.election.findMany({
+      where: {
+        status: "ACTIVE",
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      include: {
+        _count: {
+          select: {
+            positions: true,
+            partylists: true,
+            voters: true,
+            votes: true,
           },
         },
-        orderBy: {
-          startDate: "asc",
-        },
-      })
-      .withAccelerateInfo();
+      },
+      orderBy: {
+        startDate: "asc",
+      },
+    });
 
-    return result as AccelerateResult<ElectionData[]>;
+    return {
+      data: result,
+      info: null, // Accelerate info is available on the prisma client level
+    };
   }
 
   // Get a specific election by ID

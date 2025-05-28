@@ -86,11 +86,6 @@ export const authOptions: NextAuthOptions = {
           type: "password",
           placeholder: "Enter your password",
         },
-        userType: {
-          label: "User Type",
-          type: "text",
-          placeholder: "admin or voter",
-        },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -98,101 +93,99 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const userType = credentials.userType || "admin"; // Default to admin if not specified
+          // First, try to authenticate as admin
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              password: true,
+              role: true,
+            },
+            cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
+          });
 
-          // Handle authentication based on user type
-          if (userType === "admin") {
-            // Admin authentication (User table)
-            const user = await prisma.user.findUnique({
-              where: { email: credentials.email },
-              select: {
-                id: true,
-                email: true,
-                username: true,
-                password: true,
-                role: true,
-              },
-              cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
-            });
-
-            if (!user || !user.password) return null;
-
+          if (user && user.password) {
             const isValidPassword = await bcrypt.compare(
               credentials.password,
               user.password
             );
 
-            if (!isValidPassword) return null;
+            if (isValidPassword) {
+              // Return admin user object
+              return {
+                id: user.id.toString(),
+                name: user.username,
+                email: user.email,
+                role: user.role.toString(),
+                userType: "admin",
+              };
+            }
+          }
 
-            // Return a properly typed user object
-            return {
-              id: user.id.toString(),
-              name: user.username,
-              email: user.email,
-              role: user.role.toString(),
-              userType: "admin",
-            };
-          } else {
-            // Voter authentication (Voter table)
-            const voter = await prisma.voter.findUnique({
-              where: { email: credentials.email },
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                hashpassword: true,
-                role: true,
-                electionId: true,
-                status: true,
-              },
-              cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
-            });
+          // If admin authentication failed, try voter authentication
+          const voter = await prisma.voter.findUnique({
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              hashpassword: true,
+              role: true,
+              electionId: true,
+              status: true,
+            },
+            cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
+          });
 
-            if (!voter || !voter.hashpassword) return null;
-
+          if (voter && voter.hashpassword) {
             const isValidPassword = await bcrypt.compare(
               credentials.password,
               voter.hashpassword
             );
 
-            if (!isValidPassword) return null;
+            if (isValidPassword) {
+              // Check if there's an active election
+              if (voter.electionId) {
+                const activeElection = await prisma.election.findFirst({
+                  where: {
+                    id: voter.electionId,
+                    status: "ACTIVE",
+                  },
+                  select: { id: true },
+                  cacheStrategy: { ttl: 60 }, // Cache for 1 minute
+                });
 
-            // Check if there's an active election
-            if (voter.electionId) {
-              const activeElection = await prisma.election.findFirst({
-                where: {
-                  id: voter.electionId,
-                  status: "ACTIVE",
-                },
-                select: { id: true },
-                cacheStrategy: { ttl: 60 }, // Cache for 1 minute
-              });
+                // If the voter has already voted, prevent login
+                if (voter.status === "VOTED") {
+                  throw new Error("You have already cast your vote");
+                }
 
-              // If the voter has already voted, prevent login
-              if (voter.status === "VOTED") {
-                throw new Error("You have already cast your vote");
+                // If there's no active election, prevent voter login
+                if (!activeElection) {
+                  throw new Error("No active election available for voting");
+                }
+              } else {
+                throw new Error("Voter not associated with any election");
               }
 
-              // If there's no active election, prevent voter login
-              if (!activeElection) {
-                throw new Error("No active election available for voting");
-              }
-            } else {
-              throw new Error("Voter not associated with any election");
+              // Return voter user object
+              return {
+                id: voter.id.toString(),
+                name: `${voter.firstName} ${voter.lastName}`,
+                email: voter.email,
+                role: voter.role.toString(),
+                userType: "voter",
+                status: voter.status,
+                electionId: voter.electionId,
+              };
             }
-
-            // Return a properly typed voter object
-            return {
-              id: voter.id.toString(),
-              name: `${voter.firstName} ${voter.lastName}`,
-              email: voter.email,
-              role: voter.role.toString(),
-              userType: "voter",
-              status: voter.status,
-              electionId: voter.electionId,
-            };
           }
+
+          // If both admin and voter authentication failed, return null
+          return null;
         } catch (error) {
           console.error("Authentication error:", error);
           throw error; // Propagate error for better client-side handling
