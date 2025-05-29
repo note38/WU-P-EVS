@@ -103,7 +103,6 @@ export const authOptions: NextAuthOptions = {
               password: true,
               role: true,
             },
-            cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
           });
 
           if (user && user.password) {
@@ -137,7 +136,6 @@ export const authOptions: NextAuthOptions = {
               electionId: true,
               status: true,
             },
-            cacheStrategy: { ttl: 600 }, // Cache for 10 minutes
           });
 
           if (voter && voter.hashpassword) {
@@ -155,7 +153,6 @@ export const authOptions: NextAuthOptions = {
                     status: "ACTIVE",
                   },
                   select: { id: true },
-                  cacheStrategy: { ttl: 60 }, // Cache for 1 minute
                 });
 
                 // If the voter has already voted, prevent login
