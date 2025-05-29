@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export async function PATCH(request: Request, context: any) {
   try {
     const body = await request.json();
+    const params = await context.params;
 
     // Validate required fields
     if (!body.name) {
@@ -14,7 +15,7 @@ export async function PATCH(request: Request, context: any) {
     }
 
     const department = await prisma.department.update({
-      where: { id: parseInt(context.params.id) },
+      where: { id: parseInt(params.id) },
       data: {
         name: body.name,
         image: body.image !== undefined ? body.image : undefined,
@@ -34,7 +35,8 @@ export async function PATCH(request: Request, context: any) {
 // Use any type to bypass type checking for the route handler
 export async function DELETE(request: Request, context: any) {
   try {
-    const { id } = context.params;
+    const params = await context.params;
+    const { id } = params;
     await prisma.department.delete({
       where: { id: parseInt(id) },
     });

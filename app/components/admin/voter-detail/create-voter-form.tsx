@@ -71,8 +71,16 @@ export function CreateVoterForm() {
     } else {
       // Reset selections when dialog closes
       setSelectedDepartmentId("");
-      setFormData((prev) => ({ ...prev, yearId: "", electionId: "" }));
+      setFormData({
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        email: "",
+        yearId: "",
+        electionId: "",
+      });
       setYears([]);
+      setErrors({});
     }
   }, [open]);
 
@@ -92,6 +100,7 @@ export function CreateVoterForm() {
       const response = await fetch("/api/departments");
       if (response.ok) {
         const data = await response.json();
+        console.log("Departments data:", data); // Debug log
         setDepartments(data);
       } else {
         console.error("Failed to fetch departments");
@@ -119,6 +128,7 @@ export function CreateVoterForm() {
       const response = await fetch(`/api/years/by-department/${departmentId}`);
       if (response.ok) {
         const data = await response.json();
+        console.log("Years data:", data); // Debug log
         setYears(data);
       } else {
         console.error("Failed to fetch years");
@@ -230,15 +240,7 @@ export function CreateVoterForm() {
         });
         setOpen(false);
         router.refresh();
-        setFormData({
-          firstName: "",
-          lastName: "",
-          middleName: "",
-          email: "",
-          yearId: "",
-          electionId: "",
-        });
-        setSelectedDepartmentId("");
+        // Form will be reset when dialog closes due to useEffect
       } else {
         if (response.status === 409) {
           setErrors({ email: "Email already registered" });
@@ -350,14 +352,28 @@ export function CreateVoterForm() {
                   disabled={isLoadingDepartments}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingDepartments
+                          ? "Loading departments..."
+                          : departments.length === 0
+                            ? "No departments available"
+                            : "Select department"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id.toString()}>
-                        {dept.name}
+                    {departments.length > 0 ? (
+                      departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id.toString()}>
+                          {dept.name}
+                        </SelectItem>
+                      ))
+                    ) : !isLoadingDepartments ? (
+                      <SelectItem value="none" disabled>
+                        No departments available
                       </SelectItem>
-                    ))}
+                    ) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -372,9 +388,13 @@ export function CreateVoterForm() {
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        years.length === 0 && selectedDepartmentId
-                          ? "No years available"
-                          : "Select year"
+                        !selectedDepartmentId
+                          ? "Select department first"
+                          : isLoadingYears
+                            ? "Loading years..."
+                            : years.length === 0 && selectedDepartmentId
+                              ? "No years available"
+                              : "Select year"
                       }
                     />
                   </SelectTrigger>
@@ -385,7 +405,7 @@ export function CreateVoterForm() {
                           {year.name}
                         </SelectItem>
                       ))
-                    ) : selectedDepartmentId ? (
+                    ) : selectedDepartmentId && !isLoadingYears ? (
                       <SelectItem value="none" disabled>
                         No years available for this department
                       </SelectItem>
@@ -427,13 +447,11 @@ export function CreateVoterForm() {
                           {election.name}
                         </SelectItem>
                       ))
-                    ) : (
+                    ) : !isLoadingElections ? (
                       <SelectItem value="none" disabled>
-                        {isLoadingElections
-                          ? "Loading elections..."
-                          : "No elections available"}
+                        No elections available
                       </SelectItem>
-                    )}
+                    ) : null}
                   </SelectContent>
                 </Select>
                 {errors.electionId && (
@@ -445,7 +463,11 @@ export function CreateVoterForm() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              type="button"
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

@@ -3,10 +3,11 @@ import { prisma } from "@/lib/db";
 
 export async function GET(
   request: Request,
-  { params }: { params: { departmentId: string } }
+  { params }: { params: Promise<{ departmentId: string }> }
 ) {
   try {
-    const departmentId = parseInt(params.departmentId);
+    const { departmentId: departmentIdParam } = await params;
+    const departmentId = parseInt(departmentIdParam);
 
     if (isNaN(departmentId)) {
       return NextResponse.json(

@@ -3,17 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ electionId: string }> }
+  { params }: { params: { electionId: string } }
 ) {
   try {
-    // Await params before accessing properties (Next.js 15 requirement)
-    const { electionId: electionIdStr } = await params;
+    const { electionId: electionIdStr } = params;
     const electionId = parseInt(electionIdStr);
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "8");
     const search = searchParams.get("search");
+    const yearFilter = searchParams.get("year");
+    const departmentFilter = searchParams.get("department");
     const skip = (page - 1) * limit;
 
     // Validate that the election exists
@@ -28,10 +29,11 @@ export async function GET(
       );
     }
 
-    // Build the where clause with search functionality
-    const whereClause = {
-      electionId: electionId,
-      ...(search && {
+    // Build dynamic filters using AND conditions so that multiple filters can coexist
+    const andFilters: any[] = [{ electionId }];
+
+    if (search) {
+      andFilters.push({
         OR: [
           {
             firstName: {
@@ -45,7 +47,6 @@ export async function GET(
               mode: "insensitive" as const,
             },
           },
-          // Combined search for full name (firstName + lastName)
           {
             AND: [
               {
@@ -63,8 +64,30 @@ export async function GET(
             ],
           },
         ],
-      }),
-    };
+      });
+    }
+
+    // Filter by year (expects yearId)
+    if (yearFilter && yearFilter !== "all" && !isNaN(parseInt(yearFilter))) {
+      andFilters.push({ yearId: parseInt(yearFilter) });
+    }
+
+    // Filter by department (expects department name string coming from frontend)
+    if (departmentFilter && departmentFilter !== "all") {
+      andFilters.push({
+        year: {
+          department: {
+            name: {
+              equals: departmentFilter,
+              mode: "insensitive" as const,
+            },
+          },
+        },
+      });
+    }
+
+    const whereClause: any =
+      andFilters.length > 1 ? { AND: andFilters } : andFilters[0];
 
     // Get total count for pagination
     const totalVoters = await prisma.voter.count({

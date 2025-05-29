@@ -1,5 +1,8 @@
 // app/api/voters/route.ts
 import { prisma } from "@/lib/db";
+import { resend } from "@/lib/resend";
+import { generatePassword } from "@/lib/utils";
+import { VoterCredentialsEmail } from "@/app/emails/credentials-send";
 import { VoterStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
@@ -38,9 +41,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate password
-    const tempPassword = Math.random().toString(36).slice(-8);
-    const hashpassword = await bcrypt.hash(tempPassword, 10);
+    // Generate a secure password using the utility function
+    const tempPassword = generatePassword(12);
+    const hashpassword = await bcrypt.hash(tempPassword, 12);
 
     try {
       // Create voter
@@ -57,15 +60,82 @@ export async function POST(request: Request) {
           credentialsSent: false,
           ...(data.electionId ? { electionId: parseInt(data.electionId) } : {}),
         },
+        include: {
+          year: {
+            include: {
+              department: true,
+            },
+          },
+          election: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       });
 
       console.log("Voter created:", voter); // Debug log
+
+      // If the voter is assigned to an election, automatically send credentials
+      let credentialsSent = false;
+      if (data.electionId && data.sendCredentials !== false) {
+        try {
+          const emailData = {
+            voterId: voter.id.toString(),
+            firstName: voter.firstName,
+            lastName: voter.lastName,
+            middleName: voter.middleName || "",
+            email: voter.email,
+            password: tempPassword,
+            electionName: voter.election?.name || "",
+            departmentName: voter.year?.department?.name || "",
+            yearName: voter.year?.name || "",
+            loginLink: process.env.NEXT_PUBLIC_BASE_URL
+              ? `${process.env.NEXT_PUBLIC_BASE_URL}/login`
+              : "http://localhost:3000/login",
+          };
+
+          const emailResult = await resend.emails.send({
+            from:
+              process.env.FROM_EMAIL ||
+              "WUP Voting System <noreply@wup-evs.com>",
+            to: voter.email,
+            subject: `Your Voting Credentials - ${voter.election?.name || "Election"}`,
+            react: VoterCredentialsEmail(emailData),
+          });
+
+          if (!emailResult.error) {
+            // Update voter to mark credentials as sent
+            await prisma.voter.update({
+              where: { id: voter.id },
+              data: { credentialsSent: true },
+            });
+            credentialsSent = true;
+          } else {
+            console.error(
+              "Error sending credentials email:",
+              emailResult.error
+            );
+          }
+        } catch (emailError) {
+          console.error("Error sending credentials:", emailError);
+          // Don't fail the voter creation if email fails
+        }
+      }
 
       return NextResponse.json(
         {
           success: true,
           message: "Voter created successfully",
-          tempPassword,
+          voter: {
+            id: voter.id,
+            firstName: voter.firstName,
+            lastName: voter.lastName,
+            email: voter.email,
+            credentialsSent,
+          },
+          tempPassword: credentialsSent ? undefined : tempPassword, // Only return password if email wasn't sent
         },
         { status: 201 }
       );

@@ -65,8 +65,15 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
     } else {
       // Reset selections when dialog closes
       setSelectedDepartmentId("");
-      setFormData((prev) => ({ ...prev, yearId: "" }));
+      setFormData({
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        email: "",
+        yearId: "",
+      });
       setYears([]);
+      setErrors({});
     }
   }, [open]);
 
@@ -182,14 +189,7 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
         });
         setOpen(false);
         onVoterAdded(data.voter || data);
-        setFormData({
-          firstName: "",
-          lastName: "",
-          middleName: "",
-          email: "",
-          yearId: "",
-        });
-        setSelectedDepartmentId("");
+        // Form will be reset when dialog closes due to useEffect
       } else {
         if (response.status === 409) {
           setErrors({ email: "Email already registered" });
@@ -300,14 +300,28 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
                   disabled={isLoadingDepartments}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue
+                      placeholder={
+                        isLoadingDepartments
+                          ? "Loading departments..."
+                          : departments.length === 0
+                            ? "No departments available"
+                            : "Select department"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id.toString()}>
-                        {dept.name}
+                    {departments.length > 0 ? (
+                      departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id.toString()}>
+                          {dept.name}
+                        </SelectItem>
+                      ))
+                    ) : !isLoadingDepartments ? (
+                      <SelectItem value="none" disabled>
+                        No departments available
                       </SelectItem>
-                    ))}
+                    ) : null}
                   </SelectContent>
                 </Select>
               </div>
@@ -322,9 +336,13 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        years.length === 0 && selectedDepartmentId
-                          ? "No years available"
-                          : "Select year"
+                        !selectedDepartmentId
+                          ? "Select department first"
+                          : isLoadingYears
+                            ? "Loading years..."
+                            : years.length === 0 && selectedDepartmentId
+                              ? "No years available"
+                              : "Select year"
                       }
                     />
                   </SelectTrigger>
@@ -335,7 +353,7 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
                           {year.name}
                         </SelectItem>
                       ))
-                    ) : selectedDepartmentId ? (
+                    ) : selectedDepartmentId && !isLoadingYears ? (
                       <SelectItem value="none" disabled>
                         No years available for this department
                       </SelectItem>

@@ -5,8 +5,9 @@ import { Prisma } from "@prisma/client";
 export async function PATCH(request: Request, context: any) {
   try {
     const body = await request.json();
+    const params = await context.params;
     const year = await prisma.year.update({
-      where: { id: parseInt(context.params.id) },
+      where: { id: parseInt(params.id) },
       data: {
         name: body.name,
         departmentId: parseInt(body.departmentId),
@@ -36,7 +37,8 @@ export async function PATCH(request: Request, context: any) {
 
 export async function DELETE(request: Request, context: any) {
   try {
-    const { id } = context.params;
+    const params = await context.params;
+    const { id } = params;
     await prisma.year.delete({
       where: { id: parseInt(id) },
     });
