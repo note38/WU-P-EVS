@@ -315,7 +315,7 @@ export function DepartmentSettings() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader2 className="h-8 w-8 animate-spin text-green-500" />
             </div>
           ) : departments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

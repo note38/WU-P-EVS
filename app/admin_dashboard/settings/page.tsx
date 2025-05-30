@@ -18,20 +18,18 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(true);
 
-  // Simulate loading for demonstration - you can replace this with actual data fetching
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [activeTab]);
-
-  // Reset loading when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    setLoading(true);
   };
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="container">

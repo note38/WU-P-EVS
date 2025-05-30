@@ -75,28 +75,31 @@ const profileFormSchema = z.object({
 
 const passwordFormSchema = z
   .object({
-    currentPassword: z.string().min(8, {
-      message: "Password must be at least 8 characters.",
+    currentPassword: z.string().min(1, {
+      message: "Current password is required.",
     }),
     newPassword: z
       .string()
       .min(8, {
         message: "Password must be at least 8 characters.",
       })
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        {
-          message:
-            "Password must include uppercase, lowercase, number, and special character.",
-        }
-      ),
-    confirmPassword: z.string().min(8, {
-      message: "Password must be at least 8 characters.",
+      .max(128, {
+        message: "Password must be less than 128 characters.",
+      })
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/, {
+        message: "Password must include uppercase, lowercase, and number.",
+      }),
+    confirmPassword: z.string().min(1, {
+      message: "Please confirm your new password.",
     }),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
   });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -126,6 +129,19 @@ export function ProfileSettings() {
     width: number;
     height: number;
   } | null>(null);
+
+  // Password strength state
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    feedback: "",
+    strengthText: "",
+    requirements: {
+      length: false,
+      uppercase: false,
+      lowercase: false,
+      number: false,
+    },
+  });
 
   // Form initialization with empty defaults
   const profileForm = useForm<ProfileFormValues>({
@@ -220,6 +236,42 @@ export function ProfileSettings() {
     setAvatarChanged(avatar !== originalAvatar);
   }, [avatar, originalAvatar]);
 
+  // Password strength checker
+  const checkPasswordStrength = (password: string) => {
+    const requirements = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+    };
+
+    const score = Object.values(requirements).filter(Boolean).length;
+
+    let feedback = "";
+    let strengthText = "";
+
+    if (score === 0) {
+      strengthText = "";
+      feedback = "";
+    } else if (score < 3) {
+      strengthText = "Weak";
+      feedback = "Password is too weak";
+    } else if (score < 4) {
+      strengthText = "Fair";
+      feedback = "Password could be stronger";
+    } else {
+      strengthText = "Strong";
+      feedback = "Password meets all requirements";
+    }
+
+    return {
+      score,
+      feedback,
+      strengthText,
+      requirements,
+    };
+  };
+
   async function onProfileSubmit(data: ProfileFormValues) {
     try {
       setIsProfileSubmitting(true);
@@ -286,6 +338,16 @@ export function ProfileSettings() {
     try {
       setIsPasswordSubmitting(true);
 
+      // Additional client-side validation
+      if (data.currentPassword === data.newPassword) {
+        toast({
+          title: "Invalid Password",
+          description: "New password must be different from current password.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Call API to update password with optimized headers
       const response = await fetch("/api/users/profile", {
         method: "PUT",
@@ -299,26 +361,131 @@ export function ProfileSettings() {
         }),
       });
 
+      const responseData = await response.json();
+
       if (response.ok) {
         toast({
-          title: "Password updated",
-          description: "Your password has been updated successfully.",
+          title: "Password Updated Successfully",
+          description:
+            "Your password has been updated. Please log in again with your new password.",
         });
 
         // Reset password form
         passwordForm.reset();
+
+        // Clear any previous errors
+        passwordForm.clearErrors();
+
+        // Reset password strength indicator
+        setPasswordStrength({
+          score: 0,
+          feedback: "",
+          strengthText: "",
+          requirements: {
+            length: false,
+            uppercase: false,
+            lowercase: false,
+            number: false,
+          },
+        });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update password");
+        // Handle specific error cases
+        let errorMessage = "Failed to update password.";
+        let errorTitle = "Password Update Failed";
+
+        switch (response.status) {
+          case 400:
+            if (responseData.details) {
+              // Handle validation errors with specific feedback
+              errorTitle = "Password Requirements Not Met";
+              errorMessage = `Please ensure your password meets all requirements: ${responseData.details.join(", ")}`;
+            } else if (responseData.warnings) {
+              // Handle security warnings
+              errorTitle = "Password Security Issue";
+              errorMessage = `Password contains insecure patterns: ${responseData.warnings.join(", ")}. Please choose a more secure password.`;
+            } else {
+              errorMessage =
+                responseData.error || "Invalid password data provided.";
+            }
+            break;
+          case 401:
+            if (responseData.error?.includes("Current password")) {
+              errorTitle = "Authentication Failed";
+
+              // Use the detailed message from backend if available, otherwise use default
+              errorMessage =
+                responseData.message ||
+                "The current password you entered is incorrect. Please double-check and try again. Make sure Caps Lock is off and you're using the same password you use to log in.";
+
+              // Add hint if provided by backend
+              if (responseData.hint) {
+                errorMessage += ` Tip: ${responseData.hint}.`;
+              }
+
+              // Clear the current password field and focus on it
+              passwordForm.setValue("currentPassword", "");
+              passwordForm.setFocus("currentPassword");
+              passwordForm.setError("currentPassword", {
+                type: "manual",
+                message: "Incorrect password - please try again",
+              });
+
+              // Show the error message
+              toast({
+                title: errorTitle,
+                description: errorMessage,
+                variant: "destructive",
+              });
+              return; // Return early to avoid the second toast
+            } else {
+              errorTitle = "Session Expired";
+              errorMessage =
+                "Your session has expired. Please log in again to continue.";
+            }
+            break;
+          case 404:
+            errorTitle = "Account Not Found";
+            errorMessage =
+              "Your account could not be found. Please contact support for assistance.";
+            break;
+          case 429:
+            errorTitle = "Too Many Attempts";
+            errorMessage =
+              "You've made too many password change attempts. Please wait 15 minutes before trying again for security reasons.";
+            break;
+          case 500:
+            errorTitle = "Server Error";
+            errorMessage =
+              "We're experiencing technical difficulties. Please try again in a few moments or contact support if the problem persists.";
+            break;
+          default:
+            errorMessage =
+              responseData.error ||
+              "An unexpected error occurred while updating your password.";
+        }
+
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error(error);
+      console.error("Password update error:", error);
+
+      // Handle network errors
+      let errorMessage = "There was a problem updating your password.";
+
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "There was a problem updating your password.",
+        title: "Connection Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -668,6 +835,13 @@ export function ProfileSettings() {
                           placeholder="Enter new password"
                           {...field}
                           aria-required="true"
+                          onChange={(e) => {
+                            field.onChange(e);
+                            const strength = checkPasswordStrength(
+                              e.target.value
+                            );
+                            setPasswordStrength(strength);
+                          }}
                         />
                         <Button
                           type="button"
@@ -689,9 +863,80 @@ export function ProfileSettings() {
                         </Button>
                       </div>
                     </FormControl>
+
+                    {/* Password Strength Indicator */}
+                    {field.value && (
+                      <div className="mt-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                passwordStrength.score < 3
+                                  ? "bg-red-500"
+                                  : passwordStrength.score < 4
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
+                              }`}
+                              style={{
+                                width: `${(passwordStrength.score / 4) * 100}%`,
+                              }}
+                            />
+                          </div>
+                          {passwordStrength.strengthText && (
+                            <span
+                              className={`text-sm font-medium ${
+                                passwordStrength.score < 3
+                                  ? "text-red-600"
+                                  : passwordStrength.score < 4
+                                    ? "text-yellow-600"
+                                    : "text-green-600"
+                              }`}
+                            >
+                              {passwordStrength.strengthText}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Requirements Checklist */}
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div
+                            className={`flex items-center gap-1 ${passwordStrength.requirements.length ? "text-green-600" : "text-gray-500"}`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full ${passwordStrength.requirements.length ? "bg-green-500" : "bg-gray-300"}`}
+                            />
+                            8+ characters
+                          </div>
+                          <div
+                            className={`flex items-center gap-1 ${passwordStrength.requirements.number ? "text-green-600" : "text-gray-500"}`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full ${passwordStrength.requirements.number ? "bg-green-500" : "bg-gray-300"}`}
+                            />
+                            Number
+                          </div>
+                          <div
+                            className={`flex items-center gap-1 ${passwordStrength.requirements.uppercase ? "text-green-600" : "text-gray-500"}`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full ${passwordStrength.requirements.uppercase ? "bg-green-500" : "bg-gray-300"}`}
+                            />
+                            Uppercase letter
+                          </div>
+                          <div
+                            className={`flex items-center gap-1 ${passwordStrength.requirements.lowercase ? "text-green-600" : "text-gray-500"}`}
+                          >
+                            <span
+                              className={`w-3 h-3 rounded-full ${passwordStrength.requirements.lowercase ? "bg-green-500" : "bg-gray-300"}`}
+                            />
+                            Lowercase letter
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <FormDescription>
-                      Password must include uppercase, lowercase, number, and
-                      special character.
+                      Password must include uppercase, lowercase, and number.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -748,16 +993,26 @@ export function ProfileSettings() {
                 type="submit"
                 className="w-full md:w-auto"
                 disabled={
-                  isPasswordSubmitting || !passwordForm.formState.isDirty
+                  isPasswordSubmitting ||
+                  !passwordForm.formState.isDirty ||
+                  passwordStrength.score < 4
                 }
               >
                 {isPasswordSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    Updating Password...
                   </>
                 ) : (
-                  "Update Password"
+                  <>
+                    Update Password
+                    {passwordStrength.score < 4 &&
+                      passwordForm.watch("newPassword") && (
+                        <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                          Strengthen Password
+                        </span>
+                      )}
+                  </>
                 )}
               </Button>
             </form>

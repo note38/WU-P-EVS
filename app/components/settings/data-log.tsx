@@ -9,8 +9,9 @@ import {
   ShieldCheck,
   Users,
   Vote,
+  Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,175 +40,276 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Mock data for demonstration
-const voterLogs = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john@example.com",
-    registeredAt: new Date(2023, 3, 15),
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    registeredAt: new Date(2023, 3, 16),
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Bob Johnson",
-    email: "bob@example.com",
-    registeredAt: new Date(2023, 3, 17),
-    status: "inactive",
-  },
-  {
-    id: "4",
-    name: "Alice Brown",
-    email: "alice@example.com",
-    registeredAt: new Date(2023, 3, 18),
-    status: "active",
-  },
-  {
-    id: "5",
-    name: "Charlie Davis",
-    email: "charlie@example.com",
-    registeredAt: new Date(2023, 3, 19),
-    status: "pending",
-  },
-];
+// Types for our data
+interface VoterLog {
+  id: string;
+  name: string;
+  email: string;
+  registeredAt: Date;
+  status: string;
+  election?: string;
+  department?: string;
+}
 
-const voteLogs = [
-  {
-    id: "1",
-    voter: "John Doe",
-    election: "Student Council 2023",
-    votedAt: new Date(2023, 4, 10),
-    status: "counted",
-  },
-  {
-    id: "2",
-    voter: "Jane Smith",
-    election: "Student Council 2023",
-    votedAt: new Date(2023, 4, 10),
-    status: "counted",
-  },
-  {
-    id: "3",
-    voter: "Bob Johnson",
-    election: "Department Head 2023",
-    votedAt: new Date(2023, 4, 12),
-    status: "counted",
-  },
-  {
-    id: "4",
-    voter: "Alice Brown",
-    election: "Student Council 2023",
-    votedAt: new Date(2023, 4, 10),
-    status: "rejected",
-  },
-  {
-    id: "5",
-    voter: "Charlie Davis",
-    election: "Department Head 2023",
-    votedAt: new Date(2023, 4, 12),
-    status: "pending",
-  },
-];
+interface VoteLog {
+  id: string;
+  voter: string;
+  voterEmail: string;
+  election: string;
+  position: string;
+  votedAt: Date;
+  status: string;
+}
 
-const adminLogs = [
-  {
-    id: "1",
-    admin: "Admin User",
-    action: "Created election",
-    target: "Student Council 2023",
-    performedAt: new Date(2023, 3, 1),
-  },
-  {
-    id: "2",
-    admin: "Admin User",
-    action: "Added candidate",
-    target: "John Doe",
-    performedAt: new Date(2023, 3, 2),
-  },
-  {
-    id: "3",
-    admin: "Super Admin",
-    action: "Modified election",
-    target: "Department Head 2023",
-    performedAt: new Date(2023, 3, 5),
-  },
-  {
-    id: "4",
-    admin: "Admin User",
-    action: "Deleted candidate",
-    target: "Jane Smith",
-    performedAt: new Date(2023, 3, 7),
-  },
-  {
-    id: "5",
-    admin: "Super Admin",
-    action: "Finalized election",
-    target: "Student Council 2023",
-    performedAt: new Date(2023, 3, 9),
-  },
-];
+interface AdminLog {
+  id: string;
+  admin: string;
+  action: string;
+  target: string;
+  performedAt: Date;
+}
 
-const activityLogs = [
-  {
-    id: "1",
-    user: "John Doe",
-    action: "Logged in",
-    ip: "192.168.1.1",
-    performedAt: new Date(2023, 4, 10, 9, 30),
-  },
-  {
-    id: "2",
-    user: "Admin User",
-    action: "Created report",
-    ip: "192.168.1.2",
-    performedAt: new Date(2023, 4, 10, 10, 15),
-  },
-  {
-    id: "3",
-    user: "Jane Smith",
-    action: "Updated profile",
-    ip: "192.168.1.3",
-    performedAt: new Date(2023, 4, 10, 11, 0),
-  },
-  {
-    id: "4",
-    user: "Bob Johnson",
-    action: "Logged out",
-    ip: "192.168.1.4",
-    performedAt: new Date(2023, 4, 10, 12, 30),
-  },
-  {
-    id: "5",
-    user: "Super Admin",
-    action: "Reset password",
-    ip: "192.168.1.5",
-    performedAt: new Date(2023, 4, 10, 14, 45),
-  },
-];
+interface ActivityLog {
+  id: string;
+  user: string;
+  action: string;
+  ip: string;
+  performedAt: Date;
+}
+
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasMore: boolean;
+}
 
 export function DataLogs() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("voters");
+
+  // State for each tab's data
+  const [voterLogs, setVoterLogs] = useState<VoterLog[]>([]);
+  const [voteLogs, setVoteLogs] = useState<VoteLog[]>([]);
+  const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+
+  // Loading states
+  const [loading, setLoading] = useState(false);
+
+  // Pagination states
+  const [voterPagination, setVoterPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasMore: false,
+  });
+  const [votePagination, setVotePagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasMore: false,
+  });
+  const [adminPagination, setAdminPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasMore: false,
+  });
+  const [activityPagination, setActivityPagination] = useState<Pagination>({
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    hasMore: false,
+  });
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch data based on active tab
+  const fetchData = useCallback(
+    async (tab: string, page: number = 1) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          search: debouncedSearchTerm,
+          dateFilter,
+          page: page.toString(),
+          limit: "10",
+        });
+
+        let endpoint = "";
+        switch (tab) {
+          case "voters":
+            endpoint = "/api/logs/voters";
+            break;
+          case "votes":
+            endpoint = "/api/logs/votes";
+            break;
+          case "admin":
+            endpoint = "/api/logs/admin";
+            break;
+          case "activity":
+            endpoint = "/api/logs/activity";
+            break;
+          default:
+            return;
+        }
+
+        const response = await fetch(`${endpoint}?${params}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch data");
+        }
+
+        const result = await response.json();
+
+        // Update the appropriate state based on tab
+        switch (tab) {
+          case "voters":
+            setVoterLogs(result.data);
+            setVoterPagination(result.pagination);
+            break;
+          case "votes":
+            setVoteLogs(result.data);
+            setVotePagination(result.pagination);
+            break;
+          case "admin":
+            setAdminLogs(result.data);
+            setAdminPagination(result.pagination);
+            break;
+          case "activity":
+            setActivityLogs(result.data);
+            setActivityPagination(result.pagination);
+            break;
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [debouncedSearchTerm, dateFilter]
+  );
+
+  // Fetch data when component mounts or filters change
+  useEffect(() => {
+    fetchData(activeTab);
+  }, [fetchData, activeTab]);
+
+  // Handle tab change
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
+  // Handle pagination
+  const handlePageChange = (tab: string, page: number) => {
+    fetchData(tab, page);
+  };
+
+  // Get current pagination based on active tab
+  const getCurrentPagination = () => {
+    switch (activeTab) {
+      case "voters":
+        return voterPagination;
+      case "votes":
+        return votePagination;
+      case "admin":
+        return adminPagination;
+      case "activity":
+        return activityPagination;
+      default:
+        return voterPagination;
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "active":
+      case "registered":
       case "counted":
         return "bg-green-100 text-green-800";
       case "inactive":
       case "rejected":
         return "bg-red-100 text-red-800";
       case "pending":
+      case "voted":
         return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const currentPagination = getCurrentPagination();
+
+  // Export functionality
+  const exportToCSV = () => {
+    let csvContent = "";
+    let headers = "";
+    let rows = "";
+
+    switch (activeTab) {
+      case "voters":
+        headers = "Name,Email,Registered Date,Status,Election\n";
+        rows = voterLogs
+          .map(
+            (log) =>
+              `"${log.name}","${log.email}","${format(new Date(log.registeredAt), "PPP")}","${log.status}","${log.election || "No election"}"`
+          )
+          .join("\n");
+        break;
+      case "votes":
+        headers = "Voter,Email,Election,Position,Voted Date,Status\n";
+        rows = voteLogs
+          .map(
+            (log) =>
+              `"${log.voter}","${log.voterEmail}","${log.election}","${log.position}","${format(new Date(log.votedAt), "PPP")}","${log.status}"`
+          )
+          .join("\n");
+        break;
+      case "admin":
+        headers = "Admin,Action,Target,Date & Time\n";
+        rows = adminLogs
+          .map(
+            (log) =>
+              `"${log.admin}","${log.action}","${log.target}","${format(new Date(log.performedAt), "PPP p")}"`
+          )
+          .join("\n");
+        break;
+      case "activity":
+        headers = "User,Action,IP Address,Date & Time\n";
+        rows = activityLogs
+          .map(
+            (log) =>
+              `"${log.user}","${log.action}","${log.ip}","${format(new Date(log.performedAt), "PPP p")}"`
+          )
+          .join("\n");
+        break;
+    }
+
+    csvContent = headers + rows;
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `${activeTab}_logs_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -247,13 +349,13 @@ export function DataLogs() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={exportToCSV}>
                 <Download className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <Tabs defaultValue="voters">
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="voters" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -281,24 +383,52 @@ export function DataLogs() {
                     <TableHead>Email</TableHead>
                     <TableHead>Registered Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Election</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {voterLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.name}</TableCell>
-                      <TableCell>{log.email}</TableCell>
-                      <TableCell>{format(log.registeredAt, "PPP")}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(log.status)}
-                        >
-                          {log.status}
-                        </Badge>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                          <span className="ml-2 text-green-600">
+                            Loading...
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : voterLogs.length > 0 ? (
+                    voterLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-medium">
+                          {log.name}
+                        </TableCell>
+                        <TableCell>{log.email}</TableCell>
+                        <TableCell>
+                          {format(new Date(log.registeredAt), "PPP")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={getStatusColor(log.status)}
+                          >
+                            {log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.election || "No election"}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No voter logs found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
@@ -309,26 +439,59 @@ export function DataLogs() {
                   <TableRow>
                     <TableHead>Voter</TableHead>
                     <TableHead>Election</TableHead>
+                    <TableHead>Position</TableHead>
                     <TableHead>Voted Date</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {voteLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.voter}</TableCell>
-                      <TableCell>{log.election}</TableCell>
-                      <TableCell>{format(log.votedAt, "PPP")}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(log.status)}
-                        >
-                          {log.status}
-                        </Badge>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                          <span className="ml-2 text-green-600">
+                            Loading...
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : voteLogs.length > 0 ? (
+                    voteLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{log.voter}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {log.voterEmail}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{log.election}</TableCell>
+                        <TableCell>{log.position}</TableCell>
+                        <TableCell>
+                          {format(new Date(log.votedAt), "PPP")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={getStatusColor(log.status)}
+                          >
+                            {log.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No vote logs found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
@@ -344,14 +507,40 @@ export function DataLogs() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {adminLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.admin}</TableCell>
-                      <TableCell>{log.action}</TableCell>
-                      <TableCell>{log.target}</TableCell>
-                      <TableCell>{format(log.performedAt, "PPP p")}</TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                          <span className="ml-2 text-green-600">
+                            Loading...
+                          </span>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : adminLogs.length > 0 ? (
+                    adminLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-medium">
+                          {log.admin}
+                        </TableCell>
+                        <TableCell>{log.action}</TableCell>
+                        <TableCell>{log.target}</TableCell>
+                        <TableCell>
+                          {format(new Date(log.performedAt), "PPP p")}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No admin logs found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
@@ -367,14 +556,40 @@ export function DataLogs() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activityLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.user}</TableCell>
-                      <TableCell>{log.action}</TableCell>
-                      <TableCell>{log.ip}</TableCell>
-                      <TableCell>{format(log.performedAt, "PPP p")}</TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
+                          <span className="ml-2 text-green-600">
+                            Loading...
+                          </span>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : activityLogs.length > 0 ? (
+                    activityLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-medium">
+                          {log.user}
+                        </TableCell>
+                        <TableCell>{log.action}</TableCell>
+                        <TableCell>{log.ip}</TableCell>
+                        <TableCell>
+                          {format(new Date(log.performedAt), "PPP p")}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        No activity logs found
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TabsContent>
@@ -382,10 +597,18 @@ export function DataLogs() {
 
           <div className="flex justify-between items-center pt-4">
             <div className="text-sm text-muted-foreground">
-              Showing {voterLogs.length} of {voterLogs.length} entries
+              Showing {currentPagination.totalCount} of{" "}
+              {currentPagination.totalCount} entries
             </div>
             <div className="flex gap-1">
-              <Button variant="outline" size="sm" disabled>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPagination.currentPage === 1}
+                onClick={() =>
+                  handlePageChange(activeTab, currentPagination.currentPage - 1)
+                }
+              >
                 Previous
               </Button>
               <Button
@@ -393,9 +616,16 @@ export function DataLogs() {
                 size="sm"
                 className="bg-primary text-primary-foreground"
               >
-                1
+                {currentPagination.currentPage}
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!currentPagination.hasMore}
+                onClick={() =>
+                  handlePageChange(activeTab, currentPagination.currentPage + 1)
+                }
+              >
                 Next
               </Button>
             </div>
