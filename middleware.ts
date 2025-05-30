@@ -7,10 +7,20 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
+    // Handle caching for avatar images
+    if (path.startsWith("/avatars/")) {
+      const response = NextResponse.next();
+      response.headers.set(
+        "Cache-Control",
+        "public, max-age=31536000, immutable"
+      );
+      response.headers.set("Accept-Encoding", "br, gzip");
+      return response;
+    }
+
     // Early return for public API routes
     if (path === "/api/voters" || path.startsWith("/api/public")) {
       const response = NextResponse.next();
-      // Add performance headers
       response.headers.set(
         "Cache-Control",
         "public, max-age=300, stale-while-revalidate=60"
@@ -28,7 +38,7 @@ export default withAuth(
     const isVoter = userRole === "VOTER";
 
     // Handle admin routes with optimized checks
-    if (path.startsWith("/admin_dashboard")) {
+    if (path.startsWith("/admin_dashboard") || path.startsWith("/api/admin")) {
       if (!isAdmin) {
         return NextResponse.redirect(
           new URL(isVoter ? "/user_dashboard" : "/", req.url)
@@ -37,7 +47,7 @@ export default withAuth(
     }
 
     // Handle user routes with optimized checks
-    if (path.startsWith("/user_dashboard")) {
+    if (path.startsWith("/user_dashboard") || path.startsWith("/api/user")) {
       if (!isVoter) {
         return NextResponse.redirect(
           new URL(isAdmin ? "/admin_dashboard" : "/", req.url)
@@ -71,29 +81,13 @@ export default withAuth(
   },
   {
     callbacks: {
-      // Always return true to let our middleware handle the logic
-      authorized: () => true,
+      authorized: ({ token }) => !!token, // Only allow authenticated users
+    },
+    pages: {
+      signIn: "/", // Redirect to home page for sign in
     },
   }
 );
-
-export function middleware(request: NextRequest) {
-  // Handle caching for avatar images
-  if (request.nextUrl.pathname.startsWith("/avatars/")) {
-    const response = NextResponse.next();
-
-    // Set cache control headers for avatar images
-    response.headers.set(
-      "Cache-Control",
-      "public, max-age=31536000, immutable" // Cache for 1 year since we use unique filenames
-    );
-    response.headers.set("Accept-Encoding", "br, gzip");
-
-    return response;
-  }
-
-  return NextResponse.next();
-}
 
 export const config = {
   matcher: [

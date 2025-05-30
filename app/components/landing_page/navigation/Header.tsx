@@ -17,7 +17,7 @@ export const Header = memo(function Header({ onSwitchElection }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between m-auto ">
+      <div className="max-w-6xl mx-auto px-4 flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <img
             src="/wup-logo.png"

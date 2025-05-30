@@ -429,7 +429,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Header onSwitchElection={handleSwitchElection} />
 
-      <main className="flex-1 container py-6 md:py-10 m-auto">
+      <main className="flex-1 container max-w-6xl py-6 md:py-10 m-auto">
         <div className="space-y-6">
           <div className="text-center space-y-2">
             <div className="flex items-center justify-center gap-2">

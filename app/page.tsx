@@ -10,6 +10,6 @@ export default async function Home() {
     redirect("/ballot");
   } else {
     // Redirect to login page if not logged in
-    redirect("/landing_page");
+    redirect("/home");
   }
 }
