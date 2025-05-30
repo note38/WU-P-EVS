@@ -20,6 +20,14 @@ export async function GET(
       where: {
         departmentId: departmentId,
       },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
       orderBy: {
         name: "asc",
       },

@@ -1,47 +1,10 @@
 "use client";
 
 import { SearchInput } from "@/app/components/admin/search-input";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PositionForms } from "./position-forms";
+import { PositionsTable } from "./positions-table";
 
 // Define position type
 interface Position {
@@ -50,6 +13,14 @@ interface Position {
   maxCandidates: number;
   candidates: number;
   yearId: number | null;
+  year: {
+    id: number;
+    name: string;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
 }
 
 // Define year type
@@ -57,7 +28,8 @@ interface Year {
   id: number;
   name: string;
   departmentId: number;
-  department?: {
+  department: {
+    id: number;
     name: string;
   };
 }
@@ -84,6 +56,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
     yearId: null as number | null,
   });
   const [currentPosition, setCurrentPosition] = useState<Position | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch positions from API
   useEffect(() => {
@@ -146,6 +119,8 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
   );
 
   const handleAddPosition = async () => {
+    if (isSubmitting) return; // Prevent multiple submissions
+
     if (!newPosition.name.trim()) {
       toast({
         title: "Error",
@@ -155,6 +130,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const response = await fetch(`/api/elections/${electionId}/positions`, {
         method: "POST",
@@ -194,16 +170,26 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
             : "Failed to add position. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEditClick = (position: Position) => {
-    setCurrentPosition(position);
+    const positionWithYear = {
+      ...position,
+      year: position.year || null,
+    };
+    setCurrentPosition(positionWithYear);
     setIsEditDialogOpen(true);
   };
 
   const handleDeleteClick = (position: Position) => {
-    setPositionToDelete(position);
+    const positionWithYear = {
+      ...position,
+      year: position.year || null,
+    };
+    setPositionToDelete(positionWithYear);
     setIsDeleteDialogOpen(true);
   };
 
@@ -298,95 +284,25 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold">Election Positions</h2>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Position
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Position</DialogTitle>
-              <DialogDescription>
-                Create a new position for candidates to run for in this
-                election.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="position-name" className="col-span-4">
-                  Position Name
-                </Label>
-                <Input
-                  id="position-name"
-                  placeholder="e.g., President"
-                  className="col-span-4"
-                  value={newPosition.name}
-                  onChange={(e) =>
-                    setNewPosition({ ...newPosition, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="max-candidates" className="col-span-4">
-                  Maximum Candidates
-                </Label>
-                <Input
-                  id="max-candidates"
-                  type="number"
-                  min="1"
-                  className="col-span-4"
-                  value={newPosition.maxCandidates}
-                  onChange={(e) =>
-                    setNewPosition({
-                      ...newPosition,
-                      maxCandidates: parseInt(e.target.value) || 1,
-                    })
-                  }
-                />
-              </div>
-              {years.length > 0 && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="year-select" className="col-span-4">
-                    Year Level (Optional)
-                  </Label>
-                  <Select
-                    value={newPosition.yearId?.toString() || "null"}
-                    onValueChange={(value) =>
-                      setNewPosition({
-                        ...newPosition,
-                        yearId: value === "null" ? null : parseInt(value),
-                      })
-                    }
-                  >
-                    <SelectTrigger className="col-span-4">
-                      <SelectValue placeholder="Select a year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      {years.map((year) => (
-                        <SelectItem key={year.id} value={year.id.toString()}>
-                          {year.name}{" "}
-                          {year.department && `(${year.department.name})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsAddDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleAddPosition}>Add Position</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <PositionForms
+          years={years}
+          isAddDialogOpen={isAddDialogOpen}
+          setIsAddDialogOpen={setIsAddDialogOpen}
+          isEditDialogOpen={isEditDialogOpen}
+          setIsEditDialogOpen={setIsEditDialogOpen}
+          isDeleteDialogOpen={isDeleteDialogOpen}
+          setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+          newPosition={newPosition}
+          setNewPosition={setNewPosition}
+          currentPosition={currentPosition as any}
+          setCurrentPosition={setCurrentPosition as any}
+          positionToDelete={positionToDelete as any}
+          setPositionToDelete={setPositionToDelete as any}
+          onAddPosition={handleAddPosition}
+          onUpdatePosition={handleUpdatePosition}
+          onDeletePosition={handleDeletePosition}
+          isSubmitting={isSubmitting}
+        />
       </div>
 
       <SearchInput
@@ -396,189 +312,13 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
         className="max-w-md"
       />
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center p-8">
-              <p>Loading positions...</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Max Candidates</TableHead>
-                  <TableHead>Current Candidates</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPositions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
-                      No positions found. Create your first position by clicking
-                      "Add Position".
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPositions.map((position) => (
-                    <TableRow key={position.id}>
-                      <TableCell className="font-medium">
-                        {position.name}
-                      </TableCell>
-                      <TableCell>{position.maxCandidates}</TableCell>
-                      <TableCell>{position.candidates}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditClick(position)}
-                          >
-                            <EditIcon className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(position)}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Edit Position Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Position</DialogTitle>
-            <DialogDescription>
-              Update this position's details.
-            </DialogDescription>
-          </DialogHeader>
-          {currentPosition && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-position-name" className="col-span-4">
-                  Position Name
-                </Label>
-                <Input
-                  id="edit-position-name"
-                  className="col-span-4"
-                  value={currentPosition.name}
-                  onChange={(e) =>
-                    setCurrentPosition({
-                      ...currentPosition,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-max-candidates" className="col-span-4">
-                  Maximum Candidates
-                </Label>
-                <Input
-                  id="edit-max-candidates"
-                  type="number"
-                  min="1"
-                  className="col-span-4"
-                  value={currentPosition.maxCandidates}
-                  onChange={(e) =>
-                    setCurrentPosition({
-                      ...currentPosition,
-                      maxCandidates: parseInt(e.target.value) || 1,
-                    })
-                  }
-                />
-              </div>
-              {years.length > 0 && (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-year-select" className="col-span-4">
-                    Year Level (Optional)
-                  </Label>
-                  <Select
-                    value={currentPosition.yearId?.toString() || "null"}
-                    onValueChange={(value) =>
-                      setCurrentPosition({
-                        ...currentPosition,
-                        yearId: value === "null" ? null : parseInt(value),
-                      })
-                    }
-                  >
-                    <SelectTrigger className="col-span-4">
-                      <SelectValue placeholder="Select a year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="null">None</SelectItem>
-                      {years.map((year) => (
-                        <SelectItem key={year.id} value={year.id.toString()}>
-                          {year.name}{" "}
-                          {year.department && `(${year.department.name})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleUpdatePosition}>Update Position</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Position</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the position "
-              {positionToDelete?.name}"? This action cannot be undone.
-              {positionToDelete?.candidates &&
-                positionToDelete.candidates > 0 && (
-                  <p className="mt-2 text-red-500 font-semibold">
-                    Warning: This position has {positionToDelete.candidates}{" "}
-                    candidate(s). Deleting this position will also remove these
-                    candidates.
-                  </p>
-                )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPositionToDelete(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePosition}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PositionsTable
+        positions={positions}
+        isLoading={isLoading}
+        filteredPositions={filteredPositions}
+        onEditClick={handleEditClick}
+        onDeleteClick={handleDeleteClick}
+      />
     </div>
   );
 }

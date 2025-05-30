@@ -7,18 +7,19 @@ export async function GET() {
       include: {
         department: true,
       },
-      orderBy: { name: "asc" },
+      orderBy: [
+        {
+          department: {
+            name: "asc",
+          },
+        },
+        {
+          name: "asc",
+        },
+      ],
     });
 
-    // Transform the data to match the expected format in the frontend
-    const transformedYears = years.map((year) => ({
-      id: year.id.toString(),
-      name: year.name,
-      departmentId: year.departmentId.toString(),
-      departmentName: year.department.name,
-    }));
-
-    return NextResponse.json(transformedYears);
+    return NextResponse.json(years);
   } catch (error) {
     console.error("Error fetching years:", error);
     return NextResponse.json(
@@ -41,15 +42,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // Transform to match frontend expected format
-    const transformedYear = {
-      id: year.id.toString(),
-      name: year.name,
-      departmentId: year.departmentId.toString(),
-      departmentName: year.department.name,
-    };
-
-    return NextResponse.json(transformedYear);
+    return NextResponse.json(year);
   } catch (error) {
     console.error("Error creating year:", error);
     return NextResponse.json(

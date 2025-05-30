@@ -55,6 +55,11 @@ export async function GET(
         _count: {
           select: { candidates: true },
         },
+        year: {
+          include: {
+            department: true,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -66,6 +71,16 @@ export async function GET(
       maxCandidates: position.maxCandidates,
       candidates: position._count.candidates,
       yearId: position.yearId,
+      year: position.year
+        ? {
+            id: position.year.id,
+            name: position.year.name,
+            department: {
+              id: position.year.department.id,
+              name: position.year.department.name,
+            },
+          }
+        : null,
     }));
 
     return NextResponse.json(formattedPositions);
