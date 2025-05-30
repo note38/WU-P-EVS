@@ -461,3 +461,154 @@ export function SettingsDataLogsSkeleton() {
     </Card>
   );
 }
+
+export function DepartmentCardSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Header with title and actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-10 w-[100px] rounded-md" />{" "}
+          {/* Print button */}
+          <Skeleton className="h-10 w-[100px] rounded-md" />{" "}
+          {/* Export button */}
+          <Skeleton className="h-10 w-[120px] rounded-md" />{" "}
+          {/* Add Voter button */}
+        </div>
+      </div>
+
+      {/* Department Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array(6)
+          .fill(0)
+          .map((_, i) => (
+            <Card
+              key={i}
+              className="relative bg-card/30 border-primary/20 overflow-hidden"
+            >
+              {/* Top colored border */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
+
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-6 w-48 mb-1" />
+                    <Skeleton className="h-4 w-40 text-muted-foreground" />
+                  </div>
+                  <Skeleton className="h-6 w-8 rounded-lg" />
+                </div>
+              </CardHeader>
+
+              <CardContent className="pb-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 ml-auto" />
+                </div>
+              </CardContent>
+
+              <CardFooter className="border-t border-border/50 bg-muted/10 px-6 py-2">
+                <Skeleton className="h-3 w-24 text-muted-foreground" />
+                <Skeleton className="h-3 w-32 ml-auto text-muted-foreground" />
+              </CardFooter>
+            </Card>
+          ))}
+      </div>
+
+      {/* Year Levels Section */}
+      <Card className="border-primary/20 relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5" />
+                <Skeleton className="h-6 w-64" />
+              </div>
+              <Skeleton className="h-4 w-48 text-muted-foreground" />
+            </div>
+            <Skeleton className="h-6 w-20 rounded-lg" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array(4)
+              .fill(0)
+              .map((_, i) => (
+                <Card key={i} className="relative bg-card/30 border-primary/20">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-full bg-emerald-100">
+                          <Skeleton className="h-4 w-4" />
+                        </div>
+                        <Skeleton className="h-5 w-24" />
+                      </div>
+                      <Skeleton className="h-6 w-8 rounded-lg" />
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Voters Section */}
+      <Card className="border-primary/20 relative">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="p-1 rounded-full bg-emerald-100">
+                  <Skeleton className="h-5 w-5" />
+                </div>
+                <Skeleton className="h-6 w-72" />
+              </div>
+              <Skeleton className="h-4 w-48 text-muted-foreground" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array(6)
+              .fill(0)
+              .map((_, i) => (
+                <Card
+                  key={i}
+                  className="overflow-hidden bg-card/30 border-primary/20"
+                >
+                  <CardHeader className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-5 w-32 mb-1" />
+                        <Skeleton className="h-4 w-24 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-4 w-24 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

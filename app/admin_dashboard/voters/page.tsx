@@ -1,5 +1,5 @@
 // app/admin_dashboard/voters/page.tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/lib/data/VoterDataService";
 import {
   StatCardSkeleton,
-  VoterCardsSkeleton,
+  DepartmentCardSkeleton,
 } from "@/app/components/ui/skeleton";
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
@@ -30,11 +30,11 @@ const getCachedVoters = unstable_cache(
   ["all-voters"],
   {
     tags: ["voters"],
-    revalidate: 10, // Short revalidation time
+    revalidate: 10,
   }
 );
 
-// Fetch departments and years to get their proper relationships
+// Fetch departments and years
 const getCachedDepartmentsAndYears = unstable_cache(
   async () => {
     const departments = await prisma.department.findMany({
@@ -51,77 +51,23 @@ const getCachedDepartmentsAndYears = unstable_cache(
   ["all-departments-and-years"],
   {
     tags: ["departments", "years"],
-    revalidate: 60, // Cache for a minute
+    revalidate: 60,
   }
 );
 
-// Async Components
-async function HeaderWithActions() {
-  try {
-    const { data: votersData = [] } = await getCachedVoters();
-    const departments = await getCachedDepartmentsAndYears();
-
-    // Create a mapping from year ID to department and year names
-    const yearMapping = new Map();
-    departments.forEach((dept) => {
-      dept.years.forEach((year) => {
-        yearMapping.set(year.id, {
-          departmentName: dept.name,
-          departmentId: dept.id,
-          yearName: year.name,
-          yearId: year.id,
-          departmentImage: dept.image || null,
-        });
-      });
-    });
-
-    // Map VoterData to the Voter format for export
-    const voters = votersData.map((voter) => {
-      const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
-      const yearFullName = yearInfo
-        ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
-        : voter.year?.name || "Unknown Year";
-
-      return {
-        ...voter,
-        status: voter.status as unknown as VoterStatus,
-        year: voter.year
-          ? {
-              ...voter.year,
-              name: yearFullName,
-              departmentName: yearInfo?.departmentName || "Unknown",
-              departmentId: yearInfo?.departmentId || 0,
-              departmentImage: yearInfo?.departmentImage || null,
-            }
-          : {
-              id: 0,
-              name: "Unknown Year",
-              departmentName: "Unknown",
-              departmentId: 0,
-              departmentImage: null,
-            },
-        election: voter.election || { name: "No Election", id: 0 },
-      };
-    });
-
-    return (
+// Client Components
+function PageHeader({
+  voters,
+  departments,
+}: {
+  voters: any[];
+  departments: any[];
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
       <div className="flex flex-col sm:flex-row gap-2">
         <ExportButtons voters={voters} title="All Voters Report" />
-
-        <div className="hidden md:block">
-          <CreateVoterForm />
-        </div>
-
-        {/* Mobile button - hidden on desktop */}
-        <div className="block md:hidden w-full">
-          <CreateVoterForm />
-        </div>
-      </div>
-    );
-  } catch (error) {
-    console.error("Error fetching voters for header:", error);
-    return (
-      <div className="flex flex-col sm:flex-row gap-2">
         <div className="hidden md:block">
           <CreateVoterForm />
         </div>
@@ -129,8 +75,59 @@ async function HeaderWithActions() {
           <CreateVoterForm />
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+// Async Server Components
+async function HeaderWithActions() {
+  const { data: votersData = [] } = await getCachedVoters();
+  const departments = await getCachedDepartmentsAndYears();
+
+  // Create a mapping from year ID to department and year names
+  const yearMapping = new Map();
+  departments.forEach((dept) => {
+    dept.years.forEach((year) => {
+      yearMapping.set(year.id, {
+        departmentName: dept.name,
+        departmentId: dept.id,
+        yearName: year.name,
+        yearId: year.id,
+        departmentImage: dept.image || null,
+      });
+    });
+  });
+
+  // Map VoterData to the Voter format for export
+  const mappedVoters = votersData.map((voter) => {
+    const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
+    const yearFullName = yearInfo
+      ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
+      : voter.year?.name || "Unknown Year";
+
+    return {
+      ...voter,
+      status: voter.status as unknown as VoterStatus,
+      year: voter.year
+        ? {
+            ...voter.year,
+            name: yearFullName,
+            departmentName: yearInfo?.departmentName || "Unknown",
+            departmentId: yearInfo?.departmentId || 0,
+            departmentImage: yearInfo?.departmentImage || null,
+          }
+        : {
+            id: 0,
+            name: "Unknown Year",
+            departmentName: "Unknown",
+            departmentId: 0,
+            departmentImage: null,
+          },
+      election: voter.election || { name: "No Election", id: 0 },
+    };
+  });
+
+  return <PageHeader voters={mappedVoters} departments={departments} />;
 }
 
 async function DepartmentDisplay() {
@@ -147,14 +144,13 @@ async function DepartmentDisplay() {
           departmentId: dept.id,
           yearName: year.name,
           yearId: year.id,
-          // Use department image if available
           departmentImage: dept.image || null,
         });
       });
     });
 
-    // Map VoterData to the Voter format expected by DepartmentCard with enhanced data
-    const voters = votersData.map((voter) => {
+    // Map VoterData to the expected format with proper department relationships
+    const mappedVoters = votersData.map((voter) => {
       const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
       const yearFullName = yearInfo
         ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
@@ -162,9 +158,7 @@ async function DepartmentDisplay() {
 
       return {
         ...voter,
-        // Ensure status is properly typed as VoterStatus
         status: voter.status as unknown as VoterStatus,
-        // Enhance year data with department relationship
         year: voter.year
           ? {
               ...voter.year,
@@ -180,21 +174,19 @@ async function DepartmentDisplay() {
               departmentId: 0,
               departmentImage: null,
             },
-        // Ensure election is not null
         election: voter.election || { name: "No Election", id: 0 },
       };
     });
 
     return (
       <DepartmentCard
-        voters={voters}
+        voters={mappedVoters}
         info={info}
         departmentsData={departments}
       />
     );
   } catch (error) {
     console.error("Error fetching voters:", error);
-    // Return empty state with error message
     return (
       <div className="p-4 text-center">
         <p className="text-red-500">
@@ -205,25 +197,21 @@ async function DepartmentDisplay() {
   }
 }
 
-// Page Config - these settings help prevent caching at the page level
+// Page Config
 export const dynamic = "force-dynamic";
-export const revalidate = 0; // Set to 0 to prevent caching
+export const revalidate = 0;
 
-// Main Page - Server Component
+// Main Page Component
 export default function VotersPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
-
-        <Suspense fallback={<VoterCardsSkeleton />}>
-          <HeaderWithActions />
-        </Suspense>
-      </div>
+      <Suspense fallback={<DepartmentCardSkeleton />}>
+        <HeaderWithActions />
+      </Suspense>
 
       <Card>
         <CardContent>
-          <Suspense fallback={<VoterCardsSkeleton />}>
+          <Suspense fallback={<DepartmentCardSkeleton />}>
             <DepartmentDisplay />
           </Suspense>
         </CardContent>
