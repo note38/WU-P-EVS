@@ -66,6 +66,17 @@ const getElectionsData = async () => {
 async function ElectionList() {
   const elections = await getElectionsData();
 
+  if (elections.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-lg text-muted-foreground">No elections available</p>
+        <p className="text-sm text-muted-foreground">
+          Create a new election to get started
+        </p>
+      </div>
+    );
+  }
+
   const formattedElections = elections.map((election) => {
     // Calculate total candidates by summing up the candidates in each position
     const candidates = election.positions.reduce(

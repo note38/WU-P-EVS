@@ -150,13 +150,32 @@ export function ElectionCard({ election }: ElectionCardProps) {
         try {
           const errorData = await response.json();
           if (errorData && typeof errorData === "object" && errorData.error) {
-            errorMessage = errorData.error;
+            // Format the error message to be more user-friendly
+            if (
+              errorData.error.includes(
+                "Cannot start an election before its scheduled start time"
+              )
+            ) {
+              const startDateTime = formatDateTime(election.fullStartDate);
+              errorMessage = `This election is scheduled to start on ${startDateTime.date} at ${startDateTime.time}. Please try again at the scheduled time.`;
+            } else {
+              errorMessage = errorData.error;
+            }
           }
         } catch (e) {
-          // If there's an error parsing JSON, use the status text we already have
           console.error("Error parsing response JSON:", e);
         }
-        throw new Error(errorMessage);
+
+        // Instead of throwing the error, show the toast and return
+        toast({
+          title:
+            statusAction === "start"
+              ? "Cannot Start Election"
+              : "Cannot Pause Election",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
       }
 
       // Update local status
@@ -174,7 +193,10 @@ export function ElectionCard({ election }: ElectionCardProps) {
       console.error(`Error ${statusAction}ing election:`, error);
 
       toast({
-        title: "Status Update Error",
+        title:
+          statusAction === "start"
+            ? "Cannot Start Election"
+            : "Cannot Pause Election",
         description:
           error instanceof Error
             ? error.message
