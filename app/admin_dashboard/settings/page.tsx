@@ -6,30 +6,14 @@ import { DepartmentSettings } from "@/app/components/settings/department-form";
 import { YearSettings } from "@/app/components/settings/year-form";
 import { DataLogs } from "@/app/components/settings/data-log";
 import { AccountSettings } from "@/app/components/settings/account-form";
-import {
-  SettingsProfileSkeleton,
-  SettingsTableSkeleton,
-  SettingsAccountSkeleton,
-  SettingsDataLogsSkeleton,
-} from "@/app/components/ui/skeleton";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
-  const [loading, setLoading] = useState(true);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div className="container">
@@ -54,23 +38,23 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
-          {loading ? <SettingsProfileSkeleton /> : <ProfileSettings />}
+          <ProfileSettings />
         </TabsContent>
 
         <TabsContent value="departments" className="space-y-4">
-          {loading ? <SettingsTableSkeleton /> : <DepartmentSettings />}
+          <DepartmentSettings />
         </TabsContent>
 
         <TabsContent value="years" className="space-y-4">
-          {loading ? <SettingsTableSkeleton /> : <YearSettings />}
+          <YearSettings />
         </TabsContent>
 
         <TabsContent value="account" className="space-y-4">
-          {loading ? <SettingsAccountSkeleton /> : <AccountSettings />}
+          <AccountSettings />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          {loading ? <SettingsDataLogsSkeleton /> : <DataLogs />}
+          <DataLogs />
         </TabsContent>
       </Tabs>
     </div>

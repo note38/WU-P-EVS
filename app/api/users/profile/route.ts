@@ -8,6 +8,9 @@ import {
 import bcrypt from "bcrypt";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
+import { v4 as uuidv4 } from "uuid";
 
 // Simple in-memory rate limiting for password change attempts
 const passwordChangeAttempts = new Map();
@@ -104,8 +107,39 @@ export async function PATCH(request: Request) {
     // Update profile fields if provided
     if (data.username) updateData.username = data.username;
     if (data.email) updateData.email = data.email;
+
+    // Handle avatar update
     if (data.hasOwnProperty("avatar")) {
-      updateData.avatar = data.avatar;
+      if (data.avatar) {
+        // If it's a base64 image
+        if (data.avatar.startsWith("data:image")) {
+          const base64Data = data.avatar.split(";base64,").pop();
+          if (!base64Data) {
+            throw new Error("Invalid image data");
+          }
+
+          // Create avatars directory if it doesn't exist
+          const publicDir = join(process.cwd(), "public");
+          const avatarsDir = join(publicDir, "avatars");
+          await mkdir(avatarsDir, { recursive: true });
+
+          // Create a unique filename with .webp extension
+          const filename = `${uuidv4()}.webp`;
+          const filePath = join(avatarsDir, filename);
+
+          // Save the file
+          await writeFile(filePath, Buffer.from(base64Data, "base64"));
+
+          // Update the avatar path in the database
+          updateData.avatar = `/avatars/${filename}`;
+        } else {
+          // If it's already a path, keep it as is
+          updateData.avatar = data.avatar;
+        }
+      } else {
+        // If avatar is null, remove it
+        updateData.avatar = null;
+      }
     }
 
     // Update user in database with minimal data selection for faster response
@@ -134,10 +168,19 @@ export async function PATCH(request: Request) {
       }
     );
 
-    return NextResponse.json({
+    // Return response with cache control headers
+    const response = NextResponse.json({
       message: "Profile updated successfully",
       user: updatedUser,
     });
+
+    // Set cache control headers
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=31536000, immutable" // Cache for 1 year since we use unique filenames
+    );
+
+    return response;
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json(

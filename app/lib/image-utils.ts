@@ -115,9 +115,10 @@ export async function cropImage(
       throw new Error("Could not get canvas context");
     }
 
-    // Set canvas size to target dimensions
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    // Limit maximum dimensions for avatars to reduce file size
+    const maxDimension = Math.min(targetWidth, targetHeight, 256); // Limit to 256x256
+    canvas.width = maxDimension;
+    canvas.height = maxDimension;
 
     // Enable high-quality image processing
     ctx.imageSmoothingEnabled = true;
@@ -152,14 +153,12 @@ export async function cropImage(
       validHeight,
       0,
       0,
-      targetWidth,
-      targetHeight
+      maxDimension,
+      maxDimension
     );
 
-    // Convert to data URL with specified format
-    const result = getOptimizedDataURL(canvas, options);
-
-    return result;
+    // Convert to data URL with optimized compression
+    return canvas.toDataURL("image/jpeg", 0.8); // Use JPEG with 80% quality for better compression
   } catch (error) {
     console.error("cropImage error:", error);
     throw new Error(

@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Types for our data
 interface VoterLog {
@@ -82,6 +83,34 @@ interface Pagination {
   totalPages: number;
   totalCount: number;
   hasMore: boolean;
+}
+
+// Define TableSkeleton component for tab content loading
+function TableSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Table Header */}
+      <div className="grid grid-cols-4 gap-4 pb-4 border-b">
+        {Array(4)
+          .fill(0)
+          .map((_, i) => (
+            <div key={i} className="h-4 w-32 bg-muted rounded animate-pulse" />
+          ))}
+      </div>
+
+      {/* Table Rows */}
+      {Array(5)
+        .fill(0)
+        .map((_, i) => (
+          <div key={i} className="grid grid-cols-4 gap-4 py-4">
+            <div className="h-8 w-40 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-8 w-36 bg-muted rounded animate-pulse" />
+          </div>
+        ))}
+    </div>
+  );
 }
 
 export function DataLogs() {
@@ -314,324 +343,311 @@ export function DataLogs() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Data Logs</CardTitle>
-        <CardDescription>
-          View and manage system logs for voters, votes, admin actions, and
-          general activity.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search logs..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by date" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All time</SelectItem>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="week">This week</SelectItem>
-                    <SelectItem value="month">This month</SelectItem>
-                  </SelectContent>
-                </Select>
+    <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      <Card className="min-h-[300px]">
+        <CardHeader>
+          <CardTitle>Data Logs</CardTitle>
+          <CardDescription>
+            View and manage system logs for voters, votes, admin actions, and
+            general activity.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4">
+            {/* Search and Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search logs..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-              <Button variant="outline" size="icon" onClick={exportToCSV}>
-                <Download className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="week">This week</SelectItem>
+                      <SelectItem value="month">This month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="icon" onClick={exportToCSV}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList className="grid grid-cols-4 mb-4">
+                <TabsTrigger value="voters" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline">Voters</span>
+                </TabsTrigger>
+                <TabsTrigger value="votes" className="flex items-center gap-2">
+                  <Vote className="h-4 w-4" />
+                  <span className="hidden sm:inline">Votes</span>
+                </TabsTrigger>
+                <TabsTrigger value="admin" className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="activity"
+                  className="flex items-center gap-2"
+                >
+                  <Activity className="h-4 w-4" />
+                  <span className="hidden sm:inline">Activity</span>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="voters">
+                {loading ? (
+                  <TableSkeleton />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Registered Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Election</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {voterLogs.length > 0 ? (
+                        voterLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              {log.name}
+                            </TableCell>
+                            <TableCell>{log.email}</TableCell>
+                            <TableCell>
+                              {format(new Date(log.registeredAt), "PPP")}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={getStatusColor(log.status)}
+                              >
+                                {log.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {log.election || "No election"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No voter logs found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+
+              <TabsContent value="votes">
+                {loading ? (
+                  <TableSkeleton />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Voter</TableHead>
+                        <TableHead>Election</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Voted Date</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {voteLogs.length > 0 ? (
+                        voteLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              <div>
+                                <div>{log.voter}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {log.voterEmail}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{log.election}</TableCell>
+                            <TableCell>{log.position}</TableCell>
+                            <TableCell>
+                              {format(new Date(log.votedAt), "PPP")}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={getStatusColor(log.status)}
+                              >
+                                {log.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No vote logs found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+
+              <TabsContent value="admin">
+                {loading ? (
+                  <TableSkeleton />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Admin</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Target</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminLogs.length > 0 ? (
+                        adminLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              {log.admin}
+                            </TableCell>
+                            <TableCell>{log.action}</TableCell>
+                            <TableCell>{log.target}</TableCell>
+                            <TableCell>
+                              {format(new Date(log.performedAt), "PPP p")}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No admin logs found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+
+              <TabsContent value="activity">
+                {loading ? (
+                  <TableSkeleton />
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>IP Address</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activityLogs.length > 0 ? (
+                        activityLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium">
+                              {log.user}
+                            </TableCell>
+                            <TableCell>{log.action}</TableCell>
+                            <TableCell>{log.ip}</TableCell>
+                            <TableCell>
+                              {format(new Date(log.performedAt), "PPP p")}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No activity logs found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center pt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {currentPagination.totalCount} of{" "}
+                {currentPagination.totalCount} entries
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPagination.currentPage === 1}
+                  onClick={() =>
+                    handlePageChange(
+                      activeTab,
+                      currentPagination.currentPage - 1
+                    )
+                  }
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-primary text-primary-foreground"
+                >
+                  {currentPagination.currentPage}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!currentPagination.hasMore}
+                  onClick={() =>
+                    handlePageChange(
+                      activeTab,
+                      currentPagination.currentPage + 1
+                    )
+                  }
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
-
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="voters" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Voters</span>
-              </TabsTrigger>
-              <TabsTrigger value="votes" className="flex items-center gap-2">
-                <Vote className="h-4 w-4" />
-                <span className="hidden sm:inline">Votes</span>
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">Admin</span>
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                <span className="hidden sm:inline">Activity</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="voters">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Registered Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Election</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-                          <span className="ml-2 text-green-600">
-                            Loading...
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : voterLogs.length > 0 ? (
-                    voterLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">
-                          {log.name}
-                        </TableCell>
-                        <TableCell>{log.email}</TableCell>
-                        <TableCell>
-                          {format(new Date(log.registeredAt), "PPP")}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(log.status)}
-                          >
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{log.election || "No election"}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No voter logs found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-
-            <TabsContent value="votes">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Voter</TableHead>
-                    <TableHead>Election</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Voted Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-                          <span className="ml-2 text-green-600">
-                            Loading...
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : voteLogs.length > 0 ? (
-                    voteLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">
-                          <div>
-                            <div>{log.voter}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {log.voterEmail}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{log.election}</TableCell>
-                        <TableCell>{log.position}</TableCell>
-                        <TableCell>
-                          {format(new Date(log.votedAt), "PPP")}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={getStatusColor(log.status)}
-                          >
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No vote logs found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-
-            <TabsContent value="admin">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Admin</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Date & Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-                          <span className="ml-2 text-green-600">
-                            Loading...
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : adminLogs.length > 0 ? (
-                    adminLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">
-                          {log.admin}
-                        </TableCell>
-                        <TableCell>{log.action}</TableCell>
-                        <TableCell>{log.target}</TableCell>
-                        <TableCell>
-                          {format(new Date(log.performedAt), "PPP p")}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No admin logs found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-
-            <TabsContent value="activity">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Date & Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <div className="flex justify-center items-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-                          <span className="ml-2 text-green-600">
-                            Loading...
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : activityLogs.length > 0 ? (
-                    activityLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">
-                          {log.user}
-                        </TableCell>
-                        <TableCell>{log.action}</TableCell>
-                        <TableCell>{log.ip}</TableCell>
-                        <TableCell>
-                          {format(new Date(log.performedAt), "PPP p")}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No activity logs found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TabsContent>
-          </Tabs>
-
-          <div className="flex justify-between items-center pt-4">
-            <div className="text-sm text-muted-foreground">
-              Showing {currentPagination.totalCount} of{" "}
-              {currentPagination.totalCount} entries
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPagination.currentPage === 1}
-                onClick={() =>
-                  handlePageChange(activeTab, currentPagination.currentPage - 1)
-                }
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-primary text-primary-foreground"
-              >
-                {currentPagination.currentPage}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!currentPagination.hasMore}
-                onClick={() =>
-                  handlePageChange(activeTab, currentPagination.currentPage + 1)
-                }
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

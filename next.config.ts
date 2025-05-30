@@ -9,13 +9,43 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true, // This will allow Vercel to build even with type errors
   },
   images: {
-    domains: ["api.dicebear.com", "ui-avatars.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
+      },
+    ],
     formats: ["image/webp", "image/avif"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    unoptimized: true, // Allow serving local images
   },
   // Enable compression
   compress: true,
+  // Headers configuration
+  async headers() {
+    return [
+      {
+        // Matching all static files in public directory
+        source: "/avatars/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Accept-Encoding",
+            value: "br, gzip",
+          },
+        ],
+      },
+    ];
+  },
   // Optimize performance
   experimental: {
     optimizePackageImports: [

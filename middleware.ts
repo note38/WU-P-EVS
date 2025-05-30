@@ -1,5 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export default withAuth(
   function middleware(req) {
@@ -76,6 +77,24 @@ export default withAuth(
   }
 );
 
+export function middleware(request: NextRequest) {
+  // Handle caching for avatar images
+  if (request.nextUrl.pathname.startsWith("/avatars/")) {
+    const response = NextResponse.next();
+
+    // Set cache control headers for avatar images
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=31536000, immutable" // Cache for 1 year since we use unique filenames
+    );
+    response.headers.set("Accept-Encoding", "br, gzip");
+
+    return response;
+  }
+
+  return NextResponse.next();
+}
+
 export const config = {
   matcher: [
     "/admin_dashboard/:path*",
@@ -83,5 +102,6 @@ export const config = {
     "/api/admin/:path*",
     "/api/emails/:path*",
     "/api/user/:path*",
+    "/avatars/:path*",
   ],
 };

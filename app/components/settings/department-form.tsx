@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { ImageCropDialog } from "../admin/election-detail/image-crop-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define the department type
 type Department = {
@@ -61,6 +62,70 @@ const departmentFormSchema = z.object({
 });
 
 type DepartmentFormValues = z.infer<typeof departmentFormSchema>;
+
+// Define the DepartmentSkeleton component
+function DepartmentSkeleton() {
+  return (
+    <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      {/* Form Card */}
+      <Card className="min-h-[300px]">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="h-7 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full max-w-sm space-y-6">
+            {/* Department Name Field */}
+            <div className="space-y-2">
+              <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex gap-2">
+              <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table Card */}
+      <Card className="min-h-[300px]">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="h-7 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Table Header */}
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+            </div>
+
+            {/* Table Rows */}
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="flex items-center justify-between py-4">
+                  <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                  <div className="flex gap-2">
+                    <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+                    <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export function DepartmentSettings() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -244,9 +309,13 @@ export function DepartmentSettings() {
     }
   }
 
+  if (isLoading) {
+    return <DepartmentSkeleton />;
+  }
+
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      <Card className="min-h-[300px]">
         <CardHeader>
           <CardTitle>
             {editingDepartment ? "Edit Department" : "Add Department"}
@@ -305,7 +374,7 @@ export function DepartmentSettings() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="min-h-[300px]">
         <CardHeader>
           <CardTitle>Departments</CardTitle>
           <CardDescription>

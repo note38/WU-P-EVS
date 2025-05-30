@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,14 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Form,
   FormControl,
@@ -35,6 +28,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load heavy components
+const Table = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.Table),
+  { ssr: false }
+);
+const TableBody = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.TableBody),
+  { ssr: false }
+);
+const TableCell = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.TableCell),
+  { ssr: false }
+);
+const TableHead = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.TableHead),
+  { ssr: false }
+);
+const TableHeader = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.TableHeader),
+  { ssr: false }
+);
+const TableRow = dynamic(
+  () => import("@/components/ui/table").then((mod) => mod.TableRow),
+  { ssr: false }
+);
 
 type User = {
   id: number;
@@ -81,12 +101,112 @@ const adminAccountFormSchema = z
 
 type AdminAccountFormValues = z.infer<typeof adminAccountFormSchema>;
 
+// Loading skeleton component
+const AvatarSkeleton = () => (
+  <div className="h-9 w-9 rounded-full bg-gray-200 animate-pulse" />
+);
+
+// Define AccountSkeleton component
+function AccountSkeleton() {
+  return (
+    <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      {/* Create Admin Form Card */}
+      <Card className="min-h-[300px]">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="h-7 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full space-y-6">
+            {/* Username and Email Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+
+            {/* Password Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+
+            {/* Role Field */}
+            <div className="space-y-2">
+              <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+              <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className="h-10 w-40 bg-muted rounded animate-pulse" />
+        </CardFooter>
+      </Card>
+
+      {/* Admin Accounts Table Card */}
+      <Card className="min-h-[300px]">
+        <CardHeader>
+          <div className="space-y-2">
+            <div className="h-7 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-48 bg-muted rounded animate-pulse" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Table Header */}
+            <div className="grid grid-cols-3 gap-4 pb-4 border-b">
+              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+            </div>
+
+            {/* Table Rows */}
+            {Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="grid grid-cols-3 gap-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export function AccountSettings() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loadedAvatars, setLoadedAvatars] = useState<Record<number, boolean>>(
+    {}
+  );
 
   // Password strength state
   const [passwordStrength, setPasswordStrength] = useState({
@@ -115,7 +235,12 @@ export function AccountSettings() {
 
   // Helper function to get avatar URL
   const getAvatarUrl = (user: User) => {
-    if (!user.avatar) return null;
+    if (!user.avatar) {
+      // Return UI Avatars URL with optimized parameters
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user.username
+      )}&background=random&size=96`; // Specify exact size needed
+    }
 
     // If avatar is already a full URL
     if (
@@ -137,6 +262,10 @@ export function AccountSettings() {
 
     // Default case - assume it's a filename
     return `/avatars/${user.avatar}`;
+  };
+
+  const handleAvatarLoad = (userId: number) => {
+    setLoadedAvatars((prev) => ({ ...prev, [userId]: true }));
   };
 
   // Password strength checker
@@ -323,9 +452,13 @@ export function AccountSettings() {
     }
   };
 
+  if (loading) {
+    return <AccountSkeleton />;
+  }
+
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      <Card className="min-h-[300px]">
         <CardHeader>
           <CardTitle>Create Admin Account</CardTitle>
           <CardDescription>
@@ -632,7 +765,7 @@ export function AccountSettings() {
         </Form>
       </Card>
 
-      <Card>
+      <Card className="min-h-[300px]">
         <CardHeader>
           <CardTitle>Admin Accounts</CardTitle>
           <CardDescription>
@@ -640,11 +773,7 @@ export function AccountSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center h-40">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : users.length === 0 ? (
+          {users.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-muted-foreground">No admin accounts found.</p>
             </div>
@@ -662,30 +791,33 @@ export function AccountSettings() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage
-                            src={
-                              getAvatarUrl(user) ||
-                              `/avatars/${user.username}.jpg`
-                            }
-                            alt={user.username}
-                            onError={(e) => {
-                              console.log(
-                                `Failed to load avatar for ${user.username}:`,
-                                getAvatarUrl(user)
-                              );
-                            }}
-                            onLoad={() => {
-                              console.log(
-                                `Successfully loaded avatar for ${user.username}:`,
-                                getAvatarUrl(user)
-                              );
-                            }}
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                            {user.username.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative h-9 w-9">
+                          {!loadedAvatars[user.id] && <AvatarSkeleton />}
+                          <Avatar
+                            className={`h-9 w-9 transition-opacity duration-300 ${
+                              loadedAvatars[user.id]
+                                ? "opacity-100"
+                                : "opacity-0"
+                            }`}
+                          >
+                            <AvatarImage
+                              src={getAvatarUrl(user)}
+                              alt={user.username}
+                              onLoad={() => handleAvatarLoad(user.id)}
+                              loading="lazy"
+                              onError={(e) => {
+                                console.log(
+                                  `Failed to load avatar for ${user.username}:`,
+                                  getAvatarUrl(user)
+                                );
+                                handleAvatarLoad(user.id); // Show fallback on error
+                              }}
+                            />
+                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                              {user.username.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
                         <div>
                           <p className="font-medium">{user.username}</p>
                           <p className="text-sm text-muted-foreground">
@@ -708,3 +840,15 @@ export function AccountSettings() {
     </div>
   );
 }
+
+// Add preconnect hint for avatar service
+export const metadata = {
+  head: {
+    link: [
+      {
+        rel: "preconnect",
+        href: "https://ui-avatars.com",
+      },
+    ],
+  },
+};
