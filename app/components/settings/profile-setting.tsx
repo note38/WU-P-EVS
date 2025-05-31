@@ -204,8 +204,8 @@ export function ProfileSettings() {
         await updateSession();
 
         // Update cache with new data
-        const updatedData = { ...updateData };
-        profileCache.set(updatedData);
+        // const updatedData = { ...updateData };
+        // profileCache.set(updatedData);
 
         // Refresh avatar in global state
         await refreshAvatar();

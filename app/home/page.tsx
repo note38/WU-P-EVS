@@ -2,14 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -18,17 +11,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Users } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
-  useState,
-  useMemo,
   lazy,
-  Suspense,
-  useCallback,
   memo,
   startTransition,
+  Suspense,
+  useCallback,
   useEffect,
+  useMemo,
+  useState,
 } from "react";
-import dynamic from "next/dynamic";
 
 // Critical path optimization - only load what's needed for first paint
 const Header = dynamic(
