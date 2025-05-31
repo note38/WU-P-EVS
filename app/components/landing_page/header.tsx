@@ -26,17 +26,31 @@ export const Header = memo(function Header({ onSwitchElection }: HeaderProps) {
             loading="eager"
             decoding="sync"
           />
-          <h1 className="text-xl font-bold">AWUP Voting System</h1>
+          <h1 className="text-xl font-bold hidden sm:block">
+            AWUP Voting System
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Button variant="outline" onClick={handleSwitchElection}>
+          <Button
+            variant="outline"
+            onClick={handleSwitchElection}
+            className="hidden sm:inline-flex"
+          >
             Switch Election
           </Button>
-          <Button asChild>
-            <Link href="/login" className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSwitchElection}
+            className="sm:hidden px-2"
+            size="sm"
+          >
+            Switch
+          </Button>
+          <Button asChild size="sm" className="sm:size-default">
+            <Link href="/login" className="flex items-center gap-1 sm:gap-2">
               <LogIn className="h-4 w-4" />
-              Login
+              <span className="hidden sm:inline">Login</span>
             </Link>
           </Button>
         </div>
