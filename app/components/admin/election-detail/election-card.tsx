@@ -255,6 +255,15 @@ export function ElectionCard({ election }: ElectionCardProps) {
   };
 
   const navigateToElectionDetail = () => {
+    if (currentElectionStatus === "active") {
+      toast({
+        title: "Access Restricted",
+        description:
+          "Cannot view election details while the election is active",
+        variant: "destructive",
+      });
+      return;
+    }
     router.push(`/admin_dashboard/elections/${election.id}`);
   };
 
@@ -275,8 +284,20 @@ export function ElectionCard({ election }: ElectionCardProps) {
   return (
     <>
       <Card
-        className="h-full transition-all hover:shadow-md cursor-pointer"
-        onClick={navigateToElectionDetail}
+        className={`h-full transition-all hover:shadow-md ${currentElectionStatus !== "active" ? "cursor-pointer" : "cursor-not-allowed"}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (currentElectionStatus !== "active") {
+            navigateToElectionDetail();
+          } else {
+            toast({
+              title: "Access Restricted",
+              description:
+                "Cannot view election details while the election is active",
+              variant: "destructive",
+            });
+          }
+        }}
       >
         <CardHeader>
           <div className="flex flex-wrap justify-between items-start gap-2">
@@ -342,8 +363,18 @@ export function ElectionCard({ election }: ElectionCardProps) {
             className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
             onClick={(e) => {
               e.stopPropagation();
+              if (currentElectionStatus === "active") {
+                toast({
+                  title: "Access Restricted",
+                  description:
+                    "Cannot view election details while the election is active",
+                  variant: "destructive",
+                });
+                return;
+              }
               navigateToElectionDetail();
             }}
+            disabled={currentElectionStatus === "active"}
           >
             <EyeIcon className="h-4 w-4 mr-2" />
             View Details
@@ -355,6 +386,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
                 variant="outline"
                 size="icon"
                 onClick={(e) => e.stopPropagation()}
+                disabled={currentElectionStatus === "active"}
               >
                 <MoreHorizontalIcon className="h-4 w-4" />
                 <span className="sr-only">More options</span>
@@ -364,17 +396,26 @@ export function ElectionCard({ election }: ElectionCardProps) {
               align="end"
               onClick={(e) => e.stopPropagation()}
             >
-              <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (currentElectionStatus === "active") {
+                    toast({
+                      title: "Action Restricted",
+                      description: "Cannot edit election while it is active",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setEditDialogOpen(true);
+                }}
+                disabled={currentElectionStatus === "active"}
+              >
                 <EditIcon className="h-4 w-4 mr-2" />
                 Edit Election
               </DropdownMenuItem>
 
-              {currentElectionStatus === "active" ? (
-                <DropdownMenuItem onClick={() => handleStatusChange("pause")}>
-                  <PauseIcon className="h-4 w-4 mr-2" />
-                  Pause Election
-                </DropdownMenuItem>
-              ) : currentElectionStatus === "inactive" ? (
+              {currentElectionStatus ===
+              "active" ? null : currentElectionStatus === "inactive" ? (
                 <DropdownMenuItem onClick={() => handleStatusChange("start")}>
                   <PlayIcon className="h-4 w-4 mr-2" />
                   Start Election
@@ -385,7 +426,18 @@ export function ElectionCard({ election }: ElectionCardProps) {
 
               <DropdownMenuItem
                 className="text-red-600"
-                onClick={() => setDeleteDialogOpen(true)}
+                onClick={() => {
+                  if (currentElectionStatus === "active") {
+                    toast({
+                      title: "Action Restricted",
+                      description: "Cannot delete election while it is active",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setDeleteDialogOpen(true);
+                }}
+                disabled={currentElectionStatus === "active"}
               >
                 <TrashIcon className="h-4 w-4 mr-2" />
                 Delete Election

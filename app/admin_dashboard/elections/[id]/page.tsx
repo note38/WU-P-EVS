@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ElectionDetailClient from "./election-detail-client";
 import { ElectionStatus } from "@prisma/client";
+import { headers } from "next/headers";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -51,6 +52,30 @@ export default async function Page({ params }: PageProps) {
 
     if (!election) {
       notFound();
+    }
+
+    // Handle active election with a client-side redirect
+    if (election.status === "ACTIVE") {
+      return (
+        <>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.location.href = "/admin_dashboard/elections";`,
+            }}
+          />
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">
+                Redirecting...
+              </h1>
+              <p className="text-gray-600">
+                Active elections cannot be accessed. Redirecting to elections
+                list...
+              </p>
+            </div>
+          </div>
+        </>
+      );
     }
 
     // Calculate totals
