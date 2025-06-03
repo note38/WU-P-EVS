@@ -50,7 +50,10 @@ export function useElectionAutoStatus(
 
       const checkData = await checkResponse.json();
 
-      if (checkData.count > 0) {
+      if (
+        checkData.electionsNeedingUpdate &&
+        checkData.electionsNeedingUpdate.length > 0
+      ) {
         // If there are elections that need updates, perform the updates
         const updateResponse = await fetch(
           "/api/elections/auto-status-update",
@@ -66,7 +69,10 @@ export function useElectionAutoStatus(
         const updateData = await updateResponse.json();
 
         // Notify about the updates
-        if (updateData.updatedElections.length > 0) {
+        if (
+          updateData.updatedElections &&
+          updateData.updatedElections.length > 0
+        ) {
           const updatedNames = updateData.updatedElections
             .map((election: any) => `"${election.name}" → ${election.status}`)
             .join(", ");

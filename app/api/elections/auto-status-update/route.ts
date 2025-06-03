@@ -15,9 +15,9 @@ export async function POST() {
             startDate: { lte: now },
             endDate: { gt: now },
           },
-          // Elections that should be COMPLETED (current time is past end date, and status is ACTIVE)
+          // Elections that should be COMPLETED (current time is past end date, and status is not COMPLETED)
           {
-            status: "ACTIVE",
+            status: { not: "COMPLETED" },
             endDate: { lte: now },
           },
         ],
@@ -27,14 +27,14 @@ export async function POST() {
     const updatePromises = electionsToUpdate.map(async (election) => {
       let newStatus: "ACTIVE" | "COMPLETED";
 
-      if (
+      if (now >= election.endDate) {
+        newStatus = "COMPLETED";
+      } else if (
         election.status === "INACTIVE" &&
         now >= election.startDate &&
         now < election.endDate
       ) {
         newStatus = "ACTIVE";
-      } else if (election.status === "ACTIVE" && now >= election.endDate) {
-        newStatus = "COMPLETED";
       } else {
         return null; // No update needed
       }
