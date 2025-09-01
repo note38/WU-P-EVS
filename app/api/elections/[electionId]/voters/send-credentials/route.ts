@@ -111,6 +111,15 @@ export async function POST(
             : "http://localhost:3000/login",
         };
 
+        // Check if email service is configured
+        if (!resend) {
+          failures.push({
+            voterId: voter.id,
+            error: "Email service not configured",
+          });
+          continue;
+        }
+
         // Send email using the template
         const emailResult = await resend.emails.send({
           from:

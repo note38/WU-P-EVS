@@ -32,12 +32,12 @@ import {
 import { useState } from "react";
 
 // Define VoterStatus enum since we don't have @prisma/client
-enum VoterStatus {
+export enum VoterStatus {
   REGISTERED = "REGISTERED",
   VOTED = "VOTED",
 }
 
-type Voter = {
+export type Voter = {
   id: number;
   firstName: string;
   lastName: string;
@@ -54,6 +54,11 @@ type Voter = {
   year?: {
     name: string;
     id: number;
+    department?: {
+      id: number;
+      name: string;
+      image: string | null;
+    };
   };
   info?: any;
 };
@@ -68,6 +73,16 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
 
+  // Debug: Log the first voter to see the structure
+  if (voters.length > 0) {
+    console.log("VoterCards - First voter:", {
+      id: voters[0].id,
+      name: `${voters[0].firstName} ${voters[0].lastName}`,
+      year: voters[0].year,
+      department: voters[0].year?.department,
+    });
+  }
+
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
       .trim()
@@ -76,14 +91,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
 
   // Get unique year names for filtering
   const yearNames = Array.from(
-    new Set(
-      voters.map((voter) => {
-        const parts = voter.year?.name?.split(" - ");
-        return parts && parts.length > 0
-          ? parts[0]
-          : voter.year?.name || "Unknown";
-      })
-    )
+    new Set(voters.map((voter) => voter.year?.name || "Unknown"))
   );
 
   const filteredVoters = voters.filter((voter) => {
@@ -98,8 +106,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
 
     // Year filter match
     const matchesYearFilter =
-      selectedYearFilter === "all" ||
-      voter.year?.name?.split(" - ")[0] === selectedYearFilter;
+      selectedYearFilter === "all" || voter.year?.name === selectedYearFilter;
 
     return matchesSearch && matchesYearFilter;
   });
@@ -174,11 +181,17 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
               ${filteredVoters
                 .map((voter) => {
                   const fullName = getFullName(voter);
-                  const yearParts = voter.year?.name
-                    ? voter.year.name.split(" - ")
-                    : [];
-                  const yearName = yearParts[0] || "Unknown";
-                  const departmentName = yearParts[1] || "General";
+                  const yearName = voter.year?.name || "Unknown";
+                  // Try multiple sources for department name
+                  let departmentName = "Not assigned";
+                  if (voter.year?.department?.name) {
+                    departmentName = voter.year.department.name;
+                  } else if (voter.year?.name) {
+                    const parts = voter.year.name.split(" - ");
+                    if (parts.length > 1) {
+                      departmentName = parts[1];
+                    }
+                  }
 
                   return `
                     <tr>
@@ -272,11 +285,17 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
               ${selectedVoterData
                 .map((voter) => {
                   const fullName = getFullName(voter);
-                  const yearParts = voter.year?.name
-                    ? voter.year.name.split(" - ")
-                    : [];
-                  const yearName = yearParts[0] || "Unknown";
-                  const departmentName = yearParts[1] || "General";
+                  const yearName = voter.year?.name || "Unknown";
+                  // Try multiple sources for department name
+                  let departmentName = "Not assigned";
+                  if (voter.year?.department?.name) {
+                    departmentName = voter.year.department.name;
+                  } else if (voter.year?.name) {
+                    const parts = voter.year.name.split(" - ");
+                    if (parts.length > 1) {
+                      departmentName = parts[1];
+                    }
+                  }
 
                   return `
                     <tr>
@@ -395,12 +414,29 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVoters.map((voter) => {
             const fullName = getFullName(voter);
-            // Extract the year and department parts if available
-            const yearParts = voter.year?.name
-              ? voter.year.name.split(" - ")
-              : [];
-            const yearName = yearParts[0] || "Unknown";
-            const departmentName = yearParts[1] || "General";
+            const yearName = voter.year?.name || "Unknown";
+            // Try multiple sources for department name
+            let departmentName = "Not assigned";
+            if (voter.year?.department?.name) {
+              departmentName = voter.year.department.name;
+            } else if (voter.year?.name) {
+              // Fallback: try to extract from year name if department is missing
+              const parts = voter.year.name.split(" - ");
+              if (parts.length > 1) {
+                departmentName = parts[1];
+              }
+            }
+
+            // Debug specific voter
+            if (voter.id === 59) {
+              console.log("Jessica voter debug:", {
+                id: voter.id,
+                name: fullName,
+                year: voter.year,
+                departmentName: departmentName,
+                rawDepartment: voter.year?.department,
+              });
+            }
 
             return (
               <Card key={voter.id} className="overflow-hidden group">

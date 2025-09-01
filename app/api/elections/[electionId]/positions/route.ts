@@ -1,6 +1,5 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
@@ -11,8 +10,8 @@ export async function GET(
   context: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -99,8 +98,8 @@ export async function POST(
   context: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

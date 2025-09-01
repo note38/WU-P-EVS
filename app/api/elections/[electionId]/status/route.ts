@@ -1,16 +1,40 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // PATCH handler to update the status of an election - using any type for context
-export async function PATCH(req: NextRequest, context: any) {
+export async function PUT(req: NextRequest, context: any) {
   try {
     // Get the authenticated user from session
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
     }
 
     const params = await context.params;

@@ -13,7 +13,15 @@ export interface VoterData {
   credentialsSent: boolean;
   createdAt: Date;
   election: { name: string; id: number } | null;
-  year: { name: string; id: number } | null;
+  year: {
+    name: string;
+    id: number;
+    department: {
+      id: number;
+      name: string;
+      image: string | null;
+    };
+  } | null;
 }
 
 export interface StatsResult {
@@ -44,7 +52,19 @@ export class VoterDataService {
         credentialsSent: true,
         createdAt: true,
         election: { select: { name: true, id: true } },
-        year: { select: { name: true, id: true } },
+        year: {
+          select: {
+            name: true,
+            id: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

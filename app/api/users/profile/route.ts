@@ -1,4 +1,4 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import {
   validatePasswordStrength,
@@ -6,7 +6,6 @@ import {
   sanitizeErrorForLog,
 } from "@/lib/utils";
 import bcrypt from "bcrypt";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -55,16 +54,15 @@ function clearRateLimit(userId: number): void {
 // GET user profile data
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = parseInt(session.user.id);
-
+    // Get user data from database using Clerk ID
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { clerkId: userId },
       select: {
         id: true,
         username: true,
@@ -92,13 +90,22 @@ export async function GET() {
 // Update user profile
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = parseInt(session.user.id);
+    // Get user from database using Clerk ID
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true },
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const data = await request.json();
 
     // Prepare update data object
@@ -147,7 +154,7 @@ export async function PATCH(request: Request) {
       async (tx) => {
         // Update the user
         const user = await tx.user.update({
-          where: { id: userId },
+          where: { id: dbUser.id },
           data: updateData,
           select: {
             id: true,
@@ -192,25 +199,26 @@ export async function PATCH(request: Request) {
 
 // Update user password
 export async function PUT(request: Request) {
-  let session;
   let userId: number = 0;
 
   try {
-    session = await getServerSession(authOptions);
+    const { userId: clerkUserId } = await auth();
 
-    if (!session || !session.user) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    userId = parseInt(session.user.id);
+    // Get user from database using Clerk ID
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
 
-    // Validate user ID
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { error: "Invalid user session" },
-        { status: 400 }
-      );
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    userId = dbUser.id;
 
     // Check rate limiting
     if (isRateLimited(userId)) {

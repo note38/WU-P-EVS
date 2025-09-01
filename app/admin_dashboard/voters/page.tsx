@@ -1,12 +1,39 @@
+"use client";
+
 // app/admin_dashboard/voters/page.tsx
 import { Card, CardContent } from "@/components/ui/card";
-import { Suspense } from "react";
-import { unstable_cache } from "next/cache";
+import { Suspense, useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import {
   VoterDataService,
-  VoterData,
   AccelerateResult,
 } from "@/lib/data/VoterDataService";
+
+// Define the correct VoterData type that matches the API response
+type VoterData = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  email: string;
+  status: "REGISTERED" | "VOTED";
+  avatar: string;
+  credentialsSent: boolean;
+  createdAt: Date;
+  election: {
+    name: string;
+    id: number;
+  } | null;
+  year: {
+    name: string;
+    id: number;
+    department: {
+      id: number;
+      name: string;
+      image: string | null;
+    };
+  } | null;
+};
 import {
   StatCardSkeleton,
   DepartmentCardSkeleton,
@@ -14,7 +41,6 @@ import {
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 import { ExportButtons } from "@/app/components/admin/voter-detail/export-buttons";
-import { prisma } from "@/lib/db";
 
 // Define VoterStatus enum to match the one in DepartmentCard
 enum VoterStatus {
@@ -22,38 +48,15 @@ enum VoterStatus {
   VOTED = "VOTED",
 }
 
-// Cached voter data fetch with Accelerate
-const getCachedVoters = unstable_cache(
-  async (): Promise<AccelerateResult<VoterData[]>> => {
-    return VoterDataService.getVoters();
-  },
-  ["all-voters"],
-  {
-    tags: ["voters"],
-    revalidate: 10,
-  }
-);
-
-// Fetch departments and years
-const getCachedDepartmentsAndYears = unstable_cache(
-  async () => {
-    const departments = await prisma.department.findMany({
-      include: {
-        years: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    });
-
-    return departments;
-  },
-  ["all-departments-and-years"],
-  {
-    tags: ["departments", "years"],
-    revalidate: 60,
-  }
-);
+type Department = {
+  id: number;
+  name: string;
+  image: string | null;
+  years: Array<{
+    id: number;
+    name: string;
+  }>;
+};
 
 // Client Components
 function PageHeader({
@@ -79,140 +82,141 @@ function PageHeader({
   );
 }
 
-// Async Server Components
-async function HeaderWithActions() {
-  const { data: votersData = [] } = await getCachedVoters();
-  const departments = await getCachedDepartmentsAndYears();
+// Main Voters Page Component
+export default function VotersPage() {
+  const { user, isLoaded, isSignedIn } = useUser();
+  const [votersData, setVotersData] = useState<VoterData[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Create a mapping from year ID to department and year names
-  const yearMapping = new Map();
-  departments.forEach((dept) => {
-    dept.years.forEach((year) => {
-      yearMapping.set(year.id, {
-        departmentName: dept.name,
-        departmentId: dept.id,
-        yearName: year.name,
-        yearId: year.id,
-        departmentImage: dept.image || null,
-      });
-    });
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      // Wait for Clerk to load and check authentication
+      if (!isLoaded) {
+        console.log("Clerk is still loading...");
+        return;
+      }
 
-  // Map VoterData to the Voter format for export
-  const mappedVoters = votersData.map((voter) => {
-    const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
-    const yearFullName = yearInfo
-      ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
-      : voter.year?.name || "Unknown Year";
+      if (!isSignedIn || !user) {
+        console.log("User not signed in or user object not available");
+        setError("Please sign in to access this page");
+        setLoading(false);
+        return;
+      }
 
-    return {
-      ...voter,
-      status: voter.status as unknown as VoterStatus,
-      year: voter.year
-        ? {
-            ...voter.year,
-            name: yearFullName,
-            departmentName: yearInfo?.departmentName || "Unknown",
-            departmentId: yearInfo?.departmentId || 0,
-            departmentImage: yearInfo?.departmentImage || null,
+      console.log(
+        "User authenticated:",
+        user?.id,
+        "Email:",
+        user?.emailAddresses?.[0]?.emailAddress
+      );
+      try {
+        setLoading(true);
+
+        // Fetch voters data
+        const votersResponse = await fetch("/api/voters");
+        const departmentsResponse = await fetch("/api/admin/departments");
+
+        console.log("Voters response status:", votersResponse.status);
+        console.log("Departments response status:", departmentsResponse.status);
+
+        if (votersResponse.ok && departmentsResponse.ok) {
+          const voters = await votersResponse.json();
+          const depts = await departmentsResponse.json();
+
+          console.log("Voters data:", voters);
+          console.log("Departments data:", depts);
+
+          // Debug: Check the first voter's year and department structure
+          if (voters.data && voters.data.length > 0) {
+            const firstVoter = voters.data[0];
+            console.log("First voter structure:", {
+              id: firstVoter.id,
+              name: `${firstVoter.firstName} ${firstVoter.lastName}`,
+              year: firstVoter.year,
+              department: firstVoter.year?.department,
+            });
           }
-        : {
-            id: 0,
-            name: "Unknown Year",
-            departmentName: "Unknown",
-            departmentId: 0,
-            departmentImage: null,
-          },
-      election: voter.election || { name: "No Election", id: 0 },
-    };
-  });
 
-  return <PageHeader voters={mappedVoters} departments={departments} />;
-}
+          setVotersData(voters.data || []);
+          setDepartments(depts);
+        } else {
+          // Handle errors properly
+          let votersError = "Unknown error";
+          let departmentsError = "Unknown error";
 
-async function DepartmentDisplay() {
-  try {
-    const { data: votersData = [], info } = await getCachedVoters();
-    const departments = await getCachedDepartmentsAndYears();
-
-    // Create a mapping from year ID to department and year names
-    const yearMapping = new Map();
-    departments.forEach((dept) => {
-      dept.years.forEach((year) => {
-        yearMapping.set(year.id, {
-          departmentName: dept.name,
-          departmentId: dept.id,
-          yearName: year.name,
-          yearId: year.id,
-          departmentImage: dept.image || null,
-        });
-      });
-    });
-
-    // Map VoterData to the expected format with proper department relationships
-    const mappedVoters = votersData.map((voter) => {
-      const yearInfo = voter.year ? yearMapping.get(voter.year.id) : null;
-      const yearFullName = yearInfo
-        ? `${yearInfo.yearName} - ${yearInfo.departmentName}`
-        : voter.year?.name || "Unknown Year";
-
-      return {
-        ...voter,
-        status: voter.status as unknown as VoterStatus,
-        year: voter.year
-          ? {
-              ...voter.year,
-              name: yearFullName,
-              departmentName: yearInfo?.departmentName || "Unknown",
-              departmentId: yearInfo?.departmentId || 0,
-              departmentImage: yearInfo?.departmentImage || null,
+          try {
+            if (!votersResponse.ok) {
+              const votersErrorData = await votersResponse.json();
+              votersError =
+                votersErrorData.error ||
+                votersErrorData.message ||
+                `HTTP ${votersResponse.status}`;
             }
-          : {
-              id: 0,
-              name: "Unknown Year",
-              departmentName: "Unknown",
-              departmentId: 0,
-              departmentImage: null,
-            },
-        election: voter.election || { name: "No Election", id: 0 },
-      };
-    });
+          } catch {
+            votersError =
+              (await votersResponse.text()) || `HTTP ${votersResponse.status}`;
+          }
 
+          try {
+            if (!departmentsResponse.ok) {
+              const departmentsErrorData = await departmentsResponse.json();
+              departmentsError =
+                departmentsErrorData.error ||
+                departmentsErrorData.message ||
+                `HTTP ${departmentsResponse.status}`;
+            }
+          } catch {
+            departmentsError =
+              (await departmentsResponse.text()) ||
+              `HTTP ${departmentsResponse.status}`;
+          }
+
+          console.error("Voters error:", votersError);
+          console.error("Departments error:", departmentsError);
+          setError(
+            `Failed to load data: Voters - ${votersError}, Departments - ${departmentsError}`
+          );
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isLoaded, isSignedIn, user?.id]);
+
+  if (!isLoaded || loading) {
+    return <StatCardSkeleton />;
+  }
+
+  if (error) {
     return (
-      <DepartmentCard
-        voters={mappedVoters}
-        info={info}
-        departmentsData={departments}
-      />
-    );
-  } catch (error) {
-    console.error("Error fetching voters:", error);
-    return (
-      <div className="p-4 text-center">
-        <p className="text-red-500">
-          Failed to load voter data. Please try again later.
-        </p>
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-lg text-red-500">{error}</p>
+        {error === "Please sign in to access this page" && (
+          <p className="text-sm text-gray-600 mt-2">
+            Please sign in with your admin account to view voter data.
+          </p>
+        )}
       </div>
     );
   }
-}
 
-// Page Config
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-// Main Page Component
-export default function VotersPage() {
   return (
-    <div className="space-y-6">
-      <Suspense fallback={<DepartmentCardSkeleton />}>
-        <HeaderWithActions />
-      </Suspense>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <PageHeader voters={votersData} departments={departments} />
 
+      {/* Department Cards - Pass all voters to let the component handle grouping */}
       <Card>
-        <CardContent>
+        <CardContent className="p-4 md:p-6">
           <Suspense fallback={<DepartmentCardSkeleton />}>
-            <DepartmentDisplay />
+            <DepartmentCard voters={votersData} />
           </Suspense>
         </CardContent>
       </Card>

@@ -20,35 +20,10 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
-import VoterCards from "./voter-card";
+import VoterCards, { Voter as VoterCardType } from "./voter-card";
 
-// Define VoterStatus enum since we don't have @prisma/client
-enum VoterStatus {
-  REGISTERED = "REGISTERED",
-  VOTED = "VOTED",
-}
-
-type Voter = {
-  id: number;
-  voterId?: string;
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  email: string;
-  status: VoterStatus;
-  avatar: string;
-  credentialsSent: boolean;
-  createdAt: Date;
-  election: {
-    name: string;
-    id: number;
-  };
-  year: {
-    name: string;
-    id: number;
-  };
-  info?: any;
-};
+// Reuse the Voter and VoterStatus types from VoterCards to avoid duplication
+type Voter = VoterCardType & { voterId?: string };
 
 // Define Year type
 type Year = {
@@ -99,34 +74,21 @@ export default function DepartmentCard({
   };
 
   // Group voters by department and year
-  // This assumes that year.name follows a pattern like "Year 1 - Computer Science"
-  // We need to extract the department name from the year name
+  // Use the actual department data from the database
   const departmentMap = new Map<string, string[]>();
 
   voters.forEach((voter) => {
+    if (!voter.year?.name || !voter.year?.department?.name) return; // Skip voters without year or department info
+
     const yearName = voter.year.name;
-    const parts = yearName.split(" - ");
+    const departmentName = voter.year.department.name;
 
-    if (parts.length > 1) {
-      const departmentName = parts[1];
-      const yearOnly = parts[0];
+    if (!departmentMap.has(departmentName)) {
+      departmentMap.set(departmentName, []);
+    }
 
-      if (!departmentMap.has(departmentName)) {
-        departmentMap.set(departmentName, []);
-      }
-
-      if (!departmentMap.get(departmentName)?.includes(yearName)) {
-        departmentMap.get(departmentName)?.push(yearName);
-      }
-    } else {
-      // If there's no department in the name, use "General" as the department
-      if (!departmentMap.has("General")) {
-        departmentMap.set("General", []);
-      }
-
-      if (!departmentMap.get("General")?.includes(yearName)) {
-        departmentMap.get("General")?.push(yearName);
-      }
+    if (!departmentMap.get(departmentName)?.includes(yearName)) {
+      departmentMap.get(departmentName)?.push(yearName);
     }
   });
 
@@ -189,22 +151,20 @@ export default function DepartmentCard({
   const departments: Department[] = Array.from(departmentMap.entries()).map(
     ([deptName, yearNames], index) => {
       const deptVoters = voters.filter((voter) => {
-        const parts = voter.year.name.split(" - ");
-        return parts.length > 1
-          ? parts[1] === deptName
-          : deptName === "General";
+        if (!voter.year?.name || !voter.year?.department?.name) return false;
+        return voter.year.department.name === deptName;
       });
 
       // Create year objects for this department
       const years = yearNames.map((yearName, yearIndex) => {
         const yearVoters = voters.filter(
-          (voter) => voter.year.name === yearName
+          (voter) => voter.year?.name === yearName
         );
         const yearId = yearName.toLowerCase().replace(/\s+/g, "-");
 
         return {
           id: yearId,
-          name: yearName.split(" - ")[0] || yearName, // Extract just the year part
+          name: yearName, // Use the actual year name
           description: `${yearName} students`,
           icon: <School className="h-4 w-4 mr-1" />,
           color: getYearColor(yearName, yearIndex),
@@ -246,11 +206,11 @@ export default function DepartmentCard({
       voter.voterId?.toLowerCase().includes(searchLower) ||
       false;
 
-    const parts = voter.year.name.split(" - ");
-    const voterDeptId =
-      parts.length > 1
-        ? parts[1].toLowerCase().replace(/\s+/g, "-")
-        : "general";
+    if (!voter.year?.name || !voter.year?.department?.name) return false;
+
+    const voterDeptId = voter.year.department.name
+      .toLowerCase()
+      .replace(/\s+/g, "-");
 
     const matchesDepartment =
       !selectedDepartment || voterDeptId === selectedDepartment;
@@ -264,8 +224,10 @@ export default function DepartmentCard({
   // Handle department selection
   const handleDepartmentClick = (deptId: string) => {
     if (selectedDepartment === deptId) {
-      // If clicking the same department, toggle years view
-      setShowYears(!showYears);
+      // If clicking the same department, close everything
+      setSelectedDepartment(null);
+      setSelectedYear(null);
+      setShowYears(false);
     } else {
       // If clicking a different department, select it and show years
       setSelectedDepartment(deptId);
@@ -296,46 +258,49 @@ export default function DepartmentCard({
   );
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 pt-2">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
         {departments.map((dept) => (
           <Card
             key={dept.id}
-            className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
+            className={`cursor-pointer transition-all hover:shadow-md overflow-hidden justify-between ${
               selectedDepartment === dept.id ? "ring-2 ring-primary" : ""
             } flex flex-col`}
             onClick={() => handleDepartmentClick(dept.id)}
           >
             <div className={`w-full h-2 ${dept.color.split(" ")[0]}`}></div>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={dept.avatar} alt={dept.name} />
                   <AvatarFallback className={dept.color}>
                     {dept.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-lg">{dept.name}</CardTitle>
-                  <CardDescription>{dept.description}</CardDescription>
+                  <CardDescription className="text-sm">
+                    {dept.description}
+                  </CardDescription>
                 </div>
               </div>
-              <Badge variant="secondary" className="ml-2">
-                <Users className="h-3 w-3 mr-1" />
-                {dept.voterCount}
+              <Badge
+                variant="secondary"
+                className="h-6 w-8 rounded-lg flex items-center justify-center"
+              >
+                <Users className="h-3 w-3" />
+                <span className="text-xs">{dept.voterCount}</span>
               </Badge>
             </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center">
-                  <School className="h-4 w-4 mr-1" />
-                  <span className="text-sm text-muted-foreground">
-                    {dept.years.length} year{" "}
-                    {dept.years.length === 1 ? "level" : "levels"}
-                  </span>
-                </div>
+            <CardContent className="pb-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <School className="h-4 w-4" />
+                <span className="text-sm">
+                  {dept.years.length} year{" "}
+                  {dept.years.length === 1 ? "level" : "levels"}
+                </span>
                 <ChevronRight
-                  className={`h-4 w-4 transition-transform ${
+                  className={`h-4 w-4 ml-auto transition-transform ${
                     selectedDepartment === dept.id && showYears
                       ? "rotate-90"
                       : ""
@@ -343,11 +308,11 @@ export default function DepartmentCard({
                 />
               </div>
             </CardContent>
-            <CardFooter className="bg-muted/20 pt-2 pb-3 px-6 flex justify-between ">
+            <CardFooter className="border-t border-border/50 bg-muted/10 px-6 py-2">
               <span className="text-xs text-muted-foreground">
                 Click to explore
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground ml-auto">
                 {dept.years.length} {dept.years.length === 1 ? "year" : "years"}{" "}
                 · {dept.voterCount} {dept.voterCount === 1 ? "voter" : "voters"}
               </span>
@@ -358,7 +323,7 @@ export default function DepartmentCard({
 
       {/* Display Years for Selected Department */}
       {selectedDepartment && showYears && (
-        <div className="mt-6">
+        <div>
           <Card className="border-t-4 border-t-primary shadow-md">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -378,7 +343,7 @@ export default function DepartmentCard({
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {selectedDeptObj?.years.map((year, index) => (
                   <Card
                     key={year.id}
@@ -414,7 +379,7 @@ export default function DepartmentCard({
 
       {/* Display Voters for Selected Year */}
       {selectedYear && (
-        <div className="mt-6">
+        <div>
           <Card className="border-t-4 border-t-primary shadow-md">
             <CardHeader>
               <div className="flex items-center justify-between">

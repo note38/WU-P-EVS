@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,14 +49,27 @@ export default function RootLayout({
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}
         suppressHydrationWarning
       >
-        <Providers>
-          {children}
-          <Toaster />
-        </Providers>
-
+        <ClerkProvider
+          appearance={{
+            cssLayerName: "clerk",
+            elements: {
+              formButtonPrimary:
+                "mt-4 w-full rounded-lg bg-green-500 text-white py-2.5 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50",
+              formFieldInput:
+                "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2",
+              socialButtonsBlockButton:
+                "my-2 w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] py-2.5 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#23272f]/80 transition-colors disabled:opacity-50",
+            },
+          }}
+        >
+          <Providers>
+            {children}
+            <Toaster />
+          </Providers>
+        </ClerkProvider>
         {/* Enhanced Web Vitals monitoring with INP focus */}
         <Script
           id="web-vitals"

@@ -6,6 +6,50 @@ import { VoterCredentialsEmail } from "@/app/emails/credentials-send";
 import { VoterStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+
+export async function GET() {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const voters = await prisma.voter.findMany({
+      include: {
+        year: {
+          include: {
+            department: true,
+          },
+        },
+        election: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: voters,
+    });
+  } catch (error) {
+    console.error("Error fetching voters:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch voters",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -79,7 +123,7 @@ export async function POST(request: Request) {
 
       // If the voter is assigned to an election, automatically send credentials
       let credentialsSent = false;
-      if (data.electionId && data.sendCredentials !== false) {
+      if (data.electionId && data.sendCredentials !== false && resend) {
         try {
           const emailData = {
             voterId: voter.id.toString(),
@@ -122,6 +166,10 @@ export async function POST(request: Request) {
           console.error("Error sending credentials:", emailError);
           // Don't fail the voter creation if email fails
         }
+      } else if (data.electionId && data.sendCredentials !== false && !resend) {
+        console.warn(
+          "Email service not configured - credentials not sent automatically"
+        );
       }
 
       return NextResponse.json(

@@ -80,6 +80,35 @@ export async function getElectionForVoter(voterId: string) {
   return mapToElectionType(voter.election);
 }
 
+export async function getElectionForVoterByEmail(email: string) {
+  const voter = await prisma.voter.findUnique({
+    where: {
+      email: email,
+    },
+    include: {
+      election: {
+        include: {
+          positions: {
+            include: {
+              candidates: {
+                include: {
+                  partylist: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!voter || !voter.election) {
+    return null;
+  }
+
+  return mapToElectionType(voter.election);
+}
+
 function mapToElectionType(election: any): Election {
   return {
     id: String(election.id),

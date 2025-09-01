@@ -1,6 +1,5 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // PUT /api/elections/[electionId]/candidates/[candidateId]
@@ -9,12 +8,37 @@ export async function PUT(
   { params }: { params: { electionId: string; candidateId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
+      );
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
       );
     }
 
@@ -57,7 +81,7 @@ export async function PUT(
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: parseInt(session.user.id),
+        createdById: userData.user.id,
       },
     });
 
@@ -143,12 +167,37 @@ export async function DELETE(
   { params }: { params: { electionId: string; candidateId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
+      );
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
       );
     }
 
@@ -166,7 +215,7 @@ export async function DELETE(
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: parseInt(session.user.id),
+        createdById: userData.user.id,
       },
     });
 
@@ -204,6 +253,50 @@ export async function DELETE(
     console.error("Error deleting candidate:", error);
     return NextResponse.json(
       { error: "Failed to delete candidate" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ electionId: string; candidateId: string }> }
+) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching candidate:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch candidate" },
       { status: 500 }
     );
   }

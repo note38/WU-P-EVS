@@ -73,6 +73,14 @@ export async function POST(
         : "http://localhost:3000/login",
     };
 
+    // Check if email service is configured
+    if (!resend) {
+      return NextResponse.json(
+        { error: "Email service not configured" },
+        { status: 503 }
+      );
+    }
+
     // Send email using the template
     const emailResult = await resend.emails.send({
       from: process.env.FROM_EMAIL || "WUP Voting System <noreply@wup-evs.com>",

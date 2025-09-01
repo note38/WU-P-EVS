@@ -1,70 +1,82 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusIcon } from "lucide-react";
 import { ElectionCard } from "@/app/components/admin/election-detail/election-card";
 import { ElectionStats } from "@/app/components/admin/election-detail/election-stats";
-import { prisma } from "@/lib/db";
 import { CreateElectionForm } from "@/app/components/admin/election-detail/create-election-form";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   ElectionCardsSkeleton,
   ElectionStatsSkeleton,
 } from "@/app/components/ui/skeleton";
 import { ElectionPageClient } from "@/app/admin_dashboard/elections/election-page-client";
 
-// Remove caching and use direct data fetch
-const getElectionsData = async () => {
-  return await prisma.election.findMany({
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      startDate: true,
-      endDate: true,
-      status: true,
-      createdAt: true,
-      partylists: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      _count: {
-        select: {
-          positions: true,
-          voters: true,
-          votes: true,
-        },
-      },
-      voters: {
-        select: {
-          status: true,
-        },
-      },
-      positions: {
-        select: {
-          _count: {
-            select: {
-              candidates: true,
-            },
-          },
-        },
-      },
-      createdBy: {
-        select: {
-          username: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+type Election = {
+  id: number;
+  name: string;
+  description: string | null;
+  startDate: string;
+  endDate: string;
+  status: string;
+  createdAt: string;
+  partylists: Array<{ id: number; name: string }>;
+  _count: {
+    positions: number;
+    voters: number;
+    votes: number;
+  };
+  voters: Array<{ status: string }>;
+  positions: Array<{
+    _count: {
+      candidates: number;
+    };
+  }>;
+  createdBy: {
+    username: string;
+  };
 };
 
-// Async Election List Component
-async function ElectionList() {
-  const elections = await getElectionsData();
+// Client Election List Component
+function ElectionList() {
+  const [elections, setElections] = useState<Election[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchElections = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/admin/elections");
+
+        if (response.ok) {
+          const data = await response.json();
+          setElections(data);
+        } else {
+          setError("Failed to load elections");
+        }
+      } catch (err) {
+        setError("Failed to load elections");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchElections();
+  }, []);
+
+  if (loading) {
+    return <ElectionCardsSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-lg text-red-500">Failed to load elections</p>
+      </div>
+    );
+  }
 
   if (elections.length === 0) {
     return (
@@ -98,43 +110,28 @@ async function ElectionList() {
     const startDateObj = new Date(election.startDate);
     const endDateObj = new Date(election.endDate);
 
-    // Extract date and time components
-    const startDate = startDateObj.toISOString().split("T")[0];
-    const startTime = startDateObj.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    const endDate = endDateObj.toISOString().split("T")[0];
-    const endTime = endDateObj.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+    // Format dates for display
+    const formatDateTime = (date: Date) => {
+      return date.toISOString();
+    };
 
     return {
       id: election.id,
       name: election.name,
-      description: election.description || undefined,
-      startDate: startDate,
-      startTime: startTime,
-      endDate: endDate,
-      endTime: endTime,
-      fullStartDate: startDateObj.toISOString(),
-      fullEndDate: endDateObj.toISOString(),
+      description: election.description,
       status: election.status.toLowerCase(),
       candidates,
-      voters: totalVoters,
+      voters: totalVoters, // Use voters instead of totalVoters
       castVotes,
       uncastVotes,
-      createdBy: election.createdBy?.username || "System",
-      partyList: election.partylists.map((p) => p.name),
+      fullStartDate: formatDateTime(startDateObj), // Use fullStartDate as string
+      fullEndDate: formatDateTime(endDateObj), // Use fullEndDate as string
+      partyList: election.partylists.map((p) => p.name), // Convert partylists to partyList
     };
   });
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {formattedElections.map((election) => (
         <ElectionCard key={election.id} election={election} />
       ))}
@@ -142,35 +139,27 @@ async function ElectionList() {
   );
 }
 
-export default async function ElectionsPage() {
+// Main Page Component
+export default function ElectionsPage() {
   return (
-    <ElectionPageClient>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Elections</h1>
-            <p className="text-muted-foreground">
-              Manage and monitor all elections
-            </p>
-          </div>
-          <CreateElectionForm />
-        </div>
-
-        <Suspense fallback={<ElectionStatsSkeleton />}>
-          <ElectionStats />
-        </Suspense>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>All Elections</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<ElectionCardsSkeleton />}>
-              <ElectionList />
-            </Suspense>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Elections</h1>
+        <CreateElectionForm />
       </div>
-    </ElectionPageClient>
+
+      <Suspense fallback={<ElectionStatsSkeleton />}>
+        <ElectionStats />
+      </Suspense>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">All Elections</h2>
+        </div>
+        <Suspense fallback={<ElectionCardsSkeleton />}>
+          <ElectionList />
+        </Suspense>
+      </div>
+    </div>
   );
 }

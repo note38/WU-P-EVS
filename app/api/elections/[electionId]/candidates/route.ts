@@ -1,18 +1,42 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/elections/[electionId]/candidates
 export async function GET(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
     // Check if the user is authenticated
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
+      );
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
       );
     }
 
@@ -45,7 +69,7 @@ export async function GET(req: NextRequest, context: any) {
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: parseInt(session.user.id),
+        createdById: userData.user.id,
       },
     });
 
@@ -160,13 +184,38 @@ export async function GET(req: NextRequest, context: any) {
 // POST /api/elections/[electionId]/candidates - using any type for context
 export async function POST(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
     // Check if the user is authenticated
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
+      );
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
       );
     }
 
@@ -228,7 +277,7 @@ export async function POST(req: NextRequest, context: any) {
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: parseInt(session.user.id),
+        createdById: userData.user.id,
       },
     });
 

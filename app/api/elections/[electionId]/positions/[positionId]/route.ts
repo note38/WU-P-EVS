@@ -1,17 +1,39 @@
 // app/api/elections/[electionId]/positions/[positionId]/route.ts
-import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth/next";
+import { prisma } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-
-const prisma = new PrismaClient();
 
 // GET /api/elections/[electionId]/positions/[positionId]
 export async function GET(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
     }
 
     // Safely extract and parse the electionId and positionId from context params
@@ -74,9 +96,34 @@ export async function GET(req: NextRequest, context: any) {
 // PUT /api/elections/[electionId]/positions/[positionId]
 export async function PUT(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
     }
 
     // Safely extract and parse the electionId and positionId from context params
@@ -155,9 +202,34 @@ export async function PUT(req: NextRequest, context: any) {
 // DELETE /api/elections/[electionId]/positions/[positionId]
 export async function DELETE(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
     }
 
     // Safely extract and parse the electionId and positionId from context params

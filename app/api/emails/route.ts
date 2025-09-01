@@ -1,12 +1,16 @@
 import { EmailForm } from "@/app/components/emailform";
-
+import { resend } from "@/lib/resend";
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST() {
   try {
+    if (!resend) {
+      return NextResponse.json(
+        { success: false, error: "Email service not configured" },
+        { status: 503 }
+      );
+    }
+
     const data = await resend.emails.send({
       from: "awup-evs.site",
       to: "kupalkakupalka47@gmail.com",

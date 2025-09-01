@@ -1,14 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Shield } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useUser } from "@clerk/nextjs";
 import { toast } from "@/hooks/use-toast";
-import {
-  passwordFormSchema,
-  type PasswordFormValues,
-} from "../../lib/form-schemas";
+import { z } from "zod";
 
 // Import UI components
 import {
@@ -30,6 +28,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+// Password form schema
+const passwordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/\d/, "Password must contain at least one number"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
 // Field types
 type FieldType = {
   value: string;
@@ -40,6 +57,7 @@ type FieldType = {
 };
 
 export function ChangePassword() {
+  const { user } = useUser();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -105,6 +123,8 @@ export function ChangePassword() {
   };
 
   async function onPasswordSubmit(data: PasswordFormValues) {
+    if (!user) return;
+
     try {
       setIsPasswordSubmitting(true);
 
@@ -118,150 +138,91 @@ export function ChangePassword() {
         return;
       }
 
-      // Call API to update password
-      const response = await fetch("/api/users/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({
-          currentPassword: data.currentPassword,
-          newPassword: data.newPassword,
-        }),
+      // Use Clerk's updatePassword method
+      await user.updatePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       });
 
-      const responseData = await response.json();
+      toast({
+        title: "Password Updated Successfully",
+        description: "Your password has been updated successfully.",
+      });
 
-      if (response.ok) {
-        toast({
-          title: "Password Updated Successfully",
-          description:
-            "Your password has been updated. Please log in again with your new password.",
-        });
-
-        // Reset form
-        passwordForm.reset();
-        setPasswordStrength({
-          score: 0,
-          feedback: "",
-          strengthText: "",
-          requirements: {
-            length: false,
-            uppercase: false,
-            lowercase: false,
-            number: false,
-          },
-        });
-      } else {
-        handlePasswordUpdateError(response.status, responseData);
-      }
-    } catch (error) {
+      // Reset form
+      passwordForm.reset();
+      setPasswordStrength({
+        score: 0,
+        feedback: "",
+        strengthText: "",
+        requirements: {
+          length: false,
+          uppercase: false,
+          lowercase: false,
+          number: false,
+        },
+      });
+    } catch (error: any) {
       console.error("Password update error:", error);
-      handlePasswordUpdateNetworkError(error);
+
+      // Handle Clerk-specific errors
+      let errorMessage = "There was a problem updating your password.";
+
+      if (error?.errors?.[0]?.message) {
+        errorMessage = error.errors[0].message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      // Handle specific error cases
+      if (errorMessage.includes("current_password_invalid")) {
+        passwordForm.setValue("currentPassword", "");
+        passwordForm.setFocus("currentPassword");
+        passwordForm.setError("currentPassword", {
+          type: "manual",
+          message: "Current password is incorrect",
+        });
+        errorMessage = "The current password you entered is incorrect.";
+      }
+
+      toast({
+        title: "Password Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsPasswordSubmitting(false);
     }
   }
 
-  function handlePasswordUpdateError(status: number, responseData: any) {
-    let errorMessage = "Failed to update password.";
-    let errorTitle = "Password Update Failed";
-
-    switch (status) {
-      case 400:
-        if (responseData.details) {
-          errorTitle = "Password Requirements Not Met";
-          errorMessage = `Please ensure your password meets all requirements: ${responseData.details.join(", ")}`;
-        } else if (responseData.warnings) {
-          errorTitle = "Password Security Issue";
-          errorMessage = `Password contains insecure patterns: ${responseData.warnings.join(", ")}. Please choose a more secure password.`;
-        } else {
-          errorMessage =
-            responseData.error || "Invalid password data provided.";
-        }
-        break;
-      case 401:
-        handleUnauthorizedError(responseData);
-        return;
-      case 404:
-        errorTitle = "Account Not Found";
-        errorMessage =
-          "Your account could not be found. Please contact support for assistance.";
-        break;
-      case 429:
-        errorTitle = "Too Many Attempts";
-        errorMessage =
-          "You've made too many password change attempts. Please wait 15 minutes before trying again for security reasons.";
-        break;
-      case 500:
-        errorTitle = "Server Error";
-        errorMessage =
-          "We're experiencing technical difficulties. Please try again in a few moments or contact support if the problem persists.";
-        break;
-      default:
-        errorMessage =
-          responseData.error ||
-          "An unexpected error occurred while updating your password.";
-    }
-
-    toast({
-      title: errorTitle,
-      description: errorMessage,
-      variant: "destructive",
-    });
-  }
-
-  function handleUnauthorizedError(responseData: any) {
-    if (responseData.error?.includes("Current password")) {
-      const errorTitle = "Authentication Failed";
-      const errorMessage =
-        responseData.message ||
-        "The current password you entered is incorrect. Please double-check and try again. Make sure Caps Lock is off and you're using the same password you use to log in.";
-
-      passwordForm.setValue("currentPassword", "");
-      passwordForm.setFocus("currentPassword");
-      passwordForm.setError("currentPassword", {
-        type: "manual",
-        message: "Incorrect password - please try again",
-      });
-
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Session Expired",
-        description:
-          "Your session has expired. Please log in again to continue.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  function handlePasswordUpdateNetworkError(error: any) {
-    let errorMessage = "There was a problem updating your password.";
-
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      errorMessage =
-        "Network error. Please check your connection and try again.";
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-
-    toast({
-      title: "Connection Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
+  if (!user) {
+    return (
+      <Card className="min-h-[250px]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Password & Security
+          </CardTitle>
+          <CardDescription>
+            Please sign in to manage your password settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">
+            You need to be signed in to change your password.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <Card className="min-h-[250px]">
+    <Card className="min-h-[400px]">
       <CardHeader>
-        <CardTitle>Password</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Password & Security
+        </CardTitle>
         <CardDescription>
           Change your password to keep your account secure.
         </CardDescription>
@@ -270,7 +231,7 @@ export function ChangePassword() {
         <Form {...passwordForm}>
           <form
             onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
-            className="space-y-4"
+            className="space-y-6"
           >
             <FormField
               control={passwordForm.control}
@@ -280,7 +241,7 @@ export function ChangePassword() {
                   <FormLabel>Current Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         className="pl-10"
                         type={showCurrentPassword ? "text" : "password"}
@@ -323,7 +284,7 @@ export function ChangePassword() {
                   <FormLabel>New Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         className="pl-10"
                         type={showNewPassword ? "text" : "password"}
@@ -357,9 +318,9 @@ export function ChangePassword() {
                   </FormControl>
 
                   {field.value && (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-3 space-y-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 rounded-full bg-gray-200">
+                        <div className="h-2 flex-1 rounded-full bg-muted">
                           <div
                             className={`h-2 rounded-full transition-all duration-300 ${
                               passwordStrength.score < 3
@@ -388,21 +349,31 @@ export function ChangePassword() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-1 text-xs">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
                         {Object.entries(passwordStrength.requirements).map(
                           ([key, met]) => (
                             <div
                               key={key}
-                              className={`flex items-center gap-1 ${
-                                met ? "text-green-600" : "text-gray-500"
+                              className={`flex items-center gap-2 ${
+                                met ? "text-green-600" : "text-muted-foreground"
                               }`}
                             >
-                              <span
-                                className={`h-3 w-3 rounded-full ${
-                                  met ? "bg-green-500" : "bg-gray-300"
+                              <div
+                                className={`h-3 w-3 rounded-full border-2 ${
+                                  met
+                                    ? "bg-green-500 border-green-500"
+                                    : "border-muted-foreground"
                                 }`}
                               />
-                              {key.charAt(0).toUpperCase() + key.slice(1)}
+                              <span>
+                                {key === "length"
+                                  ? "8+ characters"
+                                  : key === "uppercase"
+                                    ? "Uppercase letter"
+                                    : key === "lowercase"
+                                      ? "Lowercase letter"
+                                      : "Number"}
+                              </span>
                             </div>
                           )
                         )}
@@ -411,7 +382,8 @@ export function ChangePassword() {
                   )}
 
                   <FormDescription>
-                    Password must include uppercase, lowercase, and number.
+                    Password must be at least 8 characters with uppercase,
+                    lowercase, and number.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -426,7 +398,7 @@ export function ChangePassword() {
                   <FormLabel>Confirm New Password</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4" />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         className="pl-10"
                         type={showConfirmPassword ? "text" : "password"}
@@ -461,32 +433,54 @@ export function ChangePassword() {
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full md:w-auto"
-              disabled={
-                isPasswordSubmitting ||
-                !passwordForm.formState.isDirty ||
-                passwordStrength.score < 4
-              }
-            >
-              {isPasswordSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating Password...
-                </>
-              ) : (
-                <>
-                  Update Password
-                  {passwordStrength.score < 4 &&
-                    passwordForm.watch("newPassword") && (
-                      <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                        Strengthen Password
-                      </span>
-                    )}
-                </>
-              )}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button
+                type="submit"
+                className="flex-1 sm:flex-none sm:min-w-[140px]"
+                disabled={
+                  isPasswordSubmitting ||
+                  !passwordForm.formState.isDirty ||
+                  passwordStrength.score < 4
+                }
+              >
+                {isPasswordSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Update Password
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  passwordForm.reset();
+                  setPasswordStrength({
+                    score: 0,
+                    feedback: "",
+                    strengthText: "",
+                    requirements: {
+                      length: false,
+                      uppercase: false,
+                      lowercase: false,
+                      number: false,
+                    },
+                  });
+                }}
+                disabled={
+                  isPasswordSubmitting || !passwordForm.formState.isDirty
+                }
+                className="flex-1 sm:flex-none sm:min-w-[100px]"
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

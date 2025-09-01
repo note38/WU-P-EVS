@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 
 // Global avatar state
 let globalAvatarState: {
@@ -11,7 +11,7 @@ let globalAvatarState: {
 };
 
 export function useUserAvatar() {
-  const { data: session } = useSession();
+  const { user } = useUser();
   // Always start with null to ensure server/client consistency
   const [avatar, setAvatar] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,12 +39,12 @@ export function useUserAvatar() {
     };
   }, [isMounted]);
 
-  // Fetch avatar when session changes
+  // Fetch avatar when user changes
   useEffect(() => {
     if (!isMounted) return;
 
     async function fetchAvatar() {
-      if (!session?.user) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
@@ -78,7 +78,7 @@ export function useUserAvatar() {
     }
 
     fetchAvatar();
-  }, [session?.user, isMounted]);
+  }, [user, isMounted]);
 
   // Function to update avatar globally
   const updateAvatar = useCallback((newAvatar: string | null) => {
@@ -88,7 +88,7 @@ export function useUserAvatar() {
 
   // Function to refresh avatar from server
   const refreshAvatar = useCallback(async () => {
-    if (!session?.user) {
+    if (!user) {
       return;
     }
 
@@ -107,7 +107,7 @@ export function useUserAvatar() {
     } catch (error) {
       console.error("Failed to refresh user avatar:", error);
     }
-  }, [session?.user, updateAvatar]);
+  }, [user, updateAvatar]);
 
   return {
     avatar,

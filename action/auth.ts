@@ -42,6 +42,9 @@ export async function voterLogin(formData: LoginFormData) {
     }
 
     // Verify password
+    if (!voter.hashpassword) {
+      return { success: false, message: "Invalid email or password" };
+    }
     const passwordValid = await compare(formData.password, voter.hashpassword);
     if (!passwordValid) {
       return { success: false, message: "Invalid email or password" };
@@ -120,4 +123,40 @@ export async function logoutVoter() {
   cookieStore.delete("voter_session");
   cookieStore.delete("election_id");
   redirect("/");
+}
+
+export async function checkUserRole(userId: string | null) {
+  if (!userId) {
+    return {
+      success: false,
+      userType: null,
+      message: "No user ID provided",
+    };
+  }
+
+  try {
+    const { getUserByClerkId } = await import("@/lib/clerk-auth");
+    const userData = await getUserByClerkId(userId);
+
+    if (userData) {
+      return {
+        success: true,
+        userType: userData.type,
+        user: userData.user,
+      };
+    } else {
+      return {
+        success: false,
+        userType: null,
+        message: "User not found in database",
+      };
+    }
+  } catch (error) {
+    console.error("Error checking user role:", error);
+    return {
+      success: false,
+      userType: null,
+      message: "Error checking user role",
+    };
+  }
 }

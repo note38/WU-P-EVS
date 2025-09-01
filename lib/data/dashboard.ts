@@ -210,7 +210,7 @@ export class DashboardDataService {
   static async getElectionResults(): Promise<ElectionResult[]> {
     const elections = await prisma.election.findMany({
       where: {
-        OR: [{ status: "ACTIVE" }, { status: "COMPLETED" }],
+        status: "ACTIVE",
       },
       include: {
         positions: {

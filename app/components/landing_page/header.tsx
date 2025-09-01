@@ -32,23 +32,9 @@ export const Header = memo(function Header({ onSwitchElection }: HeaderProps) {
         </div>
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Button
-            variant="outline"
-            onClick={handleSwitchElection}
-            className="hidden sm:inline-flex"
-          >
-            Switch Election
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleSwitchElection}
-            className="sm:hidden px-2"
-            size="sm"
-          >
-            Switch
-          </Button>
+
           <Button asChild size="sm" className="sm:size-default">
-            <Link href="/login" className="flex items-center gap-1 sm:gap-2">
+            <Link href="/sign-in" className="flex items-center gap-1 sm:gap-2">
               <LogIn className="h-4 w-4" />
               <span className="hidden sm:inline">Login</span>
             </Link>

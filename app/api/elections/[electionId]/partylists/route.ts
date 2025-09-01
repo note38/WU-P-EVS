@@ -1,15 +1,14 @@
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/elections/[electionId]/partylists
 export async function GET(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
     // Check if the user is authenticated
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
@@ -92,10 +91,10 @@ export async function GET(req: NextRequest, context: any) {
 // POST /api/elections/[electionId]/partylists
 export async function POST(req: NextRequest, context: any) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
     // Check if the user is authenticated
-    if (!session?.user) {
+    if (!userId) {
       return NextResponse.json(
         { error: "You must be logged in" },
         { status: 401 }
@@ -145,7 +144,7 @@ export async function POST(req: NextRequest, context: any) {
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: parseInt(session.user.id),
+        createdById: parseInt(userId),
       },
     });
 

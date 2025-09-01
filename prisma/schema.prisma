@@ -28,14 +28,18 @@ enum VoterStatus {
 
 model User {
   id          Int         @id @default(autoincrement())
+  clerkId     String?     @unique // Clerk user ID
   avatar      String?
   username    String      @unique
   email       String      @unique
-  password    String
+  password    String?     // Made optional since Clerk handles auth
   role        Role        @default(ADMIN)
   elections   Election[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+
+  @@index([clerkId])
+  @@index([email])
 }
 
 model Election {
@@ -96,12 +100,13 @@ model Candidate {
 
 model Voter {
   id              Int         @id @default(autoincrement())
+  clerkId         String?     @unique // Clerk user ID for voters
   avatar          String
   firstName       String
   lastName        String
   middleName      String
   email           String      @unique
-  hashpassword    String
+  hashpassword    String?     // Made optional since Clerk handles auth
   role            Role        @default(VOTER)
   election        Election?   @relation(fields: [electionId], references: [id], onDelete: SetNull)
   electionId      Int?
@@ -114,6 +119,8 @@ model Voter {
   updatedAt       DateTime    @updatedAt
   
   @@index([electionId, yearId])
+  @@index([clerkId])
+  @@index([email])
 }
 
 model Vote {

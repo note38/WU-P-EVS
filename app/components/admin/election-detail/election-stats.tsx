@@ -1,7 +1,8 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { prisma } from "@/lib/db";
 import { BarChart2, CalendarIcon, CheckCircle, PieChart } from "lucide-react";
-import { unstable_cache } from "next/cache";
+import { useEffect, useState } from "react";
 
 type StatsResult = {
   totalElections: number;
@@ -10,34 +11,62 @@ type StatsResult = {
   totalVoters: number;
 };
 
-// Cached stats fetch
-const getElectionStats = unstable_cache(
-  async (): Promise<StatsResult> => {
-    const [totalElections, activeElections, completedElections, totalVoters] =
-      await Promise.all([
-        prisma.election.count(),
-        prisma.election.count({
-          where: { status: "ACTIVE" },
-        }),
-        prisma.election.count({
-          where: { status: "COMPLETED" },
-        }),
-        prisma.voter.count(),
-      ]);
+export function ElectionStats() {
+  const [stats, setStats] = useState<StatsResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    return {
-      totalElections,
-      activeElections,
-      completedElections,
-      totalVoters,
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/admin/stats");
+
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        } else {
+          setError("Failed to load stats");
+        }
+      } catch (err) {
+        setError("Failed to load stats");
+      } finally {
+        setLoading(false);
+      }
     };
-  },
-  ["election-stats"],
-  { tags: ["election-stats"], revalidate: 60 }
-);
 
-export async function ElectionStats() {
-  const stats = await getElectionStats();
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="flex items-center justify-center h-20">
+            <p className="text-red-500">Failed to load stats</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

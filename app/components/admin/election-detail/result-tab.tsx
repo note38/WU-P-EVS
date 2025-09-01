@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -62,7 +62,7 @@ interface ResultsTabProps {
 }
 
 export function ResultsTab({ electionId }: ResultsTabProps) {
-  const { data: session } = useSession();
+  const { user } = useUser();
   const [electionDetails, setElectionDetails] =
     useState<ElectionDetails | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -150,7 +150,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
     try {
       const startDateTime = formatDateTime(electionDetails.startDate);
       const endDateTime = formatDateTime(electionDetails.endDate);
-      const currentUser = session?.user;
+      const currentUser = user;
 
       // Create print content
       const printContent = `
@@ -388,7 +388,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             <div class="proofread-title">PROOFREAD BY:</div>
             <div class="signature-line"></div>
             <div class="signature-info">
-              <strong>${currentUser?.name || "Administrator"}</strong><br>
+              <strong>${currentUser?.fullName || "Administrator"}</strong><br>
               Program Coordinator, CCS<br>
               Date: ${new Date().toLocaleDateString()}
             </div>

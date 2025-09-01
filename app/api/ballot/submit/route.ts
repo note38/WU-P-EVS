@@ -1,17 +1,41 @@
 import { submitBallot } from "@/lib/ballot-service";
-import { authOptions } from "@/app/api/auth/[...nextauth]/auth-options";
-import { getServerSession } from "next-auth";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     // Get session to validate the user is a voter
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    // Check if user is authenticated and is a voter
-    if (!session || !session.user || session.user.userType !== "voter") {
+    // Check if user is authenticated
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+
+    // Get user data from database to check if they're a voter
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "voter") {
+      return NextResponse.json(
+        { error: "Unauthorized access - Voter access only" },
         { status: 401 }
       );
     }
@@ -25,10 +49,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use the voter ID from the session instead of client submission
+    // Use the voter ID from the database user
     const result = await submitBallot({
       selections: body.selections,
-      voterId: session.user.id,
+      voterId: userData.user.id,
       submittedAt: new Date(),
     });
 

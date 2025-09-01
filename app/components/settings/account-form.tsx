@@ -66,38 +66,19 @@ type User = {
 };
 
 // Enhanced form validation schema
-const adminAccountFormSchema = z
-  .object({
-    username: z
-      .string()
-      .min(2, {
-        message: "Username must be at least 2 characters.",
-      })
-      .max(50, {
-        message: "Username must be less than 50 characters.",
-      }),
-    email: z.string().email({
-      message: "Please enter a valid email address.",
+const adminAccountFormSchema = z.object({
+  username: z
+    .string()
+    .min(2, {
+      message: "Username must be at least 2 characters.",
+    })
+    .max(50, {
+      message: "Username must be less than 50 characters.",
     }),
-    password: z
-      .string()
-      .min(8, {
-        message: "Password must be at least 8 characters.",
-      })
-      .max(128, {
-        message: "Password must be less than 128 characters.",
-      })
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/, {
-        message: "Password must include uppercase, lowercase, and number.",
-      }),
-    confirmPassword: z.string().min(1, {
-      message: "Please confirm the password.",
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+});
 
 type AdminAccountFormValues = z.infer<typeof adminAccountFormSchema>;
 
@@ -202,24 +183,9 @@ export function AccountSettings() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loadedAvatars, setLoadedAvatars] = useState<Record<number, boolean>>(
     {}
   );
-
-  // Password strength state
-  const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    feedback: "",
-    strengthText: "",
-    requirements: {
-      length: false,
-      uppercase: false,
-      lowercase: false,
-      number: false,
-    },
-  });
 
   // Form setup with validation
   const form = useForm<AdminAccountFormValues>({
@@ -227,8 +193,6 @@ export function AccountSettings() {
     defaultValues: {
       username: "",
       email: "",
-      password: "",
-      confirmPassword: "",
     },
     mode: "onChange",
   });
@@ -268,42 +232,6 @@ export function AccountSettings() {
     setLoadedAvatars((prev) => ({ ...prev, [userId]: true }));
   };
 
-  // Password strength checker
-  const checkPasswordStrength = (password: string) => {
-    const requirements = {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-    };
-
-    const score = Object.values(requirements).filter(Boolean).length;
-
-    let feedback = "";
-    let strengthText = "";
-
-    if (score === 0) {
-      strengthText = "";
-      feedback = "";
-    } else if (score < 3) {
-      strengthText = "Weak";
-      feedback = "Password is too weak";
-    } else if (score < 4) {
-      strengthText = "Fair";
-      feedback = "Password could be stronger";
-    } else {
-      strengthText = "Strong";
-      feedback = "Password meets all requirements";
-    }
-
-    return {
-      score,
-      feedback,
-      strengthText,
-      requirements,
-    };
-  };
-
   useEffect(() => {
     // Fetch existing admin users
     const fetchUsers = async () => {
@@ -316,9 +244,35 @@ export function AccountSettings() {
         });
         const data = await response.json();
         console.log("Fetched users with avatars:", data); // Debug log
-        setUsers(data);
+
+        // Check if the response contains an error
+        if (data && typeof data === "object" && "error" in data) {
+          console.error("API returned error:", data.error);
+          setUsers([]);
+          toast({
+            title: "Error",
+            description:
+              data.error || "Failed to load admin accounts. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Ensure data is an array, if not, set empty array
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setUsers([]);
+          toast({
+            title: "Error",
+            description: "Invalid data received from server. Please try again.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Failed to fetch users:", error);
+        setUsers([]);
         toast({
           title: "Error",
           description: "Failed to load admin accounts. Please try again.",
@@ -336,11 +290,10 @@ export function AccountSettings() {
     try {
       setIsSubmitting(true);
 
-      // Create submission data (without confirmPassword)
+      // Create submission data
       const submissionData = {
         username: data.username,
         email: data.email,
-        password: data.password,
         role: "ADMIN" as const,
       };
 
@@ -356,23 +309,10 @@ export function AccountSettings() {
 
       if (response.ok) {
         // Add new user to the list
-        setUsers([...users, responseData]);
+        setUsers([...(Array.isArray(users) ? users : []), responseData]);
 
         // Reset form
         form.reset();
-
-        // Reset password strength indicator
-        setPasswordStrength({
-          score: 0,
-          feedback: "",
-          strengthText: "",
-          requirements: {
-            length: false,
-            uppercase: false,
-            lowercase: false,
-            number: false,
-          },
-        });
 
         toast({
           title: "Admin Account Created",
@@ -517,208 +457,6 @@ export function AccountSettings() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="password">Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="password"
-                            className="pl-10"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter password"
-                            {...field}
-                            aria-required="true"
-                            onChange={(e) => {
-                              field.onChange(e);
-                              const strength = checkPasswordStrength(
-                                e.target.value
-                              );
-                              setPasswordStrength(strength);
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-10 w-10"
-                            onClick={() => setShowPassword(!showPassword)}
-                            aria-label={
-                              showPassword ? "Hide password" : "Show password"
-                            }
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-
-                      {/* Password Strength Indicator */}
-                      {field.value && (
-                        <div className="mt-2 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                  passwordStrength.score < 3
-                                    ? "bg-red-500"
-                                    : passwordStrength.score < 4
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                }`}
-                                style={{
-                                  width: `${(passwordStrength.score / 4) * 100}%`,
-                                }}
-                              />
-                            </div>
-                            {passwordStrength.strengthText && (
-                              <span
-                                className={`text-sm font-medium ${
-                                  passwordStrength.score < 3
-                                    ? "text-red-600"
-                                    : passwordStrength.score < 4
-                                      ? "text-yellow-600"
-                                      : "text-green-600"
-                                }`}
-                              >
-                                {passwordStrength.strengthText}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Requirements Checklist */}
-                          <div className="grid grid-cols-2 gap-1 text-xs">
-                            <div
-                              className={`flex items-center gap-1 ${
-                                passwordStrength.requirements.length
-                                  ? "text-green-600"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              <span
-                                className={`w-3 h-3 rounded-full ${
-                                  passwordStrength.requirements.length
-                                    ? "bg-green-500"
-                                    : "bg-gray-300"
-                                }`}
-                              />
-                              8+ characters
-                            </div>
-                            <div
-                              className={`flex items-center gap-1 ${
-                                passwordStrength.requirements.number
-                                  ? "text-green-600"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              <span
-                                className={`w-3 h-3 rounded-full ${
-                                  passwordStrength.requirements.number
-                                    ? "bg-green-500"
-                                    : "bg-gray-300"
-                                }`}
-                              />
-                              Number
-                            </div>
-                            <div
-                              className={`flex items-center gap-1 ${
-                                passwordStrength.requirements.uppercase
-                                  ? "text-green-600"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              <span
-                                className={`w-3 h-3 rounded-full ${
-                                  passwordStrength.requirements.uppercase
-                                    ? "bg-green-500"
-                                    : "bg-gray-300"
-                                }`}
-                              />
-                              Uppercase letter
-                            </div>
-                            <div
-                              className={`flex items-center gap-1 ${
-                                passwordStrength.requirements.lowercase
-                                  ? "text-green-600"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              <span
-                                className={`w-3 h-3 rounded-full ${
-                                  passwordStrength.requirements.lowercase
-                                    ? "bg-green-500"
-                                    : "bg-gray-300"
-                                }`}
-                              />
-                              Lowercase letter
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <FormDescription>
-                        Password must include uppercase, lowercase, and number.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="confirmPassword">
-                        Confirm Password
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="confirmPassword"
-                            className="pl-10"
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm password"
-                            {...field}
-                            aria-required="true"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-10 w-10"
-                            onClick={() =>
-                              setShowConfirmPassword(!showConfirmPassword)
-                            }
-                            aria-label={
-                              showConfirmPassword
-                                ? "Hide confirm password"
-                                : "Show confirm password"
-                            }
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Input
@@ -737,11 +475,7 @@ export function AccountSettings() {
             <CardFooter>
               <Button
                 type="submit"
-                disabled={
-                  isSubmitting ||
-                  !form.formState.isDirty ||
-                  passwordStrength.score < 4
-                }
+                disabled={isSubmitting || !form.formState.isDirty}
                 className="w-full md:w-auto"
               >
                 {isSubmitting ? (
@@ -750,14 +484,7 @@ export function AccountSettings() {
                     Creating Account...
                   </>
                 ) : (
-                  <>
-                    Create Admin Account
-                    {passwordStrength.score < 4 && form.watch("password") && (
-                      <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                        Strengthen Password
-                      </span>
-                    )}
-                  </>
+                  <>Create Admin Account</>
                 )}
               </Button>
             </CardFooter>
@@ -773,7 +500,12 @@ export function AccountSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {users.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              <p className="text-muted-foreground">Loading admin accounts...</p>
+            </div>
+          ) : !Array.isArray(users) || users.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-muted-foreground">No admin accounts found.</p>
             </div>

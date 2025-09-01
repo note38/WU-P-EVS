@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   lazy,
@@ -22,6 +22,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useHomeResults } from "@/hooks/use-home-results";
 
 // Critical path optimization - only load what's needed for first paint
 const Header = dynamic(
@@ -207,7 +208,28 @@ function getStatusColor(status: "active" | "completed" | "upcoming") {
   }
 }
 
-interface Election {
+interface LiveCandidate {
+  id: number;
+  name: string;
+  avatar: string | null;
+  partylist: string;
+  votes: number;
+}
+
+interface LivePosition {
+  id: number;
+  name: string;
+  candidates: LiveCandidate[];
+}
+
+interface LiveElection {
+  id: number;
+  name: string;
+  status: "ACTIVE" | "COMPLETED" | "UPCOMING";
+  positions: LivePosition[];
+}
+
+interface TransformedElection {
   id: string;
   name: string;
   date: string;
@@ -245,9 +267,11 @@ const CandidateCardSkeleton = memo(() => (
 const CandidateCard = memo(function CandidateCard({
   candidate,
   index,
+  isUpdatingPercentages,
 }: {
-  candidate: Election["positions"][0]["candidates"][0];
+  candidate: TransformedElection["positions"][0]["candidates"][0];
   index: number;
+  isUpdatingPercentages: boolean;
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -283,7 +307,11 @@ const CandidateCard = memo(function CandidateCard({
             <h3 className="text-sm lg:text-lg font-semibold text-foreground mb-0.5 truncate">
               {candidate.name}
             </h3>
-            <p className="text-base lg:text-xl font-bold text-primary">
+            <p
+              className={`text-base lg:text-xl font-bold text-primary transition-all duration-200 ${
+                isUpdatingPercentages ? "animate-pulse" : ""
+              }`}
+            >
               {candidate.percentage}%
             </p>
           </div>
@@ -299,9 +327,9 @@ const ElectionSelector = memo(function ElectionSelector({
   currentElection,
   onElectionChange,
 }: {
-  elections: Election[];
-  currentElection: Election;
-  onElectionChange: (election: Election) => void;
+  elections: TransformedElection[];
+  currentElection: TransformedElection;
+  onElectionChange: (election: TransformedElection) => void;
 }) {
   const handleElectionChange = useCallback(
     (value: string) => {
@@ -357,7 +385,7 @@ const PositionButton = memo(function PositionButton({
   isActive,
   onClick,
 }: {
-  position: Election["positions"][0];
+  position: TransformedElection["positions"][0];
   isActive: boolean;
   onClick: () => void;
 }) {
@@ -388,9 +416,11 @@ const PositionButton = memo(function PositionButton({
 const PositionSelector = memo(function PositionSelector({
   positions,
   electionStatus,
+  isUpdatingPercentages,
 }: {
-  positions: Election["positions"];
-  electionStatus: Election["status"];
+  positions: TransformedElection["positions"];
+  electionStatus: TransformedElection["status"];
+  isUpdatingPercentages: boolean;
 }) {
   const [currentPosition, setCurrentPosition] = useState(positions[0]);
   const [isLoading, setIsLoading] = useState(true);
@@ -420,7 +450,7 @@ const PositionSelector = memo(function PositionSelector({
   );
 
   const handlePositionClick = useCallback(
-    (position: Election["positions"][0]) => {
+    (position: TransformedElection["positions"][0]) => {
       startTransition(() => {
         setCurrentPosition(position);
         setIsLoading(true);
@@ -481,7 +511,11 @@ const PositionSelector = memo(function PositionSelector({
                       key={candidate.id}
                       fallback={<CandidateCardSkeleton />}
                     >
-                      <CandidateCard candidate={candidate} index={index} />
+                      <CandidateCard
+                        candidate={candidate}
+                        index={index}
+                        isUpdatingPercentages={isUpdatingPercentages}
+                      />
                     </Suspense>
                   ))}
             </div>
@@ -507,11 +541,84 @@ const PositionSelector = memo(function PositionSelector({
 });
 
 export default function Home() {
-  const elections = STATIC_ELECTIONS;
-  const [currentElection, setCurrentElection] = useState<Election>(
-    elections[0]
-  );
+  const {
+    elections: liveElections,
+    activeElection,
+    loading,
+    error,
+    refetch,
+    refetchPercentages,
+  } = useHomeResults();
   const [showElectionSelector, setShowElectionSelector] = useState(false);
+  const [isUpdatingPercentages, setIsUpdatingPercentages] = useState(false);
+
+  // Transform live data to match the expected format
+  const transformedElections: TransformedElection[] = useMemo(() => {
+    // If no live elections, return empty array
+    if (!liveElections || liveElections.length === 0) {
+      console.log("📊 No live elections found");
+      return [];
+    }
+
+    return liveElections.map((election) => {
+      const positions = election.positions.map((position) => {
+        const totalVotes = position.candidates.reduce(
+          (sum, candidate) => sum + candidate.votes,
+          0
+        );
+
+        const candidates = position.candidates.map((candidate) => {
+          const percentage =
+            totalVotes > 0
+              ? Math.round((candidate.votes / totalVotes) * 100)
+              : 0;
+          const avatarUrl =
+            candidate.avatar || getOptimizedAvatar(candidate.name);
+
+          return {
+            id: candidate.id,
+            name: candidate.name,
+            votes: candidate.votes,
+            avatarUrl,
+            percentage,
+          };
+        });
+
+        return {
+          title: position.name,
+          candidates,
+          totalVotes,
+        };
+      });
+
+      return {
+        id: election.id.toString(),
+        name: election.name,
+        date: new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        status: election.status.toLowerCase() as
+          | "active"
+          | "completed"
+          | "upcoming",
+        description: `${election.name} - Live Results`,
+        positions,
+      };
+    });
+  }, [liveElections]);
+
+  // Use active election if available, otherwise use first election
+  const currentElection = useMemo(() => {
+    if (activeElection && transformedElections.length > 0) {
+      const activeTransformed = transformedElections.find(
+        (e) => e.id === activeElection.id.toString()
+      );
+      if (activeTransformed) return activeTransformed;
+    }
+    return transformedElections[0] || null;
+  }, [activeElection, transformedElections]);
 
   const handleSwitchElection = useCallback(() => {
     startTransition(() => {
@@ -519,20 +626,26 @@ export default function Home() {
     });
   }, [showElectionSelector]);
 
-  const handleElectionChange = useCallback((election: Election) => {
+  const handleElectionChange = useCallback((election: TransformedElection) => {
     startTransition(() => {
-      setCurrentElection(election);
       setShowElectionSelector(false);
     });
   }, []);
 
+  const handleRefreshPercentages = useCallback(async () => {
+    setIsUpdatingPercentages(true);
+    await refetchPercentages();
+    // Add a small delay to show the updating state
+    setTimeout(() => setIsUpdatingPercentages(false), 500);
+  }, [refetchPercentages]);
+
   const totalCandidates = useMemo(
     () =>
-      currentElection.positions.reduce(
-        (sum, pos) => sum + pos.candidates.length,
+      currentElection?.positions.reduce(
+        (sum: number, pos: any) => sum + pos.candidates.length,
         0
-      ),
-    [currentElection.positions]
+      ) || 0,
+    [currentElection]
   );
 
   return (
@@ -543,46 +656,157 @@ export default function Home() {
 
       <main className="critical-main">
         <div className="space-y-6 lg:space-y-8">
-          <div className="text-center space-y-3">
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-3">
-              <h1 className="text-2xl lg:text-4xl font-bold tracking-tight">
-                {currentElection.name}
-              </h1>
-              <Badge
-                className={`${getStatusColor(currentElection.status)} text-sm lg:text-base`}
-              >
-                {currentElection.status.charAt(0).toUpperCase() +
-                  currentElection.status.slice(1)}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground text-base lg:text-lg max-w-3xl mx-auto">
-              {currentElection.description} • {currentElection.date}
-            </p>
-          </div>
-
-          {showElectionSelector && (
-            <ElectionSelector
-              elections={elections}
-              currentElection={currentElection}
-              onElectionChange={handleElectionChange}
-            />
-          )}
-
-          {!showElectionSelector && (
-            <>
-              <div className="flex items-center justify-center gap-4 py-4 lg:py-6">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
-                  <span className="font-medium text-base lg:text-lg">
-                    Total Candidates: {totalCandidates}
-                  </span>
+          {/* Live Results Header */}
+          {!loading && (
+            <div className="flex items-center justify-between py-6">
+              <div className="text-center space-y-3 flex-1">
+                <div className="flex flex-col lg:flex-row items-center justify-center gap-3 py-6">
+                  <h1 className="text-2xl lg:text-4xl font-bold tracking-tight">
+                    {currentElection?.name || (
+                      <>
+                        Wesleyan University Philippines <br /> Election Results
+                      </>
+                    )}
+                  </h1>
+                  {currentElection && (
+                    <Badge
+                      className={`${getStatusColor(currentElection.status)} text-sm lg:text-base`}
+                    >
+                      {currentElection.status.charAt(0).toUpperCase() +
+                        currentElection.status.slice(1)}
+                    </Badge>
+                  )}
                 </div>
+                <p className="text-muted-foreground text-base lg:text-lg max-w-3xl mx-auto">
+                  {currentElection
+                    ? `${currentElection.description} • ${currentElection.date}`
+                    : "Live election results and voting information"}
+                </p>
               </div>
 
-              <PositionSelector
-                positions={currentElection.positions}
-                electionStatus={currentElection.status}
-              />
+              {/* Refresh Button - only show when there are elections */}
+              {currentElection && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshPercentages}
+                  disabled={isUpdatingPercentages}
+                  className="ml-4"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${isUpdatingPercentages ? "animate-spin" : ""}`}
+                  />
+                  Update Percentages
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-red-800">
+                    Unable to Load Election Results
+                  </h3>
+                  <p className="text-red-700 text-sm mt-1">{error}</p>
+                  <p className="text-red-600 text-xs mt-2">
+                    Please try refreshing the page or contact the administrator
+                    if the problem persists.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No Elections State */}
+          {!loading &&
+            !error &&
+            liveElections &&
+            liveElections.length === 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-amber-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-amber-800">
+                      No Active Elections
+                    </h3>
+                    <p className="text-amber-700 text-sm mt-1">
+                      There are currently no active elections available for
+                      viewing.
+                    </p>
+                    <p className="text-amber-600 text-xs mt-2">
+                      Elections will appear here once they are created by the
+                      administrator.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading live results...</p>
+            </div>
+          )}
+
+          {/* Content - only show when not loading and has elections */}
+          {!loading && currentElection && (
+            <>
+              {showElectionSelector && transformedElections.length > 0 && (
+                <ElectionSelector
+                  elections={transformedElections}
+                  currentElection={currentElection}
+                  onElectionChange={handleElectionChange}
+                />
+              )}
+
+              {!showElectionSelector && (
+                <>
+                  <div className="flex items-center justify-center gap-4 py-4 lg:py-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+                      <span className="font-medium text-base lg:text-lg">
+                        Total Candidates: {totalCandidates}
+                      </span>
+                    </div>
+                  </div>
+
+                  <PositionSelector
+                    positions={currentElection.positions}
+                    electionStatus={currentElection.status}
+                    isUpdatingPercentages={isUpdatingPercentages}
+                  />
+                </>
+              )}
             </>
           )}
         </div>

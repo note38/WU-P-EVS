@@ -1,26 +1,47 @@
 // API route for handling elections
-import { authOptions } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
     // Get the authenticated user
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
 
-    if (!session || !session.user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user ID from session
-    let userId: number;
+    // Get user data from database to check if they're an admin
+    const userResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    if (!userResponse.ok) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const userData = await userResponse.json();
+
+    if (userData.type !== "admin") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    // Get user ID from database user
+    let userIdNum: number;
     try {
-      userId =
-        typeof session.user.id === "string"
-          ? parseInt(session.user.id)
-          : session.user.id;
-      if (isNaN(userId)) {
+      userIdNum = userData.user.id;
+      if (isNaN(userIdNum)) {
         throw new Error("Invalid user ID format");
       }
     } catch (e) {
@@ -122,7 +143,7 @@ export async function POST(req: NextRequest) {
             description: data.description || "",
             startDate: startDateTime,
             endDate: endDateTime,
-            createdById: userId,
+            createdById: userIdNum,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
