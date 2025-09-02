@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    ignoreBuildErrors: true, // This will allow Vercel to build even with type errors
-  },
   images: {
     remotePatterns: [
       {
@@ -23,7 +20,7 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: true,
-    unoptimized: true, // Allow serving local images
+    // unoptimized: true, // This disables Next.js Image Optimization. Remove if not explicitly needed.
   },
   // Enable compression
   compress: true,

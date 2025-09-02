@@ -8,7 +8,9 @@ export default function CustomSignIn() {
       <style jsx global>{`
         .cl-card,
         .cl-signIn-start,
-        .cl-card.cl-signIn-start {
+        .cl-card.cl-signIn-start,
+        .cl-signIn-factorOne,
+        .cl-card.cl-signIn-factorOne {
           background: transparent !important;
           background-color: transparent !important;
           border: none !important;
@@ -36,6 +38,57 @@ export default function CustomSignIn() {
           box-shadow: none !important;
           padding: 0 !important;
           margin: 0 !important;
+        }
+
+        /* Factor-one specific styling */
+        .cl-signIn-factorOne .cl-footerAction,
+        .cl-signIn-factorOne .cl-footerActionText,
+        .cl-signIn-factorOne .cl-footerActionLink {
+          color: #6b7280 !important; /* Default gray */
+        }
+
+        /* Dark mode support for factor-one elements */
+        @media (prefers-color-scheme: dark) {
+          .cl-signIn-factorOne .cl-footerAction,
+          .cl-signIn-factorOne .cl-footerActionText,
+          .cl-signIn-factorOne .cl-footerActionLink {
+            color: #9ca3af !important; /* Lighter gray for dark mode */
+          }
+        }
+
+        /* Force dark mode styling when html has dark class */
+        html.dark .cl-signIn-factorOne .cl-footerAction,
+        html.dark .cl-signIn-factorOne .cl-footerActionText,
+        html.dark .cl-signIn-factorOne .cl-footerActionLink {
+          color: #9ca3af !important;
+        }
+
+        /* Additional factor-one styling for better visibility */
+        .cl-signIn-factorOne .cl-footerActionLink:hover {
+          color: #10b981 !important; /* Green hover color */
+        }
+
+        html.dark .cl-signIn-factorOne .cl-footerActionLink:hover {
+          color: #34d399 !important; /* Lighter green for dark mode hover */
+        }
+
+        /* Ensure all factor-one text elements have proper contrast */
+        .cl-signIn-factorOne .cl-formFieldLabel,
+        .cl-signIn-factorOne .cl-formFieldHintText,
+        .cl-signIn-factorOne .cl-formFieldErrorText {
+          color: #374151 !important;
+        }
+
+        html.dark .cl-signIn-factorOne .cl-formFieldLabel,
+        html.dark .cl-signIn-factorOne .cl-formFieldHintText,
+        html.dark .cl-signIn-factorOne .cl-formFieldErrorText {
+          color: #d1d5db !important;
+        }
+
+        /* Better styling for resend code button */
+        .cl-signIn-factorOne .cl-footerActionLink {
+          text-decoration: underline !important;
+          text-underline-offset: 2px !important;
         }
       `}</style>
       <div className="w-full max-w-md shadow-lg animate-fadeIn rounded-xl border bg-card text-card-foreground card-gradient">
@@ -74,19 +127,19 @@ export default function CustomSignIn() {
                   "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center",
                 formFieldLabel:
                   "text-sm font-medium text-gray-900 dark:text-gray-100 text-center",
-                formField: "",
-                formFieldRow: "",
+                formField: "text-center",
+                formFieldRow: "text-cente",
                 identityPreview: "hidden",
                 dividerLine: "bg-gray-200 dark:bg-gray-700",
                 dividerText: "text-gray-500 dark:text-gray-400",
-                footerAction: "text-center",
+                footerAction: "text-center text-gray-600 dark:text-gray-400",
                 footerActionLink:
-                  "text-green-600 hover:text-green-500 font-medium",
+                  "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium",
+                footerActionText: "text-gray-600 dark:text-gray-400",
                 main: "space-y-4 text-center",
                 socialButtonsBlock: "flex flex-col items-center space-y-2",
                 header: "hidden",
                 footer: "hidden",
-                footerActionText: "hidden",
                 footerPages: "hidden",
                 footer__poweredByClerk: "hidden",
                 poweredByClerk: "hidden",
