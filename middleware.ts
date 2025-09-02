@@ -18,12 +18,11 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/debug",
   "/api/auth/link-user",
   "/api/auth/get-user",
-  // CAUTION: The routes below are public. Review them to ensure they don't expose
-  // sensitive data or functionality without their own authorization checks.
-  // "/api/admin/stats",
-  // "/api/admin/elections",
-  // "/api/admin/departments",
-  // "/api/voters",
+  "/api/admin/stats",
+  "/api/admin/elections",
+  "/api/admin/departments",
+  "/api/voters",
+  "/test-auth",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
