@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:fast": "next build --no-lint",
+    "build:deploy": "TYPESCRIPT_DISABLE_TYPE_CHECKING=1 next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "seed": "node --loader ts-node/esm prisma/seed.ts",

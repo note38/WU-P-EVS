@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 // PUT /api/elections/[electionId]/candidates/[candidateId]
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { electionId: string; candidateId: string } }
+  context: { params: Promise<{ electionId: string; candidateId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -42,6 +42,7 @@ export async function PUT(
       );
     }
 
+    const params = await context.params;
     const electionId = parseInt(params.electionId);
     const candidateId = parseInt(params.candidateId);
 
@@ -164,7 +165,7 @@ export async function PUT(
 // DELETE /api/elections/[electionId]/candidates/[candidateId]
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { electionId: string; candidateId: string } }
+  context: { params: Promise<{ electionId: string; candidateId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -201,6 +202,7 @@ export async function DELETE(
       );
     }
 
+    const params = await context.params;
     const electionId = parseInt(params.electionId);
     const candidateId = parseInt(params.candidateId);
 
@@ -293,6 +295,53 @@ export async function GET(
         { status: 403 }
       );
     }
+
+    const params = await context.params;
+    const electionId = parseInt(params.electionId);
+    const candidateId = parseInt(params.candidateId);
+
+    if (isNaN(electionId) || isNaN(candidateId)) {
+      return NextResponse.json(
+        { error: "Invalid election or candidate ID" },
+        { status: 400 }
+      );
+    }
+
+    // Check if the election exists and user has permission
+    const election = await prisma.election.findFirst({
+      where: {
+        id: electionId,
+        createdById: userData.user.id,
+      },
+    });
+
+    if (!election) {
+      return NextResponse.json(
+        { error: "Election not found or you don't have permission" },
+        { status: 404 }
+      );
+    }
+
+    // Get the candidate with related data
+    const candidate = await prisma.candidate.findFirst({
+      where: {
+        id: candidateId,
+        electionId: electionId,
+      },
+      include: {
+        position: true,
+        partylist: true,
+      },
+    });
+
+    if (!candidate) {
+      return NextResponse.json(
+        { error: "Candidate not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ candidate });
   } catch (error) {
     console.error("Error fetching candidate:", error);
     return NextResponse.json(
