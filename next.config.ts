@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: {},
+  // Fix the workspace root warning
+  outputFileTracingRoot: process.cwd(),
   images: {
     remotePatterns: [
       {
