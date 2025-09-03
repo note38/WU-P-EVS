@@ -1,21 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
   "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build:fast",
   "framework": "nextjs",
-  "functions": {
-    "app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "env": {
-    "NODE_VERSION": "18",
-    "SKIP_ENV_VALIDATION": "1"
-  },
-  "build": {
-    "env": {
-      "NEXT_TELEMETRY_DISABLED": "1"
-    }
+    "SKIP_ENV_VALIDATION": "1",
+    "NEXT_TELEMETRY_DISABLED": "1"
   }
 }
