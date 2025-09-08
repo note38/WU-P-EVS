@@ -68,6 +68,7 @@ export async function GET() {
         username: true,
         email: true,
         avatar: true,
+        position: true,
         role: true,
       },
       cacheStrategy: { ttl: 30 }, // 30 seconds TTL for cache
@@ -89,10 +90,13 @@ export async function GET() {
 
 // Update user profile
 export async function PATCH(request: Request) {
+  let userId: string | null = null;
   try {
-    const { userId } = await auth();
+    const auth_result = await auth();
+    userId = auth_result.userId;
 
     if (!userId) {
+      console.log("PATCH /api/users/profile: Unauthorized - no userId");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -103,10 +107,14 @@ export async function PATCH(request: Request) {
     });
 
     if (!dbUser) {
+      console.log(
+        `PATCH /api/users/profile: User not found for clerkId: ${userId}`
+      );
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const data = await request.json();
+    console.log("PATCH /api/users/profile: Received update data:", data);
 
     // Prepare update data object
     const updateData: any = {};
@@ -114,6 +122,9 @@ export async function PATCH(request: Request) {
     // Update profile fields if provided
     if (data.username) updateData.username = data.username;
     if (data.email) updateData.email = data.email;
+    if (data.position !== undefined) updateData.position = data.position;
+
+    console.log("PATCH /api/users/profile: Update data prepared:", updateData);
 
     // Handle avatar update
     if (data.hasOwnProperty("avatar")) {
@@ -152,6 +163,10 @@ export async function PATCH(request: Request) {
     // Update user in database with minimal data selection for faster response
     const updatedUser = await prisma.$transaction(
       async (tx) => {
+        console.log(
+          `PATCH /api/users/profile: Updating user ${dbUser.id} with data:`,
+          updateData
+        );
         // Update the user
         const user = await tx.user.update({
           where: { id: dbUser.id },
@@ -161,10 +176,14 @@ export async function PATCH(request: Request) {
             username: true,
             email: true,
             avatar: true,
+            position: true,
             role: true,
           },
         });
-
+        console.log(
+          `PATCH /api/users/profile: User updated successfully:`,
+          user
+        );
         return user;
       },
       {
@@ -188,11 +207,36 @@ export async function PATCH(request: Request) {
     );
 
     return response;
-  } catch (error) {
-    console.error("Profile update error:", error);
+  } catch (error: any) {
+    console.error("PATCH /api/users/profile - Profile update error:", {
+      error: error?.message || "Unknown error",
+      stack: error?.stack,
+      name: error?.name,
+      userId: userId || "unknown",
+    });
+
+    // Provide more specific error messages
+    let errorMessage = "Failed to update profile";
+    let statusCode = 500;
+
+    if (error?.code === "P2002") {
+      errorMessage = "Username or email already exists";
+      statusCode = 409;
+    } else if (error?.code === "P2025") {
+      errorMessage = "User record not found";
+      statusCode = 404;
+    } else if (error?.name === "PrismaClientValidationError") {
+      errorMessage = "Invalid data format";
+      statusCode = 400;
+    }
+
     return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
+      {
+        error: errorMessage,
+        details:
+          process.env.NODE_ENV === "development" ? error?.message : undefined,
+      },
+      { status: statusCode }
     );
   }
 }

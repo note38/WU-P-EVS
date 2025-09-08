@@ -42,8 +42,8 @@ export function useHomeResults(): UseHomeResultsReturn {
     try {
       setError(null);
 
-      // Fetch all elections
-      const allResponse = await fetch("/api/home/results");
+      // Fetch all elections for home page
+      const allResponse = await fetch("/api/home/elections");
       let allElections: ElectionResult[] = [];
 
       if (allResponse.ok) {
@@ -60,8 +60,8 @@ export function useHomeResults(): UseHomeResultsReturn {
         );
       }
 
-      // Fetch active election
-      const activeResponse = await fetch("/api/home/results?active=true");
+      // Fetch active/recent election for home page
+      const activeResponse = await fetch("/api/home/elections?active=true");
       let activeElectionData: ElectionResult | null = null;
 
       if (activeResponse.ok) {
@@ -90,8 +90,8 @@ export function useHomeResults(): UseHomeResultsReturn {
 
   const fetchPercentagesOnly = async () => {
     try {
-      // Fetch only the latest vote counts for percentage calculation
-      const allResponse = await fetch("/api/home/results");
+      // Fetch only the latest vote counts for percentage calculation (home page)
+      const allResponse = await fetch("/api/home/elections");
       let allElections: ElectionResult[] = [];
 
       if (allResponse.ok) {
@@ -108,7 +108,7 @@ export function useHomeResults(): UseHomeResultsReturn {
         return; // Don't throw error for percentage updates
       }
 
-      const activeResponse = await fetch("/api/home/results?active=true");
+      const activeResponse = await fetch("/api/home/elections?active=true");
       let activeElectionData: ElectionResult | null = null;
 
       if (activeResponse.ok) {

@@ -93,7 +93,10 @@ export default function DashboardLayout({
         <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Header onSidebarToggle={toggleSidebar} />
-          <main className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
+          <main
+            className="flex-1 overflow-y-auto p-4 bg-gray-50"
+            style={{ backgroundColor: "var(--main-bg)" }}
+          >
             {children}
           </main>
           <Footer />

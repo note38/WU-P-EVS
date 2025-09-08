@@ -210,7 +210,11 @@ export class DashboardDataService {
   static async getElectionResults(): Promise<ElectionResult[]> {
     const elections = await prisma.election.findMany({
       where: {
-        status: "ACTIVE",
+        OR: [
+          { status: "ACTIVE" },
+          { status: "COMPLETED" },
+          { status: "INACTIVE" },
+        ],
       },
       include: {
         positions: {
@@ -331,6 +335,153 @@ export class DashboardDataService {
       status: activeElection.status,
       positions,
     };
+  }
+
+  // Get recent completed election for home page (within 24 hours)
+  static async getRecentCompletedElectionResults(): Promise<ElectionResult | null> {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    const recentCompletedElection = await prisma.election.findFirst({
+      where: {
+        status: "COMPLETED",
+        endDate: {
+          gte: twentyFourHoursAgo, // Completed within the last 24 hours
+        },
+      },
+      include: {
+        positions: {
+          include: {
+            candidates: {
+              include: {
+                partylist: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { endDate: "desc" }, // Get the most recently completed
+    });
+
+    if (!recentCompletedElection) return null;
+
+    const positions = [];
+
+    for (const position of recentCompletedElection.positions) {
+      const candidates = [];
+
+      for (const candidate of position.candidates) {
+        const voteCount = await prisma.vote.count({
+          where: {
+            candidateId: candidate.id,
+            positionId: position.id,
+            electionId: recentCompletedElection.id,
+          },
+        });
+
+        candidates.push({
+          id: candidate.id,
+          name: candidate.name,
+          avatar: candidate.avatar,
+          partylist: candidate.partylist.name,
+          votes: voteCount,
+        });
+      }
+
+      candidates.sort((a, b) => b.votes - a.votes);
+
+      positions.push({
+        id: position.id,
+        name: position.name,
+        candidates,
+      });
+    }
+
+    return {
+      id: recentCompletedElection.id,
+      name: recentCompletedElection.name,
+      status: recentCompletedElection.status,
+      positions,
+    };
+  }
+
+  // Get election results for home page (different logic than dashboard)
+  static async getHomePageElectionResults(): Promise<ElectionResult[]> {
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+    const elections = await prisma.election.findMany({
+      where: {
+        OR: [
+          { status: "ACTIVE" },
+          {
+            status: "COMPLETED",
+            endDate: {
+              gte: twentyFourHoursAgo, // Show completed elections within 24 hours
+            },
+          },
+        ],
+      },
+      include: {
+        positions: {
+          include: {
+            candidates: {
+              include: {
+                partylist: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { startDate: "desc" },
+    });
+
+    const results: ElectionResult[] = [];
+
+    for (const election of elections) {
+      const positions = [];
+
+      for (const position of election.positions) {
+        const candidates = [];
+
+        for (const candidate of position.candidates) {
+          // Count votes for this candidate
+          const voteCount = await prisma.vote.count({
+            where: {
+              candidateId: candidate.id,
+              positionId: position.id,
+              electionId: election.id,
+            },
+          });
+
+          candidates.push({
+            id: candidate.id,
+            name: candidate.name,
+            avatar: candidate.avatar,
+            partylist: candidate.partylist.name,
+            votes: voteCount,
+          });
+        }
+
+        // Sort candidates by vote count
+        candidates.sort((a, b) => b.votes - a.votes);
+
+        positions.push({
+          id: position.id,
+          name: position.name,
+          candidates,
+        });
+      }
+
+      results.push({
+        id: election.id,
+        name: election.name,
+        status: election.status,
+        positions,
+      });
+    }
+
+    return results;
   }
 }
 

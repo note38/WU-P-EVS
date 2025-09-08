@@ -20,11 +20,11 @@ const sidebarItems = [
   { name: "Dashboard", icon: LayoutDashboardIcon, href: "/admin_dashboard" },
   { name: "Elections", icon: Vote, href: "/admin_dashboard/elections" },
   { name: "Voters", icon: User, href: "/admin_dashboard/voters" },
-  {
-    name: "Notifications",
-    icon: Bell,
-    href: "/admin_dashboard/notifications",
-  },
+  // {
+  //   name: "Notifications",
+  //   icon: Bell,
+  //   href: "/admin_dashboard/notifications",
+  // },
   {
     name: "System Settings",
     icon: Settings,

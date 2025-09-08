@@ -39,6 +39,7 @@ body {
     --chart-4: 170 60% 40%;
     --chart-5: 115 60% 45%;
     --radius: 0.5rem;
+    --main-bg: #f9fafb; /* bg-gray-50 equivalent */
 
     /* Enhanced green glow colors */
     --glow-primary: 142 76% 36%;
@@ -75,6 +76,7 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --main-bg: #031701; /* Custom dark green background */
 
     /* Enhanced dark mode glow colors */
     --glow-primary: 142 80% 50%;

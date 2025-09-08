@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useUser, useClerk } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +41,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Lazy load larger components
 const Form = dynamic(() =>
@@ -99,16 +105,96 @@ type FieldType = {
 };
 
 // Profile Section Component
-const ProfileSection = ({ user }: { user: any }) => {
+const ProfileSection = ({
+  user,
+  onAvatarClick,
+  onRemoveAvatar,
+}: {
+  user: any;
+  onAvatarClick: () => void;
+  onRemoveAvatar: () => void;
+}) => {
   const [firstName, setFirstName] = useState(user.firstName || "");
   const [lastName, setLastName] = useState(user.lastName || "");
+  const [position, setPosition] = useState("");
+  const [initialPosition, setInitialPosition] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // Load user profile data from database
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/users/profile");
+        if (response.ok) {
+          const profileData = await response.json();
+          const userPosition = profileData.position || "";
+          setPosition(userPosition);
+          setInitialPosition(userPosition);
+        }
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Update Clerk user profile
       await user.update({ firstName, lastName });
+
+      // Update position in your database (always send position, even if empty)
+      try {
+        console.log("Sending position update:", { position });
+        const response = await fetch("/api/users/profile", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ position }),
+        });
+
+        console.log("Response status:", response.status, response.statusText);
+
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (parseError) {
+            console.error("Failed to parse error response:", parseError);
+            errorData = {
+              error: `HTTP ${response.status}: ${response.statusText}`,
+            };
+          }
+          console.error("API Error:", errorData);
+          throw new Error(
+            errorData.error ||
+              errorData.message ||
+              `Failed to update position in database (HTTP ${response.status})`
+          );
+        }
+
+        const responseData = await response.json();
+        console.log("Position update successful:", responseData);
+
+        // Update the initial position after successful save
+        setInitialPosition(position);
+      } catch (dbError: any) {
+        console.error("Database update error:", dbError);
+        toast({
+          title: "Partial update",
+          description: `Profile updated but position could not be saved to database. Error: ${dbError?.message || "Unknown error"}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Profile updated successfully!",
         description: "Your profile information has been updated.",
@@ -128,7 +214,10 @@ const ProfileSection = ({ user }: { user: any }) => {
     }
   };
 
-  const isChanged = firstName !== user.firstName || lastName !== user.lastName;
+  const isChanged =
+    firstName !== user.firstName ||
+    lastName !== user.lastName ||
+    position !== initialPosition;
   const userInitial = user.firstName
     ? user.firstName.charAt(0).toUpperCase()
     : "?";
@@ -147,22 +236,55 @@ const ProfileSection = ({ user }: { user: any }) => {
           <div className="px-6 pb-6">
             <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-6 -mt-16 sm:-mt-12">
               <div className="relative group">
-                <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-background shadow-xl">
-                  <AvatarImage
-                    src={user.imageUrl}
-                    alt={user.fullName || "User"}
-                  />
-                  <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/20 to-primary/30">
-                    {userInitial}
-                  </AvatarFallback>
-                </Avatar>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="cursor-pointer">
+                      <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-background shadow-xl transition-transform hover:scale-105">
+                        <AvatarImage
+                          src={user.imageUrl}
+                          alt={user.fullName || "User"}
+                        />
+                        <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/20 to-primary/30">
+                          {userInitial}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                      {/* Overlay hint */}
+                      <div className="absolute inset-0 rounded-full bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">
+                          Change Photo
+                        </div>
+                      </div>
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-48">
+                    <DropdownMenuItem
+                      onClick={onAvatarClick}
+                      className="cursor-pointer"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Change Photo
+                    </DropdownMenuItem>
+                    {user.imageUrl && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={onRemoveAvatar}
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remove Photo
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="mt-4 sm:mt-0 flex-1">
@@ -175,7 +297,7 @@ const ProfileSection = ({ user }: { user: any }) => {
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Badge variant="secondary" className="text-xs">
                     <User className="w-3 h-3 mr-1" />
-                    Member
+                    Admin
                   </Badge>
                   {user.emailAddresses.length > 1 && (
                     <Badge variant="outline" className="text-xs">
@@ -223,6 +345,15 @@ const ProfileSection = ({ user }: { user: any }) => {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Position</label>
+              <Input
+                placeholder="Enter your position or job title"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                className="transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
           </CardContent>
           <CardFooter className="bg-muted/20 border-t px-6 py-4 flex justify-between">
             <p className="text-sm text-muted-foreground">
@@ -254,10 +385,10 @@ const ProfileSection = ({ user }: { user: any }) => {
         <CardHeader className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Email Addresses
+            Email Address
           </CardTitle>
           <CardDescription>
-            Manage your email addresses and set your primary email.
+            Manage your email address and set your primary email.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -271,73 +402,13 @@ const ProfileSection = ({ user }: { user: any }) => {
                 <div>
                   <p className="font-medium">{email.emailAddress}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user.primaryEmailAddressId === email.id
-                      ? "Primary email"
-                      : "Secondary email"}
+                    {user.primaryEmailAddressId === email.id}
                   </p>
                 </div>
               </div>
-              {user.primaryEmailAddressId === email.id && (
-                <Badge className="bg-primary/10 text-primary border-primary/20">
-                  Primary
-                </Badge>
-              )}
             </div>
           ))}
         </CardContent>
-        <CardFooter className="border-t bg-muted/20">
-          <Button variant="outline" className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Email Address
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Connected Accounts */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Connected Accounts
-          </CardTitle>
-          <CardDescription>
-            Manage your social and external account connections.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-                <svg
-                  className="h-5 w-5 text-white"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium">Google</p>
-                <p className="text-sm text-muted-foreground">
-                  Connected via OAuth
-                </p>
-              </div>
-            </div>
-            <Badge variant="destructive" className="text-xs">
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              Action Required
-            </Badge>
-          </div>
-        </CardContent>
-        <CardFooter className="border-t bg-muted/20">
-          <Button variant="outline" className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Connect New Account
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );
@@ -345,46 +416,9 @@ const ProfileSection = ({ user }: { user: any }) => {
 
 // Security Section Component
 const SecuritySection = ({ user }: { user: any }) => {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { signOut } = useClerk();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentPassword || !newPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in both password fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await user.updatePassword({ currentPassword, newPassword });
-      toast({
-        title: "Password updated successfully!",
-        description: "Your password has been updated.",
-      });
-      setCurrentPassword("");
-      setNewPassword("");
-    } catch (err: any) {
-      console.error("Error updating password:", err);
-      const errorMessage =
-        err.errors?.[0]?.longMessage ||
-        "Failed to update password. Check your current password.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -406,156 +440,6 @@ const SecuritySection = ({ user }: { user: any }) => {
 
   return (
     <div className="space-y-6">
-      {/* Security Overview */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Security Overview
-          </CardTitle>
-          <CardDescription>
-            Manage your account security and authentication settings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-muted/20 border">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <KeyRound className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Password</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user.passwordEnabled ? "Enabled" : "Not set"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 rounded-lg bg-muted/20 border">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Email Verified</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user.primaryEmailAddress?.verification?.status ===
-                    "verified"
-                      ? "Yes"
-                      : "Pending"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 rounded-lg bg-muted/20 border">
-              <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Shield className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">Two-Factor</p>
-                  <p className="text-xs text-muted-foreground">Not enabled</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Password Management */}
-      {user.passwordEnabled ? (
-        <Card className="border-0 shadow-lg">
-          <form onSubmit={handleChangePassword}>
-            <CardHeader className="space-y-1">
-              <CardTitle className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
-                Change Password
-              </CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure. Use a strong,
-                unique password.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Current Password</label>
-                <Input
-                  type="password"
-                  placeholder="Enter your current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="transition-all focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">New Password</label>
-                <Input
-                  type="password"
-                  placeholder="Enter a new strong password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="transition-all focus:ring-2 focus:ring-primary/20"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Password should be at least 8 characters long and include a
-                  mix of letters, numbers, and symbols.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-muted/20 border-t px-6 py-4 flex justify-between">
-              <p className="text-sm text-muted-foreground">
-                Your password was last updated recently
-              </p>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !currentPassword || !newPassword}
-                className="transition-all hover:scale-105"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Update Password
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </form>
-        </Card>
-      ) : (
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="space-y-1">
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" />
-              Password Authentication
-            </CardTitle>
-            <CardDescription>
-              Set up password authentication for additional security.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-4 p-4 rounded-lg bg-muted/20 border">
-              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-500" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">No password set</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  You signed up using a social provider. Consider setting up a
-                  password for additional security.
-                </p>
-              </div>
-              <Button variant="outline">Set Password</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Sessions */}
       <Card className="border-0 shadow-lg">
         <CardHeader className="space-y-1">
@@ -685,6 +569,9 @@ export function ProfileSettings() {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
 
+  // File input ref for avatar upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Form initialization
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -808,6 +695,11 @@ export function ProfileSettings() {
     setImageSrc(null);
   };
 
+  // Function to trigger file input when camera button is clicked
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleRemoveAvatar = async () => {
     if (!user) return;
 
@@ -843,6 +735,16 @@ export function ProfileSettings() {
 
   return (
     <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      {/* Hidden file input for avatar upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImageSelect}
+        accept="image/*"
+        className="hidden"
+        aria-label="Upload avatar image"
+      />
+
       <ImageCropper
         open={cropperOpen}
         onOpenChange={setCropperOpen}
@@ -851,34 +753,18 @@ export function ProfileSettings() {
         onCancel={handleCropCancel}
       />
 
-      <Tabs defaultValue="account" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md mb-6">
-          <TabsTrigger value="account" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Account
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Security
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="account" className="mt-0">
-          <div className="space-y-6">
-            <div className="animate-in slide-in-from-left-2 duration-300">
-              <ProfileSection user={user} />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="security" className="mt-0">
-          <div className="space-y-6">
-            <div className="animate-in slide-in-from-right-2 duration-300">
-              <SecuritySection user={user} />
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="w-full space-y-6">
+        <div className="animate-in slide-in-from-left-2 duration-300">
+          <ProfileSection
+            user={user}
+            onAvatarClick={handleAvatarClick}
+            onRemoveAvatar={handleRemoveAvatar}
+          />
+        </div>
+        <div className="animate-in slide-in-from-right-2 duration-300">
+          <SecuritySection user={user} />
+        </div>
+      </div>
     </div>
   );
 }

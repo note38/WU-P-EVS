@@ -71,11 +71,11 @@ export function Header({ onSidebarToggle }: HeaderProps) {
         <div className="ml-auto flex items-center space-x-4">
           <ThemeToggle />
 
-          <Link href="/admin_dashboard/notifications">
+          {/* <Link href="/admin_dashboard/notifications">
             <Button variant="ghost" size="icon" aria-label="Notifications">
               <Bell className="h-5 w-5" />
             </Button>
-          </Link>
+          </Link> */}
 
           {/* --- Your Custom Branded Dropdown --- */}
           <DropdownMenu>

@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Users, RefreshCw } from "lucide-react";
+import { Calendar, Users, RefreshCw, Eye, EyeOff } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   lazy,
@@ -112,6 +112,13 @@ const getOptimizedAvatar = (name: string, priority = false) => {
 
   return baseUrl;
 };
+
+// Function to generate anonymous avatar when names are hidden
+function getAnonymousAvatar(candidateId: number) {
+  const styles = ["bottts", "identicon", "shapes"];
+  const style = styles[candidateId % styles.length];
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=anonymous-${candidateId}`;
+}
 
 // Static election data to prevent layout shift
 const STATIC_ELECTIONS = [
@@ -268,13 +275,20 @@ const CandidateCard = memo(function CandidateCard({
   candidate,
   index,
   isUpdatingPercentages,
+  showNames = true,
 }: {
   candidate: TransformedElection["positions"][0]["candidates"][0];
   index: number;
   isUpdatingPercentages: boolean;
+  showNames?: boolean;
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  // Get avatar URL based on showNames state
+  const avatarUrl = showNames 
+    ? candidate.avatarUrl 
+    : getAnonymousAvatar(candidate.id);
 
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
@@ -285,8 +299,8 @@ const CandidateCard = memo(function CandidateCard({
               <div className="absolute inset-0 bg-gray-200 critical-skeleton"></div>
             )}
             <img
-              src={candidate.avatarUrl}
-              alt={candidate.name}
+              src={avatarUrl}
+              alt={showNames ? candidate.name : "Anonymous candidate"}
               className={`h-full w-full object-cover transition-opacity duration-200 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}
@@ -299,14 +313,16 @@ const CandidateCard = memo(function CandidateCard({
             />
             {imageError && (
               <div className="absolute inset-0 bg-gray-300 flex items-center justify-center text-gray-600 text-xs lg:text-lg font-medium">
-                {candidate.name.charAt(0)}
+                {showNames ? candidate.name.charAt(0) : "?"}
               </div>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm lg:text-lg font-semibold text-foreground mb-0.5 truncate">
-              {candidate.name}
-            </h3>
+            {showNames && (
+              <h3 className="text-sm lg:text-lg font-semibold text-foreground mb-0.5 truncate">
+                {candidate.name}
+              </h3>
+            )}
             <p
               className={`text-base lg:text-xl font-bold text-primary transition-all duration-200 ${
                 isUpdatingPercentages ? "animate-pulse" : ""
@@ -417,10 +433,12 @@ const PositionSelector = memo(function PositionSelector({
   positions,
   electionStatus,
   isUpdatingPercentages,
+  showNames = true,
 }: {
   positions: TransformedElection["positions"];
   electionStatus: TransformedElection["status"];
   isUpdatingPercentages: boolean;
+  showNames?: boolean;
 }) {
   const [currentPosition, setCurrentPosition] = useState(positions[0]);
   const [isLoading, setIsLoading] = useState(true);
@@ -515,6 +533,7 @@ const PositionSelector = memo(function PositionSelector({
                         candidate={candidate}
                         index={index}
                         isUpdatingPercentages={isUpdatingPercentages}
+                        showNames={showNames}
                       />
                     </Suspense>
                   ))}
@@ -551,6 +570,7 @@ export default function Home() {
   } = useHomeResults();
   const [showElectionSelector, setShowElectionSelector] = useState(false);
   const [isUpdatingPercentages, setIsUpdatingPercentages] = useState(false);
+  const [showNames, setShowNames] = useState(true);
 
   // Transform live data to match the expected format
   const transformedElections: TransformedElection[] = useMemo(() => {
@@ -798,12 +818,31 @@ export default function Home() {
                         Total Candidates: {totalCandidates}
                       </span>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-sm"
+                      onClick={() => setShowNames(!showNames)}
+                    >
+                      {showNames ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Hide Names
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Show Names
+                        </>
+                      )}
+                    </Button>
                   </div>
 
                   <PositionSelector
                     positions={currentElection.positions}
                     electionStatus={currentElection.status}
                     isUpdatingPercentages={isUpdatingPercentages}
+                    showNames={showNames}
                   />
                 </>
               )}
