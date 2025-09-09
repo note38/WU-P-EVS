@@ -8,10 +8,5 @@
     "NEXT_TELEMETRY_DISABLED": "1",
     "NODE_ENV": "production",
     "TYPESCRIPT_DISABLE_TYPE_CHECKING": "1"
-  },
-  "functions": {
-    "app/api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
   }
 }
