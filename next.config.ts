@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {},
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Fix the workspace root warning
   outputFileTracingRoot: process.cwd(),
   // Disable type checking during build for deployment

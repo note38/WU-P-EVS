@@ -54,10 +54,15 @@ export function useHomeResults(): UseHomeResultsReturn {
         allElections = [];
       } else {
         // Other status codes are actual errors
-        const errorData = await allResponse.json().catch(() => ({}));
-        throw new Error(
-          `Failed to fetch election results: ${errorData.details || errorData.error || allResponse.statusText}`
-        );
+        let errorData: any = {};
+        try {
+          errorData = await allResponse.json();
+        } catch (jsonError) {
+          console.warn('Failed to parse error response JSON:', jsonError);
+        }
+        
+        const errorMessage = errorData?.details || errorData?.error || allResponse.statusText || 'Unknown error';
+        throw new Error(`Failed to fetch election results: ${errorMessage}`);
       }
 
       // Fetch active/recent election for home page
@@ -72,10 +77,15 @@ export function useHomeResults(): UseHomeResultsReturn {
         activeElectionData = null;
       } else {
         // Other status codes are actual errors
-        const errorData = await activeResponse.json().catch(() => ({}));
-        throw new Error(
-          `Failed to fetch active election: ${errorData.details || errorData.error || activeResponse.statusText}`
-        );
+        let errorData: any = {};
+        try {
+          errorData = await activeResponse.json();
+        } catch (jsonError) {
+          console.warn('Failed to parse active election error response JSON:', jsonError);
+        }
+        
+        const errorMessage = errorData?.details || errorData?.error || activeResponse.statusText || 'Unknown error';
+        throw new Error(`Failed to fetch active election: ${errorMessage}`);
       }
 
       setElections(allElections);
@@ -103,7 +113,7 @@ export function useHomeResults(): UseHomeResultsReturn {
         const errorData = await allResponse.json().catch(() => ({}));
         console.warn(
           "Percentage update failed:",
-          errorData.details || errorData.error || allResponse.statusText
+          errorData?.details || errorData?.error || allResponse.statusText
         );
         return; // Don't throw error for percentage updates
       }
@@ -120,7 +130,7 @@ export function useHomeResults(): UseHomeResultsReturn {
         const errorData = await activeResponse.json().catch(() => ({}));
         console.warn(
           "Active election update failed:",
-          errorData.details || errorData.error || activeResponse.statusText
+          errorData?.details || errorData?.error || activeResponse.statusText
         );
         return; // Don't throw error for percentage updates
       }

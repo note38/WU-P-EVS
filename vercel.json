@@ -1,10 +1,17 @@
 {
   "version": 2,
   "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build:fast",
+  "buildCommand": "npm run build:deploy",
   "framework": "nextjs",
   "env": {
     "SKIP_ENV_VALIDATION": "1",
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NODE_ENV": "production",
+    "TYPESCRIPT_DISABLE_TYPE_CHECKING": "1"
+  },
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
   }
 }

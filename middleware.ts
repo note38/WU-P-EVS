@@ -18,10 +18,6 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/debug",
   "/api/auth/link-user",
   "/api/auth/get-user",
-  "/api/admin/stats",
-  "/api/admin/elections",
-  "/api/admin/departments",
-  "/api/voters",
   "/test-auth",
 ]);
 

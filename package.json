@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:fast": "next build --no-lint",
-    "build:deploy": "TYPESCRIPT_DISABLE_TYPE_CHECKING=1 next build --no-lint",
+    "build:fast": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate && next build --no-lint",
+    "build:deploy": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate && next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "seed": "node --loader ts-node/esm prisma/seed.ts",

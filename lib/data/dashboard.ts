@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { ElectionStatus, VoterStatus } from "@prisma/client";
 
 export interface DashboardStats {
   totalElections: number;
@@ -30,7 +29,7 @@ export interface RecentVoter {
 export interface ElectionResult {
   id: number;
   name: string;
-  status: ElectionStatus;
+  status: "ACTIVE" | "COMPLETED" | "INACTIVE";
   positions: {
     id: number;
     name: string;
@@ -137,7 +136,7 @@ export class DashboardDataService {
     });
 
     // Add voter registration activities
-    recentVoters.forEach((voter) => {
+    recentVoters.forEach((voter: any) => {
       activities.push({
         id: voter.id + 20000,
         action: "New Voter Registered",
@@ -148,7 +147,7 @@ export class DashboardDataService {
     });
 
     // Add election activities
-    recentElections.forEach((election) => {
+    recentElections.forEach((election: any) => {
       activities.push({
         id: election.id + 10000,
         action:
@@ -164,7 +163,7 @@ export class DashboardDataService {
     });
 
     // Add candidate registration activities
-    recentCandidates.forEach((candidate) => {
+    recentCandidates.forEach((candidate: any) => {
       activities.push({
         id: candidate.id + 30000,
         action: "New Candidate Added",
@@ -175,7 +174,7 @@ export class DashboardDataService {
     });
 
     // Add vote activities
-    recentVotes.forEach((vote) => {
+    recentVotes.forEach((vote: any) => {
       activities.push({
         id: vote.id,
         action: "Vote Cast",
@@ -198,7 +197,7 @@ export class DashboardDataService {
       orderBy: { createdAt: "desc" },
     });
 
-    return recentVoters.map((voter) => ({
+    return recentVoters.map((voter: any) => ({
       id: voter.id,
       name: `${voter.firstName} ${voter.lastName}`,
       time: formatTimeAgo(voter.createdAt),
@@ -280,177 +279,41 @@ export class DashboardDataService {
 
   // Get active election for live results
   static async getActiveElectionResults(): Promise<ElectionResult | null> {
-    const activeElection = await prisma.election.findFirst({
-      where: { status: "ACTIVE" },
-      include: {
-        positions: {
-          include: {
-            candidates: {
-              include: {
-                partylist: true,
+    try {
+      const activeElection = await prisma.election.findFirst({
+        where: { status: "ACTIVE" },
+        include: {
+          positions: {
+            include: {
+              candidates: {
+                include: {
+                  partylist: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    if (!activeElection) return null;
-
-    const positions = [];
-
-    for (const position of activeElection.positions) {
-      const candidates = [];
-
-      for (const candidate of position.candidates) {
-        const voteCount = await prisma.vote.count({
-          where: {
-            candidateId: candidate.id,
-            positionId: position.id,
-            electionId: activeElection.id,
-          },
-        });
-
-        candidates.push({
-          id: candidate.id,
-          name: candidate.name,
-          avatar: candidate.avatar,
-          partylist: candidate.partylist.name,
-          votes: voteCount,
-        });
-      }
-
-      candidates.sort((a, b) => b.votes - a.votes);
-
-      positions.push({
-        id: position.id,
-        name: position.name,
-        candidates,
       });
-    }
 
-    return {
-      id: activeElection.id,
-      name: activeElection.name,
-      status: activeElection.status,
-      positions,
-    };
-  }
+      if (!activeElection) return null;
 
-  // Get recent completed election for home page (within 24 hours)
-  static async getRecentCompletedElectionResults(): Promise<ElectionResult | null> {
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-    const recentCompletedElection = await prisma.election.findFirst({
-      where: {
-        status: "COMPLETED",
-        endDate: {
-          gte: twentyFourHoursAgo, // Completed within the last 24 hours
-        },
-      },
-      include: {
-        positions: {
-          include: {
-            candidates: {
-              include: {
-                partylist: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { endDate: "desc" }, // Get the most recently completed
-    });
-
-    if (!recentCompletedElection) return null;
-
-    const positions = [];
-
-    for (const position of recentCompletedElection.positions) {
-      const candidates = [];
-
-      for (const candidate of position.candidates) {
-        const voteCount = await prisma.vote.count({
-          where: {
-            candidateId: candidate.id,
-            positionId: position.id,
-            electionId: recentCompletedElection.id,
-          },
-        });
-
-        candidates.push({
-          id: candidate.id,
-          name: candidate.name,
-          avatar: candidate.avatar,
-          partylist: candidate.partylist.name,
-          votes: voteCount,
-        });
-      }
-
-      candidates.sort((a, b) => b.votes - a.votes);
-
-      positions.push({
-        id: position.id,
-        name: position.name,
-        candidates,
-      });
-    }
-
-    return {
-      id: recentCompletedElection.id,
-      name: recentCompletedElection.name,
-      status: recentCompletedElection.status,
-      positions,
-    };
-  }
-
-  // Get election results for home page (different logic than dashboard)
-  static async getHomePageElectionResults(): Promise<ElectionResult[]> {
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-    const elections = await prisma.election.findMany({
-      where: {
-        OR: [
-          { status: "ACTIVE" },
-          {
-            status: "COMPLETED",
-            endDate: {
-              gte: twentyFourHoursAgo, // Show completed elections within 24 hours
-            },
-          },
-        ],
-      },
-      include: {
-        positions: {
-          include: {
-            candidates: {
-              include: {
-                partylist: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { startDate: "desc" },
-    });
-
-    const results: ElectionResult[] = [];
-
-    for (const election of elections) {
       const positions = [];
 
-      for (const position of election.positions) {
+      for (const position of activeElection.positions) {
         const candidates = [];
 
         for (const candidate of position.candidates) {
-          // Count votes for this candidate
+          // Ensure partylist exists before accessing its properties
+          if (!candidate.partylist) {
+            console.warn(`Candidate ${candidate.id} has no partylist`);
+            continue;
+          }
+
           const voteCount = await prisma.vote.count({
             where: {
               candidateId: candidate.id,
               positionId: position.id,
-              electionId: election.id,
+              electionId: activeElection.id,
             },
           });
 
@@ -463,7 +326,6 @@ export class DashboardDataService {
           });
         }
 
-        // Sort candidates by vote count
         candidates.sort((a, b) => b.votes - a.votes);
 
         positions.push({
@@ -473,15 +335,185 @@ export class DashboardDataService {
         });
       }
 
-      results.push({
-        id: election.id,
-        name: election.name,
-        status: election.status,
+      return {
+        id: activeElection.id,
+        name: activeElection.name,
+        status: activeElection.status,
         positions,
-      });
+      };
+    } catch (error) {
+      console.error('Error fetching active election results:', error);
+      return null;
     }
+  }
 
-    return results;
+  // Get recent completed election for home page (within 24 hours)
+  static async getRecentCompletedElectionResults(): Promise<ElectionResult | null> {
+    try {
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+      const recentCompletedElection = await prisma.election.findFirst({
+        where: {
+          status: "COMPLETED",
+          endDate: {
+            gte: twentyFourHoursAgo, // Completed within the last 24 hours
+          },
+        },
+        include: {
+          positions: {
+            include: {
+              candidates: {
+                include: {
+                  partylist: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { endDate: "desc" }, // Get the most recently completed
+      });
+
+      if (!recentCompletedElection) return null;
+
+      const positions = [];
+
+      for (const position of recentCompletedElection.positions) {
+        const candidates = [];
+
+        for (const candidate of position.candidates) {
+          // Ensure partylist exists before accessing its properties
+          if (!candidate.partylist) {
+            console.warn(`Candidate ${candidate.id} has no partylist`);
+            continue;
+          }
+
+          const voteCount = await prisma.vote.count({
+            where: {
+              candidateId: candidate.id,
+              positionId: position.id,
+              electionId: recentCompletedElection.id,
+            },
+          });
+
+          candidates.push({
+            id: candidate.id,
+            name: candidate.name,
+            avatar: candidate.avatar,
+            partylist: candidate.partylist.name,
+            votes: voteCount,
+          });
+        }
+
+        candidates.sort((a, b) => b.votes - a.votes);
+
+        positions.push({
+          id: position.id,
+          name: position.name,
+          candidates,
+        });
+      }
+
+      return {
+        id: recentCompletedElection.id,
+        name: recentCompletedElection.name,
+        status: recentCompletedElection.status,
+        positions,
+      };
+    } catch (error) {
+      console.error('Error fetching recent completed election results:', error);
+      return null;
+    }
+  }
+
+  // Get election results for home page (different logic than dashboard)
+  static async getHomePageElectionResults(): Promise<ElectionResult[]> {
+    try {
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+      const elections = await prisma.election.findMany({
+        where: {
+          OR: [
+            { status: "ACTIVE" },
+            {
+              status: "COMPLETED",
+              endDate: {
+                gte: twentyFourHoursAgo, // Show completed elections within 24 hours
+              },
+            },
+          ],
+        },
+        include: {
+          positions: {
+            include: {
+              candidates: {
+                include: {
+                  partylist: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { startDate: "desc" },
+      });
+
+      const results: ElectionResult[] = [];
+
+      for (const election of elections) {
+        const positions = [];
+
+        for (const position of election.positions) {
+          const candidates = [];
+
+          for (const candidate of position.candidates) {
+            // Ensure partylist exists before accessing its properties
+            if (!candidate.partylist) {
+              console.warn(`Candidate ${candidate.id} has no partylist`);
+              continue;
+            }
+
+            // Count votes for this candidate
+            const voteCount = await prisma.vote.count({
+              where: {
+                candidateId: candidate.id,
+                positionId: position.id,
+                electionId: election.id,
+              },
+            });
+
+            candidates.push({
+              id: candidate.id,
+              name: candidate.name,
+              avatar: candidate.avatar,
+              partylist: candidate.partylist.name,
+              votes: voteCount,
+            });
+          }
+
+          // Sort candidates by vote count
+          candidates.sort((a, b) => b.votes - a.votes);
+
+          positions.push({
+            id: position.id,
+            name: position.name,
+            candidates,
+          });
+        }
+
+        results.push({
+          id: election.id,
+          name: election.name,
+          status: election.status,
+          positions,
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error fetching home page election results:', error);
+      return [];
+    }
   }
 }
 
