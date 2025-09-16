@@ -9,31 +9,8 @@ import {
   AccelerateResult,
 } from "@/lib/data/VoterDataService";
 
-// Define the correct VoterData type that matches the API response
-type VoterData = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  email: string;
-  status: "REGISTERED" | "VOTED";
-  avatar: string;
-  credentialsSent: boolean;
-  createdAt: Date;
-  election: {
-    name: string;
-    id: number;
-  } | null;
-  year: {
-    name: string;
-    id: number;
-    department: {
-      id: number;
-      name: string;
-      image: string | null;
-    };
-  } | null;
-};
+// Import Voter type from voter-card to maintain type consistency
+import { Voter } from "@/app/components/admin/voter-detail/voter-card";
 import {
   StatCardSkeleton,
   DepartmentCardSkeleton,
@@ -41,12 +18,6 @@ import {
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 import { ExportButtons } from "@/app/components/admin/voter-detail/export-buttons";
-
-// Define VoterStatus enum to match the one in DepartmentCard
-enum VoterStatus {
-  REGISTERED = "REGISTERED",
-  VOTED = "VOTED",
-}
 
 type Department = {
   id: number;
@@ -62,9 +33,11 @@ type Department = {
 function PageHeader({
   voters,
   departments,
+  onVoterCreated,
 }: {
   voters: any[];
   departments: any[];
+  onVoterCreated?: () => void;
 }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -72,10 +45,10 @@ function PageHeader({
       <div className="flex flex-col sm:flex-row gap-2">
         <ExportButtons voters={voters} title="All Voters Report" />
         <div className="hidden md:block">
-          <CreateVoterForm />
+          <CreateVoterForm onVoterCreated={onVoterCreated} />
         </div>
         <div className="block md:hidden w-full">
-          <CreateVoterForm />
+          <CreateVoterForm onVoterCreated={onVoterCreated} />
         </div>
       </div>
     </div>
@@ -85,10 +58,15 @@ function PageHeader({
 // Main Voters Page Component
 export default function VotersPage() {
   const { user, isLoaded, isSignedIn } = useUser();
-  const [votersData, setVotersData] = useState<VoterData[]>([]);
+  const [votersData, setVotersData] = useState<Voter[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleVoterCreated = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -188,7 +166,7 @@ export default function VotersPage() {
     };
 
     fetchData();
-  }, [isLoaded, isSignedIn, user?.id]);
+  }, [isLoaded, isSignedIn, user?.id, refreshTrigger]);
 
   if (!isLoaded || loading) {
     return <StatCardSkeleton />;
@@ -210,7 +188,11 @@ export default function VotersPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <PageHeader voters={votersData} departments={departments} />
+      <PageHeader
+        voters={votersData}
+        departments={departments}
+        onVoterCreated={handleVoterCreated}
+      />
 
       {/* Department Cards - Pass all voters to let the component handle grouping */}
       <Card>

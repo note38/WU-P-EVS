@@ -2,52 +2,19 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { getUserByClerkId } from "@/lib/clerk-auth";
+import { Prisma } from "@prisma/client";
+import { validateAdminAccess } from "@/lib/auth-utils";
 
 export async function POST(req: NextRequest) {
   try {
-    // Get the authenticated user
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Validate admin access
+    const authResult = await validateAdminAccess();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    // Get user ID from database user
-    let userIdNum: number;
-    try {
-      userIdNum = userData.user.id;
-      if (isNaN(userIdNum)) {
-        throw new Error("Invalid user ID format");
-      }
-    } catch (e) {
-      console.error("User ID parsing error:", e);
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
-    }
+    const { userId: userIdNum } = authResult;
 
     // Parse request body
     let data;
@@ -135,50 +102,52 @@ export async function POST(req: NextRequest) {
     try {
       console.log("Creating election with partyList:", data.partyList);
 
-      const election = await prisma.$transaction(async (tx) => {
-        // First create the election
-        const newElection = await tx.election.create({
-          data: {
-            name: data.name,
-            description: data.description || "",
-            startDate: startDateTime,
-            endDate: endDateTime,
-            createdById: userIdNum,
+      const election = await prisma.$transaction(
+        async (tx: Prisma.TransactionClient) => {
+          // First create the election
+          const newElection = await tx.election.create({
+            data: {
+              name: data.name,
+              description: data.description || "",
+              startDate: startDateTime,
+              endDate: endDateTime,
+              createdById: userIdNum,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Prepare partylist data, always including "Independent" by default
+          const initialNames: string[] = Array.isArray(data.partyList)
+            ? data.partyList.map((n: string) => String(n).trim())
+            : [];
+
+          if (!initialNames.some((n) => n.toLowerCase() === "independent")) {
+            initialNames.push("Independent");
+          }
+
+          // Remove duplicates (case-insensitive)
+          const uniqueNames = Array.from(
+            new Set(initialNames.map((n) => n.toLowerCase()))
+          ).map(
+            (lowerName) =>
+              initialNames.find((n) => n.toLowerCase() === lowerName) as string
+          );
+
+          const partylistsData = uniqueNames.map((name: string) => ({
+            name,
+            electionId: newElection.id,
             createdAt: new Date(),
             updatedAt: new Date(),
-          },
-        });
+          }));
 
-        // Prepare partylist data, always including "Independent" by default
-        const initialNames: string[] = Array.isArray(data.partyList)
-          ? data.partyList.map((n: string) => String(n).trim())
-          : [];
+          await tx.partylist.createMany({
+            data: partylistsData,
+          });
 
-        if (!initialNames.some((n) => n.toLowerCase() === "independent")) {
-          initialNames.push("Independent");
+          return newElection;
         }
-
-        // Remove duplicates (case-insensitive)
-        const uniqueNames = Array.from(
-          new Set(initialNames.map((n) => n.toLowerCase()))
-        ).map(
-          (lowerName) =>
-            initialNames.find((n) => n.toLowerCase() === lowerName) as string
-        );
-
-        const partylistsData = uniqueNames.map((name: string) => ({
-          name,
-          electionId: newElection.id,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }));
-
-        await tx.partylist.createMany({
-          data: partylistsData,
-        });
-
-        return newElection;
-      });
+      );
 
       const completeElection = await prisma.election.findUnique({
         where: { id: election.id },
@@ -195,7 +164,7 @@ export async function POST(req: NextRequest) {
       // Format the response to match the expected format in the client
       const formattedElection = {
         ...completeElection,
-        partyList: completeElection.partylists.map((p) => p.name) || [],
+        partyList: completeElection.partylists.map((p: any) => p.name) || [],
       };
 
       console.log("Created election:", formattedElection);
@@ -240,9 +209,9 @@ export async function GET(req: NextRequest) {
     });
 
     // Format elections to include partyList in the expected format
-    const formattedElections = elections.map((election) => ({
+    const formattedElections = elections.map((election: any) => ({
       ...election,
-      partyList: election.partylists.map((p) => p.name),
+      partyList: election.partylists.map((p: any) => p.name),
     }));
 
     return NextResponse.json(formattedElections);

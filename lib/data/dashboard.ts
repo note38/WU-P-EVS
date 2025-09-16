@@ -342,7 +342,7 @@ export class DashboardDataService {
         positions,
       };
     } catch (error) {
-      console.error('Error fetching active election results:', error);
+      console.error("Error fetching active election results:", error);
       return null;
     }
   }
@@ -421,7 +421,7 @@ export class DashboardDataService {
         positions,
       };
     } catch (error) {
-      console.error('Error fetching recent completed election results:', error);
+      console.error("Error fetching recent completed election results:", error);
       return null;
     }
   }
@@ -511,7 +511,7 @@ export class DashboardDataService {
 
       return results;
     } catch (error) {
-      console.error('Error fetching home page election results:', error);
+      console.error("Error fetching home page election results:", error);
       return [];
     }
   }

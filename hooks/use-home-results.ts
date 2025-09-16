@@ -58,10 +58,14 @@ export function useHomeResults(): UseHomeResultsReturn {
         try {
           errorData = await allResponse.json();
         } catch (jsonError) {
-          console.warn('Failed to parse error response JSON:', jsonError);
+          console.warn("Failed to parse error response JSON:", jsonError);
         }
-        
-        const errorMessage = errorData?.details || errorData?.error || allResponse.statusText || 'Unknown error';
+
+        const errorMessage =
+          errorData?.details ||
+          errorData?.error ||
+          allResponse.statusText ||
+          "Unknown error";
         throw new Error(`Failed to fetch election results: ${errorMessage}`);
       }
 
@@ -81,10 +85,17 @@ export function useHomeResults(): UseHomeResultsReturn {
         try {
           errorData = await activeResponse.json();
         } catch (jsonError) {
-          console.warn('Failed to parse active election error response JSON:', jsonError);
+          console.warn(
+            "Failed to parse active election error response JSON:",
+            jsonError
+          );
         }
-        
-        const errorMessage = errorData?.details || errorData?.error || activeResponse.statusText || 'Unknown error';
+
+        const errorMessage =
+          errorData?.details ||
+          errorData?.error ||
+          activeResponse.statusText ||
+          "Unknown error";
         throw new Error(`Failed to fetch active election: ${errorMessage}`);
       }
 

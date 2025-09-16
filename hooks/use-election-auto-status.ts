@@ -88,8 +88,7 @@ export function useElectionAutoStatus(
             onStatusUpdate(checkData.electionsNeedingUpdate);
           }
 
-          // Refresh the page to show updated statuses
-          router.refresh();
+          // Don't refresh the entire page, let components handle their own updates via callbacks
         }
       }
     } catch (error) {

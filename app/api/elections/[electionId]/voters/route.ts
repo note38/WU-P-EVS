@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { electionId: string } }
+  { params }: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const { electionId: electionIdStr } = params;
+    // Await params before accessing properties (Next.js 15 requirement)
+    const resolvedParams = await params;
+    const { electionId: electionIdStr } = resolvedParams;
     const electionId = parseInt(electionIdStr);
 
     const { searchParams } = new URL(request.url);

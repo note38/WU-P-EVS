@@ -19,18 +19,24 @@ export interface ExportVoter {
   election?: {
     id: number;
     name: string;
-  };
+  } | null;
 }
 
 // Enhanced voter type that includes department information
-export interface EnhancedVoterData extends VoterData {
+export interface EnhancedVoterData extends Omit<VoterData, "year"> {
   year: {
     id: number;
     name: string;
     departmentName?: string;
     departmentId?: number;
     departmentImage?: string | null;
-  };
+    // Keep compatibility with VoterData by including the department structure
+    department?: {
+      id: number;
+      name: string;
+      image: string | null;
+    };
+  } | null;
 }
 
 // Convert VoterData to ExportVoter format
@@ -48,8 +54,8 @@ export function prepareVoterDataForExport(
       // Use the department info that's already available
       departmentName = (voter.year as any).departmentName;
       // Extract year name from the full name (e.g., "Year 1 - Computer Science" -> "Year 1")
-      const yearParts = voter.year.name ? voter.year.name.split(" - ") : [];
-      yearName = yearParts[0] || voter.year.name || "Unknown";
+      const yearParts = voter.year?.name ? voter.year.name.split(" - ") : [];
+      yearName = yearParts[0] || voter.year?.name || "Unknown";
     } else {
       // Fallback to parsing from year name
       const yearParts = voter.year?.name ? voter.year.name.split(" - ") : [];
@@ -414,4 +420,226 @@ export function printVoters(
   printWindow.close();
 
   return { success: true };
+}
+
+import { formatDateTime, calculatePercentage } from "./print-templates";
+import type { ElectionDetails, Position } from "@/types/election-results";
+
+interface ExportOptions {
+  electionDetails: ElectionDetails;
+  positions: Position[];
+}
+
+/**
+ * Export election results to Excel format
+ * @param options Export configuration options
+ * @returns Promise that resolves when export is complete
+ */
+export async function exportElectionResults(
+  options: ExportOptions
+): Promise<void> {
+  const { electionDetails, positions } = options;
+
+  try {
+    // Dynamic import to avoid SSR issues
+    const [{ default: XLSX }, { default: saveAs }] = await Promise.all([
+      import("xlsx"),
+      import("file-saver"),
+    ]);
+
+    const startDateTime = formatDateTime(electionDetails.startDate);
+    const endDateTime = formatDateTime(electionDetails.endDate);
+
+    // Generate workbook data
+    const summaryData = generateSummaryData(
+      electionDetails,
+      startDateTime,
+      endDateTime
+    );
+    const resultsData = generateResultsData(positions);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Create summary worksheet
+    const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
+    configureSummaryWorksheet(summaryWorksheet);
+
+    // Create results worksheet
+    const resultsWorksheet = XLSX.utils.aoa_to_sheet(resultsData);
+    configureResultsWorksheet(resultsWorksheet);
+
+    // Add worksheets to workbook
+    XLSX.utils.book_append_sheet(
+      workbook,
+      summaryWorksheet,
+      "Election Summary"
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      resultsWorksheet,
+      "Detailed Results"
+    );
+
+    // Generate and save file
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const fileName = generateExportFilename(electionDetails.name);
+    saveAs(blob, fileName);
+  } catch (error) {
+    throw new Error(`Export failed: ${error}`);
+  }
+}
+
+/**
+ * Generate summary data for Excel export
+ */
+function generateSummaryData(
+  electionDetails: ElectionDetails,
+  startDateTime: { date: string; time: string },
+  endDateTime: { date: string; time: string }
+): (string | number)[][] {
+  const turnoutPercentage = Math.round(
+    (electionDetails.castedVotes / electionDetails.voters) * 100
+  );
+
+  return [
+    ["Election Results Summary"],
+    [""],
+    ["Election Name", electionDetails.name],
+    ["Election Start", `${startDateTime.date} ${startDateTime.time}`],
+    ["Election End", `${endDateTime.date} ${endDateTime.time}`],
+    ["Status", electionDetails.status],
+    ["Total Positions", electionDetails.positions],
+    ["Total Candidates", electionDetails.candidates],
+    ["Total Voters", electionDetails.voters],
+    ["Casted Votes", electionDetails.castedVotes],
+    ["Uncasted Votes", electionDetails.uncastedVotes],
+    ["Voter Turnout", `${turnoutPercentage}%`],
+    [""],
+    ["Generated On", new Date().toLocaleString()],
+    [""],
+    [""],
+  ];
+}
+
+/**
+ * Generate detailed results data for Excel export
+ */
+function generateResultsData(positions: Position[]): (string | number)[][] {
+  const resultsData: (string | number)[][] = [
+    [
+      "Position",
+      "Candidate Name",
+      "Party/Affiliation",
+      "Votes",
+      "Percentage",
+      "Rank",
+      "Winner",
+    ],
+  ];
+
+  positions.forEach((position) => {
+    if (position.candidates.length === 0) {
+      resultsData.push([position.name, "No candidates", "", "", "", "", ""]);
+    } else {
+      position.candidates.forEach((candidate, index) => {
+        const percentage = calculatePercentage(
+          candidate.votes,
+          position.totalVotes
+        );
+        const isWinner = index === 0 && candidate.votes > 0;
+
+        resultsData.push([
+          position.name,
+          candidate.name,
+          candidate.partylist,
+          candidate.votes,
+          `${percentage}%`,
+          index + 1,
+          isWinner ? "YES" : "NO",
+        ]);
+      });
+    }
+
+    // Add empty row between positions
+    resultsData.push(["", "", "", "", "", "", ""]);
+  });
+
+  return resultsData;
+}
+
+/**
+ * Configure summary worksheet formatting
+ */
+function configureSummaryWorksheet(worksheet: any): void {
+  worksheet["!cols"] = [
+    { wch: 20 }, // Label column
+    { wch: 30 }, // Value column
+  ];
+}
+
+/**
+ * Configure results worksheet formatting
+ */
+function configureResultsWorksheet(worksheet: any): void {
+  worksheet["!cols"] = [
+    { wch: 25 }, // Position
+    { wch: 30 }, // Candidate Name
+    { wch: 25 }, // Party
+    { wch: 10 }, // Votes
+    { wch: 12 }, // Percentage
+    { wch: 8 }, // Rank
+    { wch: 10 }, // Winner
+  ];
+}
+
+/**
+ * Generate export filename
+ */
+function generateExportFilename(electionName: string): string {
+  const sanitizedName = electionName.replace(/[^a-z0-9]/gi, "_");
+  const dateString = new Date().toISOString().split("T")[0];
+  return `${sanitizedName}_Results_${dateString}.xlsx`;
+}
+
+/**
+ * Validate export data before attempting to export
+ */
+export function validateExportData(options: ExportOptions): {
+  isValid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  if (!options.electionDetails) {
+    errors.push("Election details are required");
+  }
+
+  if (!options.positions || options.positions.length === 0) {
+    errors.push("At least one position is required");
+  }
+
+  if (options.electionDetails?.name?.trim() === "") {
+    errors.push("Election name cannot be empty");
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Check if export functionality is supported
+ */
+export function isExportSupported(): boolean {
+  return typeof window !== "undefined";
 }

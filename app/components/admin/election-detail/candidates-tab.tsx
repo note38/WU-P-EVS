@@ -18,6 +18,9 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [isHardReloading, setIsHardReloading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Use optimized fetch hooks with caching
   const { data: positions } = useOptimizedFetch<any[]>(
@@ -53,10 +56,18 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
 
   const {
     data: candidatesData,
-    loading,
+    loading: hookLoading,
     refetch: refetchCandidates,
     forceRefetch: forceRefetchCandidates,
   } = useOptimizedFetch<any>(candidatesUrl, undefined, [candidatesUrl]);
+
+  // Update isLoading based on hook loading state and track initialization
+  React.useEffect(() => {
+    if (!initialized && candidatesData !== undefined) {
+      setInitialized(true);
+    }
+    setIsLoading(hookLoading);
+  }, [hookLoading, candidatesData, initialized]);
 
   // Memoize candidates and pagination data
   const { candidates, pagination } = useMemo(() => {
@@ -83,6 +94,9 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
   const hardReloadCandidates = useCallback(async () => {
     console.log("🔄 Starting hard reload of candidates...");
     setIsHardReloading(true);
+    setIsLoading(true);
+    setError(null);
+    setInitialized(false);
     setForceRefresh((prev) => prev + 1);
 
     try {
@@ -91,6 +105,7 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
       console.log("✅ Hard reload completed successfully");
     } catch (error) {
       console.error("❌ Error during hard reload:", error);
+      setError("Failed to load candidates. Please try again later.");
     } finally {
       // Add a small delay to ensure the UI updates properly
       setTimeout(() => {
@@ -168,9 +183,15 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
         />
       </div>
 
+      {error && (
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <p className="text-lg text-red-500">{error}</p>
+        </div>
+      )}
+
       <CandidatesTable
         candidates={candidates}
-        loading={loading || isHardReloading}
+        loading={isLoading || isHardReloading || !initialized}
         onCandidateUpdated={handleCandidateUpdated}
         electionId={electionId}
         positions={positions || []}

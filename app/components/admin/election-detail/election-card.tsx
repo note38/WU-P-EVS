@@ -34,7 +34,28 @@ import {
   ClockIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+// Dialog cleanup utility to prevent UI freeze
+const cleanupDialogState = () => {
+  // Force cleanup of any modal state
+  document.body.style.pointerEvents = "";
+  document.body.style.overflow = "";
+  document.body.classList.remove("overflow-hidden");
+
+  // Remove any stuck modal attributes
+  document.body.removeAttribute("data-scroll-locked");
+  document.documentElement.removeAttribute("data-scroll-locked");
+
+  // Re-enable interactions
+  const allElements = document.querySelectorAll("*");
+  allElements.forEach((el) => {
+    const element = el as HTMLElement;
+    if (element.style.pointerEvents === "none") {
+      element.style.pointerEvents = "";
+    }
+  });
+};
 
 interface ElectionCardProps {
   election: {
@@ -50,9 +71,13 @@ interface ElectionCardProps {
     fullEndDate: string;
     partyList?: string[];
   };
+  onElectionUpdated?: () => void; // Add callback prop for data refresh
 }
 
-export function ElectionCard({ election }: ElectionCardProps) {
+export function ElectionCard({
+  election,
+  onElectionUpdated,
+}: ElectionCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -62,6 +87,36 @@ export function ElectionCard({ election }: ElectionCardProps) {
   const [currentElectionStatus, setCurrentElectionStatus] = useState(
     election.status
   );
+
+  // Enhanced dialog state management with cleanup
+  const handleEditDialogChange = useCallback((open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open) {
+      // Cleanup when dialog closes
+      setTimeout(cleanupDialogState, 100);
+    }
+  }, []);
+
+  const handleDeleteDialogChange = useCallback((open: boolean) => {
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setTimeout(cleanupDialogState, 100);
+    }
+  }, []);
+
+  const handleStatusDialogChange = useCallback((open: boolean) => {
+    setStatusDialogOpen(open);
+    if (!open) {
+      setTimeout(cleanupDialogState, 100);
+    }
+  }, []);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      cleanupDialogState();
+    };
+  }, []);
 
   // Use the automatic status checking hook
   useElectionAutoStatus({
@@ -130,7 +185,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
     }
 
     setStatusAction(action);
-    setStatusDialogOpen(true);
+    handleStatusDialogChange(true);
   };
 
   const handleStatusConfirm = async () => {
@@ -187,8 +242,10 @@ export function ElectionCard({ election }: ElectionCardProps) {
         variant: "default",
       });
 
-      // Refresh the page to show the updated status
-      router.refresh();
+      // Trigger data refresh if callback is provided
+      if (onElectionUpdated) {
+        onElectionUpdated();
+      }
     } catch (error) {
       console.error(`Error ${statusAction}ing election:`, error);
 
@@ -237,8 +294,10 @@ export function ElectionCard({ election }: ElectionCardProps) {
         variant: "default",
       });
 
-      // Refresh the page to show the updated list
-      router.refresh();
+      // Trigger data refresh if callback is provided
+      if (onElectionUpdated) {
+        onElectionUpdated();
+      }
     } catch (error) {
       console.error("Error deleting election:", error);
 
@@ -406,7 +465,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
                     });
                     return;
                   }
-                  setEditDialogOpen(true);
+                  handleEditDialogChange(true);
                 }}
                 disabled={currentElectionStatus === "active"}
               >
@@ -435,7 +494,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
                     });
                     return;
                   }
-                  setDeleteDialogOpen(true);
+                  handleDeleteDialogChange(true);
                 }}
                 disabled={currentElectionStatus === "active"}
               >
@@ -457,13 +516,14 @@ export function ElectionCard({ election }: ElectionCardProps) {
           partyList: election.partyList || [],
         }}
         open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        onOpenChange={handleEditDialogChange}
+        onElectionUpdated={onElectionUpdated}
       />
 
       <DeleteConfirmationDialog
         electionName={election.name}
         open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        onOpenChange={handleDeleteDialogChange}
         onConfirm={handleDelete}
       />
 
@@ -471,7 +531,7 @@ export function ElectionCard({ election }: ElectionCardProps) {
         electionName={election.name}
         action={statusAction}
         open={statusDialogOpen}
-        onOpenChange={setStatusDialogOpen}
+        onOpenChange={handleStatusDialogChange}
         onConfirm={handleStatusConfirm}
       />
     </>

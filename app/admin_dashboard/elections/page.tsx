@@ -39,32 +39,46 @@ type Election = {
 };
 
 // Client Election List Component
-function ElectionList() {
+function ElectionList({ onRefresh }: { onRefresh: number }) {
   const [elections, setElections] = useState<Election[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchElections = async () => {
+    try {
+      // Show refreshing state only if it's not the initial load
+      if (!loading) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const response = await fetch("/api/admin/elections");
+
+      if (response.ok) {
+        const data = await response.json();
+        setElections(data);
+        setError(null);
+      } else {
+        setError("Failed to load elections");
+      }
+    } catch (err) {
+      setError("Failed to load elections");
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  // Handle election update callback
+  const handleElectionUpdated = () => {
+    fetchElections();
+  };
 
   useEffect(() => {
-    const fetchElections = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/admin/elections");
-
-        if (response.ok) {
-          const data = await response.json();
-          setElections(data);
-        } else {
-          setError("Failed to load elections");
-        }
-      } catch (err) {
-        setError("Failed to load elections");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchElections();
-  }, []);
+  }, [onRefresh]);
 
   if (loading) {
     return <ElectionCardsSkeleton />;
@@ -118,7 +132,7 @@ function ElectionList() {
     return {
       id: election.id,
       name: election.name,
-      description: election.description,
+      description: election.description || undefined,
       status: election.status.toLowerCase(),
       candidates,
       voters: totalVoters, // Use voters instead of totalVoters
@@ -131,21 +145,41 @@ function ElectionList() {
   });
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {formattedElections.map((election) => (
-        <ElectionCard key={election.id} election={election} />
-      ))}
+    <div className="space-y-4">
+      {isRefreshing && (
+        <div className="flex items-center justify-center p-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+            Updating elections...
+          </div>
+        </div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {formattedElections.map((election) => (
+          <ElectionCard
+            key={election.id}
+            election={election}
+            onElectionUpdated={handleElectionUpdated}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 // Main Page Component
 export default function ElectionsPage() {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleElectionCreated = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Elections</h1>
-        <CreateElectionForm />
+        <CreateElectionForm onElectionCreated={handleElectionCreated} />
       </div>
 
       <Suspense fallback={<ElectionStatsSkeleton />}>
@@ -157,7 +191,7 @@ export default function ElectionsPage() {
           <h2 className="text-xl font-semibold">All Elections</h2>
         </div>
         <Suspense fallback={<ElectionCardsSkeleton />}>
-          <ElectionList />
+          <ElectionList onRefresh={refreshTrigger} />
         </Suspense>
       </div>
     </div>

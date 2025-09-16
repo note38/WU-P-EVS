@@ -18,7 +18,13 @@ import { PlusIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function CreateElectionForm() {
+interface CreateElectionFormProps {
+  onElectionCreated?: () => void;
+}
+
+export function CreateElectionForm({
+  onElectionCreated,
+}: CreateElectionFormProps = {}) {
   const { toast } = useToast();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -247,8 +253,10 @@ export function CreateElectionForm() {
       // Reset form
       resetForm();
 
-      // Force refresh the page to show the new election
-      router.refresh();
+      // Trigger refetch if callback is provided
+      if (onElectionCreated) {
+        onElectionCreated();
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({

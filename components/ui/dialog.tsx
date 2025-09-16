@@ -22,16 +22,35 @@ export const useDialogContext = () => React.useContext(DialogContext);
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, ...props }, ref) => {
+  // Enhanced cleanup on overlay interactions
+  const handlePointerDown = React.useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      // Ensure the overlay click is properly handled
+      e.stopPropagation();
+      if (props.onPointerDown) {
+        props.onPointerDown(e);
+      }
+    },
+    [props]
+  );
+
+  return (
+    <DialogPrimitive.Overlay
+      ref={ref}
+      className={cn(
+        "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        className
+      )}
+      style={{
+        pointerEvents: "auto",
+        cursor: "default",
+      }}
+      onPointerDown={handlePointerDown}
+      {...props}
+    />
+  );
+});
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
@@ -39,6 +58,28 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
   const [container, setContainer] = React.useState<HTMLElement | null>(null);
+
+  // Enhanced cleanup effect
+  React.useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      const cleanupDialog = () => {
+        document.body.style.pointerEvents = "";
+        document.body.style.overflow = "";
+        document.body.classList.remove("overflow-hidden");
+
+        // Remove any stuck attributes
+        document.body.removeAttribute("data-scroll-locked");
+        document.documentElement.removeAttribute("data-scroll-locked");
+      };
+
+      // Immediate cleanup
+      cleanupDialog();
+
+      // Delayed cleanup as fallback
+      setTimeout(cleanupDialog, 100);
+    };
+  }, []);
 
   return (
     <DialogPortal>
@@ -56,6 +97,9 @@ const DialogContent = React.forwardRef<
           "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
           className
         )}
+        style={{
+          pointerEvents: "auto",
+        }}
         {...props}
       >
         <DialogContext.Provider value={container}>

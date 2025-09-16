@@ -2,39 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { validateAdminAccess } from "@/lib/auth-utils";
 
 export async function GET(req: NextRequest, context: any) {
   try {
-    // Get the authenticated user from session
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
+    // Validate admin access
+    const adminValidation = await validateAdminAccess();
+    if (!adminValidation.success) {
+      return adminValidation.response;
     }
 
     const params = await context.params;
@@ -62,7 +37,7 @@ export async function GET(req: NextRequest, context: any) {
     // Format the response to match the expected format in the client
     const formattedElection = {
       ...election,
-      partyList: election.partylists.map((p) => p.name) || [],
+      partyList: election.partylists.map((p: any) => p.name) || [],
     };
 
     return NextResponse.json(formattedElection);
@@ -78,49 +53,13 @@ export async function GET(req: NextRequest, context: any) {
 // PUT handler for updating a specific election
 export async function PUT(req: NextRequest, context: any) {
   try {
-    // Get the authenticated user from session
-    const { userId: clerkUserId } = await auth();
-
-    if (!clerkUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Validate admin access
+    const adminValidation = await validateAdminAccess();
+    if (!adminValidation.success) {
+      return adminValidation.response;
     }
 
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: clerkUserId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    // Get user ID from database user
-    let userId: number;
-    try {
-      userId = userData.user.id;
-      if (isNaN(userId)) {
-        throw new Error("Invalid user ID format");
-      }
-    } catch (e) {
-      console.error("User ID parsing error:", e);
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
-    }
+    const userId = adminValidation.userId;
 
     // Parse election ID from params
     const params = await context.params;
@@ -222,7 +161,7 @@ export async function PUT(req: NextRequest, context: any) {
 
     try {
       // Update the election in a transaction along with partylists if provided
-      const updatedElection = await prisma.$transaction(async (tx) => {
+      const updatedElection = await prisma.$transaction(async (tx: any) => {
         // Update election details
         const updated = await tx.election.update({
           where: { id: electionId },
@@ -301,7 +240,7 @@ export async function PUT(req: NextRequest, context: any) {
       // Convert partylists to partyList array format that the client expects
       const formattedElection = {
         ...completeElection,
-        partyList: completeElection?.partylists.map((p) => p.name) || [],
+        partyList: completeElection?.partylists.map((p: any) => p.name) || [],
       };
 
       return NextResponse.json({
@@ -329,36 +268,10 @@ export async function PUT(req: NextRequest, context: any) {
 // DELETE handler for deleting a specific election - using 'any' type to fix route handler issue
 export async function DELETE(req: NextRequest, context: any) {
   try {
-    // Get the authenticated user from session
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
+    // Validate admin access
+    const adminValidation = await validateAdminAccess();
+    if (!adminValidation.success) {
+      return adminValidation.response;
     }
 
     const params = await context.params;

@@ -1,48 +1,22 @@
-import { auth } from "@clerk/nextjs/server";
+import { validateAdminAccess } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/elections/[electionId]/candidates
-export async function GET(req: NextRequest, context: any) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ electionId: string }> }
+) {
   try {
-    const { userId } = await auth();
-
-    // Check if the user is authenticated
-    if (!userId) {
-      return NextResponse.json(
-        { error: "You must be logged in" },
-        { status: 401 }
-      );
+    // Validate admin access
+    const authResult = await validateAdminAccess();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    // Safely extract and parse the electionId from context params
-    const params = await context.params;
-    if (!params || !params.electionId) {
+    // Await params to comply with Next.js 15 requirements
+    const resolvedParams = await params;
+    if (!resolvedParams || !resolvedParams.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
@@ -50,7 +24,7 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     // Convert electionId to number
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(resolvedParams.electionId);
     if (isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },
@@ -69,7 +43,7 @@ export async function GET(req: NextRequest, context: any) {
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: userData.user.id,
+        createdById: authResult.userId,
       },
     });
 
@@ -128,7 +102,7 @@ export async function GET(req: NextRequest, context: any) {
     });
 
     // Get vote counts for each candidate
-    const candidateIds = candidates.map((c) => c.id);
+    const candidateIds = candidates.map((c: any) => c.id);
     const voteCounts = await prisma.vote.groupBy({
       by: ["candidateId"],
       where: {
@@ -142,7 +116,7 @@ export async function GET(req: NextRequest, context: any) {
 
     // Create a map of candidate ID to vote count
     const voteCountMap = voteCounts.reduce(
-      (acc, vote) => {
+      (acc: any, vote: any) => {
         acc[vote.candidateId] = vote._count.candidateId;
         return acc;
       },
@@ -150,7 +124,7 @@ export async function GET(req: NextRequest, context: any) {
     );
 
     // Format the response
-    const formattedCandidates = candidates.map((candidate) => ({
+    const formattedCandidates = candidates.map((candidate: any) => ({
       id: candidate.id,
       name: candidate.name,
       avatar: candidate.avatar || "/placeholder.svg",
@@ -181,47 +155,21 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-// POST /api/elections/[electionId]/candidates - using any type for context
-export async function POST(req: NextRequest, context: any) {
+// POST /api/elections/[electionId]/candidates
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ electionId: string }> }
+) {
   try {
-    const { userId } = await auth();
-
-    // Check if the user is authenticated
-    if (!userId) {
-      return NextResponse.json(
-        { error: "You must be logged in" },
-        { status: 401 }
-      );
+    // Validate admin access
+    const authResult = await validateAdminAccess();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    // Get user data from database to check if they're an admin
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "admin") {
-      return NextResponse.json(
-        { error: "Admin access required" },
-        { status: 403 }
-      );
-    }
-
-    // Safely extract and parse the electionId from context params
-    const params = await context.params;
-    if (!params || !params.electionId) {
+    // Await params to comply with Next.js 15 requirements
+    const resolvedParams = await params;
+    if (!resolvedParams || !resolvedParams.electionId) {
       return NextResponse.json(
         { error: "Missing election ID" },
         { status: 400 }
@@ -229,7 +177,7 @@ export async function POST(req: NextRequest, context: any) {
     }
 
     // Convert electionId to number
-    const electionId = parseInt(params.electionId);
+    const electionId = parseInt(resolvedParams.electionId);
     if (isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },
@@ -277,7 +225,7 @@ export async function POST(req: NextRequest, context: any) {
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: userData.user.id,
+        createdById: authResult.userId,
       },
     });
 

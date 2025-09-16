@@ -1,16 +1,9 @@
-// lib/resend.ts
-import { Resend } from "resend";
+// lib/resend.ts - Disabled per user request
+// Mock implementation to prevent import errors
 
-// Check if Resend API key is available
-const apiKey = process.env.RESEND_API_KEY;
+console.warn(
+  "⚠️ Resend is disabled. Email functionality will be bypassed."
+);
 
-if (!apiKey || apiKey === "re_placeholder_key_here") {
-  console.warn(
-    "⚠️ Resend API key not configured. Email functionality will be disabled."
-  );
-}
-
-const resend =
-  apiKey && apiKey !== "re_placeholder_key_here" ? new Resend(apiKey) : null;
-
-export { resend };
+// Export null to indicate resend is disabled
+export const resend = null;

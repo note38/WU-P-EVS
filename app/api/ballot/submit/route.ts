@@ -1,44 +1,18 @@
 import { submitBallot } from "@/lib/ballot-service";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getUserByClerkId } from "@/lib/clerk-auth";
+import { validateVoterAccess } from "@/lib/auth-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    // Get session to validate the user is a voter
-    const { userId } = await auth();
-
-    // Check if user is authenticated
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized access" },
-        { status: 401 }
-      );
+    // Validate voter access
+    const authResult = await validateVoterAccess();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    // Get user data from database to check if they're a voter
-    const userResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/get-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
-      }
-    );
-
-    if (!userResponse.ok) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const userData = await userResponse.json();
-
-    if (userData.type !== "voter") {
-      return NextResponse.json(
-        { error: "Unauthorized access - Voter access only" },
-        { status: 401 }
-      );
-    }
+    const { voterId } = authResult;
 
     const body = await request.json();
 
@@ -52,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Use the voter ID from the database user
     const result = await submitBallot({
       selections: body.selections,
-      voterId: userData.user.id,
+      voterId: voterId,
       submittedAt: new Date(),
     });
 

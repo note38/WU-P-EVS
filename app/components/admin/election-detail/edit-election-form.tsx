@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,60 @@ import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+// Global dialog cleanup utility
+const forceDialogCleanup = () => {
+  // Remove all modal-related attributes and styles
+  document.body.style.pointerEvents = "";
+  document.body.style.overflow = "";
+  document.body.classList.remove("overflow-hidden");
+
+  // Remove Radix UI modal attributes
+  document.body.removeAttribute("data-scroll-locked");
+  document.documentElement.removeAttribute("data-scroll-locked");
+
+  // Force remove any stuck dialog overlays
+  const overlays = document.querySelectorAll(
+    '[data-radix-dialog-overlay], [data-state="open"][data-radix-dialog-overlay]'
+  );
+  overlays.forEach((overlay) => {
+    try {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    } catch (e) {
+      console.warn("Could not remove overlay:", e);
+    }
+  });
+
+  // Remove any stuck portal containers
+  const portals = document.querySelectorAll("[data-radix-portal]");
+  portals.forEach((portal) => {
+    try {
+      if (portal.children.length === 0 && portal.parentNode) {
+        portal.parentNode.removeChild(portal);
+      }
+    } catch (e) {
+      console.warn("Could not remove portal:", e);
+    }
+  });
+
+  // Re-enable pointer events on all elements
+  const allElements = document.querySelectorAll("*");
+  allElements.forEach((el) => {
+    const element = el as HTMLElement;
+    if (element.style.pointerEvents === "none") {
+      element.style.pointerEvents = "";
+    }
+  });
+
+  // Force layout recalculation
+  const htmlElement = document.documentElement;
+  htmlElement.style.transform = "translateZ(0)";
+  requestAnimationFrame(() => {
+    htmlElement.style.transform = "";
+  });
+};
+
 interface EditElectionFormProps {
   election: {
     id: number;
@@ -31,12 +86,14 @@ interface EditElectionFormProps {
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onElectionUpdated?: () => void; // Add callback prop for data refresh
 }
 
 export function EditElectionForm({
   election,
   open,
   onOpenChange,
+  onElectionUpdated,
 }: EditElectionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -77,6 +134,94 @@ export function EditElectionForm({
     endTime: endDateTime.time,
     partyList: getInitialPartyList(),
   });
+
+  // Reset form data when dialog opens/closes or election changes
+  useEffect(() => {
+    if (open) {
+      // Reset form data when dialog opens
+      const startDT = parseDateTime(election.startDate);
+      const endDT = parseDateTime(election.endDate);
+
+      setFormData({
+        name: election.name,
+        description: election.description || "",
+        startDate: startDT.date,
+        startTime: startDT.time,
+        endDate: endDT.date,
+        endTime: endDT.time,
+        partyList: getInitialPartyList(),
+      });
+      setFormErrors({});
+      setNewParty("");
+    }
+  }, [open, election]);
+
+  // Handle dialog cleanup and fix state management
+  const dialogCleanupRef = useRef<boolean>(false);
+
+  // Enhanced close handler with more robust cleanup
+  const handleClose = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen && !dialogCleanupRef.current) {
+        dialogCleanupRef.current = true;
+
+        // Clean up state immediately
+        setIsSubmitting(false);
+        setFormErrors({});
+        setNewParty("");
+
+        // Execute multiple cleanup attempts
+        const executeCleanup = () => {
+          forceDialogCleanup();
+        };
+
+        // Immediate cleanup
+        executeCleanup();
+
+        // Cleanup after short delays (multiple attempts)
+        setTimeout(executeCleanup, 50);
+        setTimeout(executeCleanup, 200);
+        setTimeout(executeCleanup, 500);
+
+        // Reset cleanup flag
+        setTimeout(() => {
+          dialogCleanupRef.current = false;
+        }, 600);
+      }
+
+      onOpenChange(isOpen);
+    },
+    [onOpenChange]
+  );
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Force cleanup when component unmounts
+      forceDialogCleanup();
+    };
+  }, []);
+
+  // Handle escape key and setup
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open && !isSubmitting) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener("keydown", handleEscape, true);
+      // Reset cleanup flag when dialog opens
+      dialogCleanupRef.current = false;
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape, true);
+    };
+  }, [open, isSubmitting, handleClose]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -224,11 +369,16 @@ export function EditElectionForm({
         variant: "default",
       });
 
-      // Close the dialog
-      onOpenChange(false);
+      // Close the dialog first
+      handleClose(false);
 
-      // Refresh the page to show the updated election
-      router.refresh();
+      // Trigger data refresh if callback is provided
+      if (onElectionUpdated) {
+        // Small delay to ensure dialog is fully closed before refresh
+        setTimeout(() => {
+          onElectionUpdated();
+        }, 100);
+      }
     } catch (error) {
       console.error("Error updating election:", error);
 
@@ -247,7 +397,7 @@ export function EditElectionForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -409,7 +559,7 @@ export function EditElectionForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleClose(false)}
               disabled={isSubmitting}
             >
               Cancel

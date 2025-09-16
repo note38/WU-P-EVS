@@ -40,7 +40,11 @@ interface Year {
   departmentId?: number;
 }
 
-export function CreateVoterForm() {
+interface CreateVoterFormProps {
+  onVoterCreated?: () => void;
+}
+
+export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,7 +243,12 @@ export function CreateVoterForm() {
           description: `Voter added. Temporary password: ${data.tempPassword}`,
         });
         setOpen(false);
-        router.refresh();
+
+        // Trigger refetch if callback is provided
+        if (onVoterCreated) {
+          onVoterCreated();
+        }
+
         // Form will be reset when dialog closes due to useEffect
       } else {
         if (response.status === 409) {
