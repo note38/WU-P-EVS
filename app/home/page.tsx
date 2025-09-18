@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Users, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { Calendar, Users, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
   lazy,
@@ -286,8 +286,8 @@ const CandidateCard = memo(function CandidateCard({
   const [imageError, setImageError] = useState(false);
 
   // Get avatar URL based on showNames state
-  const avatarUrl = showNames 
-    ? candidate.avatarUrl 
+  const avatarUrl = showNames
+    ? candidate.avatarUrl
     : getAnonymousAvatar(candidate.id);
 
   return (
@@ -433,15 +433,22 @@ const PositionSelector = memo(function PositionSelector({
   positions,
   electionStatus,
   isUpdatingPercentages,
-  showNames = true,
 }: {
   positions: TransformedElection["positions"];
   electionStatus: TransformedElection["status"];
   isUpdatingPercentages: boolean;
-  showNames?: boolean;
 }) {
-  const [currentPosition, setCurrentPosition] = useState(positions[0]);
+  const [currentPosition, setCurrentPosition] = useState(
+    () => positions[0] || null
+  );
   const [isLoading, setIsLoading] = useState(true);
+
+  // Update current position when positions change
+  useEffect(() => {
+    if (positions && positions.length > 0 && !currentPosition) {
+      setCurrentPosition(positions[0]);
+    }
+  }, [positions, currentPosition]);
 
   // Initialize loading state
   useEffect(() => {
@@ -455,7 +462,7 @@ const PositionSelector = memo(function PositionSelector({
   const handlePositionChange = useCallback(
     (value: string) => {
       startTransition(() => {
-        const selected = positions.find(
+        const selected = positions?.find(
           (p) => p.title.toLowerCase().replace(/\s+/g, "-") === value
         );
         if (selected) {
@@ -477,6 +484,19 @@ const PositionSelector = memo(function PositionSelector({
     []
   );
 
+  // Early return if no positions or currentPosition
+  if (!positions || positions.length === 0 || !currentPosition) {
+    return (
+      <div className="space-y-6 lg:space-y-8">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <p className="text-gray-600">
+            No positions available for this election.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <style dangerouslySetInnerHTML={{ __html: criticalStyles }} />
@@ -491,7 +511,7 @@ const PositionSelector = memo(function PositionSelector({
               <SelectValue placeholder="Select position" />
             </SelectTrigger>
             <SelectContent>
-              {positions.map((position) => (
+              {positions?.map((position) => (
                 <SelectItem
                   key={position.title}
                   value={position.title.toLowerCase().replace(/\s+/g, "-")}
@@ -499,7 +519,7 @@ const PositionSelector = memo(function PositionSelector({
                 >
                   {position.title}
                 </SelectItem>
-              ))}
+              )) || []}
             </SelectContent>
           </Select>
         </div>
@@ -521,10 +541,10 @@ const PositionSelector = memo(function PositionSelector({
             <div className="critical-grid-mobile">
               {isLoading
                 ? Array.from(
-                    { length: currentPosition.candidates.length || 2 },
+                    { length: currentPosition?.candidates?.length || 2 },
                     (_, i) => <CandidateCardSkeleton key={i} />
                   )
-                : currentPosition.candidates.map((candidate, index) => (
+                : currentPosition.candidates?.map((candidate, index) => (
                     <Suspense
                       key={candidate.id}
                       fallback={<CandidateCardSkeleton />}
@@ -533,10 +553,10 @@ const PositionSelector = memo(function PositionSelector({
                         candidate={candidate}
                         index={index}
                         isUpdatingPercentages={isUpdatingPercentages}
-                        showNames={showNames}
+                        showNames={true}
                       />
                     </Suspense>
-                  ))}
+                  )) || []}
             </div>
           )}
         </div>
@@ -544,14 +564,14 @@ const PositionSelector = memo(function PositionSelector({
         <div className="space-y-4 lg:space-y-6">
           <h3 className="text-lg lg:text-xl font-medium">All Positions</h3>
           <div className="grid gap-3 lg:gap-4 grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-            {positions.map((position) => (
+            {positions?.map((position) => (
               <PositionButton
                 key={position.title}
                 position={position}
-                isActive={position.title === currentPosition.title}
+                isActive={position.title === currentPosition?.title}
                 onClick={() => handlePositionClick(position)}
               />
-            ))}
+            )) || []}
           </div>
         </div>
       </div>
@@ -570,7 +590,6 @@ export default function Home() {
   } = useHomeResults();
   const [showElectionSelector, setShowElectionSelector] = useState(false);
   const [isUpdatingPercentages, setIsUpdatingPercentages] = useState(false);
-  const [showNames, setShowNames] = useState(true);
 
   // Transform live data to match the expected format
   const transformedElections: TransformedElection[] = useMemo(() => {
@@ -661,8 +680,8 @@ export default function Home() {
 
   const totalCandidates = useMemo(
     () =>
-      currentElection?.positions.reduce(
-        (sum: number, pos: any) => sum + pos.candidates.length,
+      currentElection?.positions?.reduce(
+        (sum: number, pos: any) => sum + (pos?.candidates?.length || 0),
         0
       ) || 0,
     [currentElection]
@@ -703,22 +722,6 @@ export default function Home() {
                     : "Live election results and voting information"}
                 </p>
               </div>
-
-              {/* Refresh Button - only show when there are elections */}
-              {currentElection && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshPercentages}
-                  disabled={isUpdatingPercentages}
-                  className="ml-4"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 mr-2 ${isUpdatingPercentages ? "animate-spin" : ""}`}
-                  />
-                  Update Percentages
-                </Button>
-              )}
             </div>
           )}
 
@@ -801,6 +804,28 @@ export default function Home() {
           {/* Content - only show when not loading and has elections */}
           {!loading && currentElection && (
             <>
+              {/* Show election info even if no positions */}
+              <div className="flex items-center justify-center gap-4 py-4 lg:py-6">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+                  <span className="font-medium text-base lg:text-lg">
+                    Total Candidates: {totalCandidates}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 text-sm"
+                  onClick={handleRefreshPercentages}
+                  disabled={isUpdatingPercentages}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 mr-2 ${isUpdatingPercentages ? "animate-spin" : ""}`}
+                  />
+                  Update Percentages
+                </Button>
+              </div>
+
               {showElectionSelector && transformedElections.length > 0 && (
                 <ElectionSelector
                   elections={transformedElections}
@@ -811,39 +836,60 @@ export default function Home() {
 
               {!showElectionSelector && (
                 <>
-                  <div className="flex items-center justify-center gap-4 py-4 lg:py-6">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
-                      <span className="font-medium text-base lg:text-lg">
-                        Total Candidates: {totalCandidates}
-                      </span>
+                  {/* Show positions if available, otherwise show no positions message */}
+                  {currentElection.positions &&
+                  currentElection.positions.length > 0 ? (
+                    <PositionSelector
+                      positions={currentElection.positions}
+                      electionStatus={currentElection.status}
+                      isUpdatingPercentages={isUpdatingPercentages}
+                    />
+                  ) : (
+                    <div className="space-y-6 lg:space-y-8">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                          <div className="flex-shrink-0">
+                            <svg
+                              className="h-8 w-8 text-blue-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-blue-800">
+                              Active Election: {currentElection.name}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-blue-700 text-base">
+                            This election is currently active but no positions
+                            have been configured yet.
+                          </p>
+                          <p className="text-blue-600 text-sm">
+                            The administrator needs to add positions and
+                            candidates before voting can begin.
+                          </p>
+                          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                            <p className="text-blue-800 text-sm font-medium">
+                              Election Status:{" "}
+                              <span className="text-green-600">ACTIVE</span>
+                            </p>
+                            <p className="text-blue-700 text-xs mt-1">
+                              Results will appear here once positions and
+                              candidates are added.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-3 text-sm"
-                      onClick={() => setShowNames(!showNames)}
-                    >
-                      {showNames ? (
-                        <>
-                          <EyeOff className="h-4 w-4 mr-2" />
-                          Hide Names
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Show Names
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  <PositionSelector
-                    positions={currentElection.positions}
-                    electionStatus={currentElection.status}
-                    isUpdatingPercentages={isUpdatingPercentages}
-                    showNames={showNames}
-                  />
+                  )}
                 </>
               )}
             </>

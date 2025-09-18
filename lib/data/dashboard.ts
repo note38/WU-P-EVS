@@ -297,6 +297,10 @@ export class DashboardDataService {
 
       if (!activeElection) return null;
 
+      console.log(
+        `🎯 Found active election: ${activeElection.name} with ${activeElection.positions.length} positions`
+      );
+
       const positions = [];
 
       for (const position of activeElection.positions) {
@@ -335,12 +339,23 @@ export class DashboardDataService {
         });
       }
 
-      return {
+      const result = {
         id: activeElection.id,
         name: activeElection.name,
         status: activeElection.status,
         positions,
       };
+
+      console.log(`✅ Returning active election result:`, {
+        name: result.name,
+        positionsCount: result.positions.length,
+        totalCandidates: result.positions.reduce(
+          (sum, pos) => sum + pos.candidates.length,
+          0
+        ),
+      });
+
+      return result;
     } catch (error) {
       console.error("Error fetching active election results:", error);
       return null;
