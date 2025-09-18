@@ -406,10 +406,7 @@ export function YearSettings() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a department" />
@@ -417,7 +414,10 @@ export function YearSettings() {
                       </FormControl>
                       <SelectContent>
                         {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id.toString()}>
+                          <SelectItem
+                            key={department.id}
+                            value={department.id.toString()}
+                          >
                             {department.name}
                           </SelectItem>
                         ))}

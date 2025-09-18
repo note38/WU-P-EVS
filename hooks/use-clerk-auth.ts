@@ -2,6 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
 
 export interface DatabaseUser {
   id: number;
@@ -22,6 +23,8 @@ export interface DatabaseUser {
 
 export function useClerkAuth() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
   const [databaseUser, setDatabaseUser] = useState<DatabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,27 @@ export function useClerkAuth() {
           const userData = await response.json();
           setDatabaseUser(userData);
         } else if (response.status === 404) {
-          setError("User not found in database");
+          // User not found in database - redirect to sign-in with error message
+          setError("Email not registered in system");
+          
+          // Show error message
+          toast({
+            title: "Access Denied",
+            description: "This email is not registered in our system. Please try with a different email or contact an administrator.",
+            variant: "destructive",
+          });
+
+          // Sign out and redirect to sign-in page with error context
+          setTimeout(async () => {
+            try {
+              await signOut();
+              router.push("/sign-in?error=email_not_registered&message=This email is not registered in our system");
+            } catch (signOutError) {
+              console.error("Error during sign out:", signOutError);
+              // Fallback redirect
+              window.location.href = "/sign-in?error=email_not_registered";
+            }
+          }, 2000);
         } else {
           setError("Failed to load user data");
         }
@@ -60,7 +83,7 @@ export function useClerkAuth() {
     };
 
     fetchDatabaseUser();
-  }, [user, isLoaded, isSignedIn]);
+  }, [user, isLoaded, isSignedIn, signOut, router]);
 
   return {
     user: databaseUser,

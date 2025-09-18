@@ -67,8 +67,15 @@ export async function POST(req: NextRequest) {
     const userData = await getUserByClerkId(userId);
 
     if (!userData) {
+      // Log the unauthorized access attempt
+      console.warn(`🚫 User not found in database: ${userId}`);
+      
       return NextResponse.json(
-        { error: "User not found in database" },
+        { 
+          error: "Email not registered", 
+          message: "This email is not registered in our voting system. Please contact an administrator or try with a different email.",
+          shouldRedirect: true
+        },
         { status: 404 }
       );
     }
