@@ -51,20 +51,23 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Define types
+// Define types - keeping API response types as numbers
 type Department = {
-  id: string;
+  id: number;
   name: string;
 };
 
 type Year = {
-  id: string;
+  id: number;
   name: string;
-  departmentId: string;
-  departmentName: string;
+  departmentId: number;
+  department: {
+    id: number;
+    name: string;
+  };
 };
 
-// Define the form schema
+// Define the form schema - forms work with strings
 const yearFormSchema = z.object({
   name: z.string().min(2, {
     message: "Year name must be at least 2 characters.",
@@ -163,6 +166,7 @@ export function YearSettings() {
     resolver: zodResolver(yearFormSchema),
     defaultValues: {
       name: "",
+      departmentId: "",
     },
   });
 
@@ -176,9 +180,12 @@ export function YearSettings() {
   useEffect(() => {
     if (editingYear) {
       form.setValue("name", editingYear.name);
-      form.setValue("departmentId", editingYear.departmentId);
+      form.setValue("departmentId", editingYear.departmentId.toString());
     } else {
-      form.reset();
+      form.reset({
+        name: "",
+        departmentId: "",
+      });
     }
   }, [editingYear, form]);
 
@@ -244,7 +251,10 @@ export function YearSettings() {
         const response = await fetch(`/api/years/${editingYear.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            name: data.name,
+            departmentId: parseInt(data.departmentId), // Convert string to number for API
+          }),
         });
 
         if (!response.ok) {
@@ -266,7 +276,10 @@ export function YearSettings() {
         const response = await fetch("/api/years", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            name: data.name,
+            departmentId: parseInt(data.departmentId), // Convert string to number for API
+          }),
         });
 
         if (!response.ok) {
@@ -283,7 +296,10 @@ export function YearSettings() {
         });
       }
 
-      form.reset();
+      form.reset({
+        name: "",
+        departmentId: "",
+      });
     } catch (error) {
       console.error("Error saving year:", error);
       toast({
@@ -305,7 +321,10 @@ export function YearSettings() {
 
   function cancelEditing() {
     setEditingYear(null);
-    form.reset();
+    form.reset({
+      name: "",
+      departmentId: "",
+    });
   }
 
   function openDeleteConfirm(year: Year) {
@@ -372,7 +391,7 @@ export function YearSettings() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Year Name</FormLabel>
+                    <FormLabel>Year Level</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., First Year" {...field} />
                     </FormControl>
@@ -387,7 +406,10 @@ export function YearSettings() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a department" />
@@ -395,7 +417,7 @@ export function YearSettings() {
                       </FormControl>
                       <SelectContent>
                         {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id}>
+                          <SelectItem key={department.id} value={department.id.toString()}>
                             {department.name}
                           </SelectItem>
                         ))}
@@ -469,7 +491,7 @@ export function YearSettings() {
                 {years.map((year) => (
                   <TableRow key={year.id}>
                     <TableCell className="font-medium">{year.name}</TableCell>
-                    <TableCell>{year.departmentName}</TableCell>
+                    <TableCell>{year.department.name}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

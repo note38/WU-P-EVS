@@ -13,7 +13,7 @@ import {
   User,
   Vote,
   X,
-  Bell,
+  // Bell,
 } from "lucide-react";
 
 const sidebarItems = [
