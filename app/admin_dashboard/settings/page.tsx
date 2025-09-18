@@ -32,7 +32,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="years">Years</TabsTrigger>
+          <TabsTrigger value="years">Year Level</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="logs">Data Logs</TabsTrigger>
         </TabsList>
