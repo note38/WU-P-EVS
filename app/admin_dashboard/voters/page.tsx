@@ -103,20 +103,6 @@ export default function VotersPage() {
           const voters = await votersResponse.json();
           const depts = await departmentsResponse.json();
 
-          console.log("Voters data:", voters);
-          console.log("Departments data:", depts);
-
-          // Debug: Check the first voter's year and department structure
-          if (voters.data && voters.data.length > 0) {
-            const firstVoter = voters.data[0];
-            console.log("First voter structure:", {
-              id: firstVoter.id,
-              name: `${firstVoter.firstName} ${firstVoter.lastName}`,
-              year: firstVoter.year,
-              department: firstVoter.year?.department,
-            });
-          }
-
           setVotersData(voters.data || []);
           setDepartments(depts);
         } else {

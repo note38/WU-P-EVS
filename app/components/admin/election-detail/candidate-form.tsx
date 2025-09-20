@@ -80,6 +80,9 @@ export function CandidateForm({
   const [existingCandidates, setExistingCandidates] = useState<string[]>([]);
   const [existingCandidatesLoading, setExistingCandidatesLoading] =
     useState(false);
+  const [existingCandidatesError, setExistingCandidatesError] = useState<
+    string | null
+  >(null);
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -89,21 +92,100 @@ export function CandidateForm({
 
   const fetchExistingCandidates = useCallback(async () => {
     setExistingCandidatesLoading(true);
+    setExistingCandidatesError(null);
+
     try {
-      const response = await fetch(`/api/elections/${electionId}/candidates`);
+      console.log(
+        `🔄 Fetching candidates for election ID: ${electionId} (type: ${typeof electionId})`
+      );
+
+      // Validate electionId before making the request
+      if (!electionId || isNaN(Number(electionId))) {
+        throw new Error(`Invalid election ID: ${electionId}`);
+      }
+
+      const response = await fetch(`/api/elections/${electionId}/candidates`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies for authentication
+      });
+
+      console.log(
+        `📊 API Response Status: ${response.status} ${response.statusText}`
+      );
+
       if (response.ok) {
         const data = await response.json();
+
         // Handle both array and object responses
         const candidates = data.candidates || data;
         const candidateNames = Array.isArray(candidates)
           ? candidates.map((candidate: any) => candidate.name)
           : [];
+
         setExistingCandidates(candidateNames);
+        console.log(
+          `✅ Successfully fetched ${candidateNames.length} existing candidates:`,
+          candidateNames
+        );
       } else {
-        console.error("Failed to fetch existing candidates");
+        // Handle different types of HTTP errors
+        let errorMessage = "Failed to fetch existing candidates";
+        let errorDetails = "";
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          errorDetails = errorData.message || "";
+        } catch {
+          // If JSON parsing fails, use status-based messages
+          if (response.status === 401) {
+            errorMessage = "Authentication required. Please sign in again.";
+            errorDetails =
+              "Your session may have expired. Try refreshing the page.";
+          } else if (response.status === 403) {
+            errorMessage = "Admin access required to view candidates.";
+            errorDetails = "Make sure you're signed in with an admin account.";
+          } else if (response.status === 404) {
+            errorMessage = "Election not found.";
+            errorDetails = `The election with ID ${electionId} may not exist. Please check the URL and try again.`;
+          } else if (response.status >= 500) {
+            errorMessage = "Server error occurred.";
+            errorDetails = `Please try again later. (Error ${response.status})`;
+          } else {
+            errorMessage = `Request failed (${response.status})`;
+            errorDetails = response.statusText || "Unknown error";
+          }
+        }
+
+        const fullErrorMessage = errorDetails
+          ? `${errorMessage} ${errorDetails}`
+          : errorMessage;
+        console.error(
+          `❌ Failed to fetch existing candidates: ${fullErrorMessage}`
+        );
+        setExistingCandidatesError(fullErrorMessage);
+
+        // For auth errors, still set empty array so form can continue
+        if (response.status === 401 || response.status === 403) {
+          setExistingCandidates([]);
+        }
       }
     } catch (error) {
-      console.error("Error fetching existing candidates:", error);
+      const errorMessage =
+        error instanceof Error
+          ? `Network error: ${error.message}`
+          : "Network error occurred while fetching candidates";
+
+      console.error("❌ Error fetching existing candidates:", error);
+      setExistingCandidatesError(
+        `${errorMessage}. Please check your internet connection and try again.`
+      );
+
+      // Set empty array to allow form to continue functioning
+      setExistingCandidates([]);
     } finally {
       setExistingCandidatesLoading(false);
     }
@@ -137,10 +219,10 @@ export function CandidateForm({
           );
           setVoters(availableVoters);
         } else {
-          console.error("Failed to fetch voters");
+          setVoters([]);
         }
       } catch (error) {
-        console.error("Error fetching voters:", error);
+        setVoters([]);
       } finally {
         setVotersLoading(false);
       }
@@ -310,6 +392,7 @@ export function CandidateForm({
     setVoterSearchTerm("");
     setFormStep("search");
     setExistingCandidatesLoading(false);
+    setExistingCandidatesError(null);
     setAvatarFile(null);
     setAvatarPreview("");
     setSelectedImageFile(null);
@@ -431,6 +514,7 @@ export function CandidateForm({
     setIsAddDialogOpen(false);
     resetForm();
     setError(null);
+    setExistingCandidatesError(null);
     setLoading(false);
   };
 
@@ -457,6 +541,23 @@ export function CandidateForm({
           </Alert>
         )}
 
+        {existingCandidatesError && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-1">
+                <div className="font-medium">Error loading candidates:</div>
+                <div className="text-sm">{existingCandidatesError}</div>
+                {existingCandidatesError.includes("Authentication") && (
+                  <div className="text-xs mt-2 text-muted-foreground">
+                    Try refreshing the page or signing in again.
+                  </div>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {formStep === "search" ? (
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -479,7 +580,55 @@ export function CandidateForm({
                 <div className="p-8 text-center">
                   <div className="flex items-center justify-center gap-2 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Loading available voters...</span>
+                    <span>
+                      {existingCandidatesLoading
+                        ? "Loading candidate data..."
+                        : "Loading available voters..."}
+                    </span>
+                  </div>
+                </div>
+              ) : existingCandidatesError ? (
+                <div className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 text-destructive" />
+                    <div className="text-sm text-center max-w-sm">
+                      <div className="font-medium text-foreground mb-2">
+                        Unable to load candidate data
+                      </div>
+                      <div className="text-sm mb-3">
+                        {existingCandidatesError}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={fetchExistingCandidates}
+                          disabled={existingCandidatesLoading}
+                        >
+                          {existingCandidatesLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Retrying...
+                            </>
+                          ) : (
+                            "Try Again"
+                          )}
+                        </Button>
+                        {existingCandidatesError.includes("Authentication") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.location.reload()}
+                            className="text-xs"
+                          >
+                            Refresh Page
+                          </Button>
+                        )}
+                      </div>
+                      <div className="text-xs mt-3 text-muted-foreground">
+                        You can still add candidates manually if needed.
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : voters.length > 0 ? (

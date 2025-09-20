@@ -73,16 +73,6 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
 
-  // Debug: Log the first voter to see the structure
-  if (voters.length > 0) {
-    console.log("VoterCards - First voter:", {
-      id: voters[0].id,
-      name: `${voters[0].firstName} ${voters[0].lastName}`,
-      year: voters[0].year,
-      department: voters[0].year?.department,
-    });
-  }
-
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
       .trim()
@@ -425,17 +415,6 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
               if (parts.length > 1) {
                 departmentName = parts[1];
               }
-            }
-
-            // Debug specific voter
-            if (voter.id === 59) {
-              console.log("Jessica voter debug:", {
-                id: voter.id,
-                name: fullName,
-                year: voter.year,
-                departmentName: departmentName,
-                rawDepartment: voter.year?.department,
-              });
             }
 
             return (

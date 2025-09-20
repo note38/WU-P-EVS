@@ -6,7 +6,6 @@ export async function GET() {
     const positions = await getPositionsWithCandidates();
     return NextResponse.json({ positions });
   } catch (error) {
-    console.error("Error fetching positions:", error);
     return NextResponse.json(
       { error: "Failed to fetch positions" },
       { status: 500 }

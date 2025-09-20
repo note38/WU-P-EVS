@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "node --loader ts-node/esm prisma/seed.ts",
-    "email": "email dev --dir app/emails"
+    "email": "email dev --dir app/emails",
+    "test:cron": "node scripts/test-cron.js",
+    "test:cron:prod": "node scripts/test-cron.js production"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"

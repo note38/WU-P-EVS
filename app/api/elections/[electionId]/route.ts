@@ -176,14 +176,7 @@ export async function PUT(req: NextRequest, context: any) {
 
         // Handle partylists update if provided
         if (Array.isArray(data.partyList)) {
-          // Log the partyList data for debugging
-          console.log("Processing partyList update:", data.partyList);
-
           try {
-            // Delete existing partylists
-            console.log(
-              `Deleting existing partylists for electionId: ${electionId}`
-            );
             await tx.partylist.deleteMany({
               where: { electionId },
             });
@@ -213,7 +206,6 @@ export async function PUT(req: NextRequest, context: any) {
               updatedAt: new Date(),
             }));
 
-            console.log("Creating new partylists:", partylistsData);
             await tx.partylist.createMany({
               data: partylistsData,
             });

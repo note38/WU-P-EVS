@@ -131,10 +131,12 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
         description: "Print dialog opened successfully",
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error printing results:", error);
       toast({
         title: "Error",
-        description: `Failed to print results: ${error}`,
+        description: `Failed to print results: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -175,10 +177,12 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
         description: "Results exported successfully",
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error("Error exporting results:", error);
       toast({
         title: "Error",
-        description: `Failed to export results: ${error}`,
+        description: `Failed to export results: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {

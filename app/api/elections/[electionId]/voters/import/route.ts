@@ -70,16 +70,8 @@ export async function POST(
       },
     };
 
-    console.log("Voter query:", JSON.stringify(query, null, 2));
-
     // Find voters matching the criteria
     const voters = await prisma.voter.findMany(query);
-    console.log(
-      "Found voters:",
-      voters.length,
-      "First few voters:",
-      voters.slice(0, 3)
-    );
 
     if (voters.length === 0) {
       return NextResponse.json(

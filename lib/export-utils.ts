@@ -15,6 +15,11 @@ export interface ExportVoter {
     name: string;
     departmentName?: string;
     departmentId?: number;
+    department?: {
+      id: number;
+      name: string;
+      image: string | null;
+    };
   };
   election?: {
     id: number;
@@ -57,10 +62,16 @@ export function prepareVoterDataForExport(
       const yearParts = voter.year?.name ? voter.year.name.split(" - ") : [];
       yearName = yearParts[0] || voter.year?.name || "Unknown";
     } else {
-      // Fallback to parsing from year name
-      const yearParts = voter.year?.name ? voter.year.name.split(" - ") : [];
-      yearName = yearParts[0] || "Unknown";
-      departmentName = yearParts[1] || "General";
+      // Try to get department from the nested department object first
+      if (voter.year && "department" in voter.year && voter.year.department) {
+        departmentName = voter.year.department.name;
+        yearName = voter.year?.name || "Unknown";
+      } else {
+        // Fallback to parsing from year name
+        const yearParts = voter.year?.name ? voter.year.name.split(" - ") : [];
+        yearName = yearParts[0] || "Unknown";
+        departmentName = yearParts[1] || "Not assigned";
+      }
     }
 
     return {
@@ -115,7 +126,9 @@ export async function exportToPDF(
       `${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim(),
       voter.email,
       voter.year?.name || "Unknown",
-      voter.year?.departmentName || "General",
+      voter.year?.departmentName ||
+        voter.year?.department?.name ||
+        "Not assigned",
       voter.status.toLowerCase(),
       voter.election?.name || "Not assigned",
       new Date(voter.createdAt).toLocaleDateString(),
@@ -185,8 +198,10 @@ export async function exportToExcel(
 ) {
   try {
     // Dynamic import to avoid SSR issues
-    const XLSX = await import("xlsx");
-    const { default: saveAs } = await import("file-saver");
+    const [XLSX, { default: saveAs }] = await Promise.all([
+      import("xlsx"),
+      import("file-saver"),
+    ]);
 
     // Prepare data for Excel
     const excelData = voters.map((voter) => ({
@@ -198,7 +213,10 @@ export async function exportToExcel(
         `${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim(),
       Email: voter.email,
       Year: voter.year?.name || "Unknown",
-      Department: voter.year?.departmentName || "General",
+      Department:
+        voter.year?.departmentName ||
+        voter.year?.department?.name ||
+        "Not assigned",
       Status: voter.status,
       Election: voter.election?.name || "Not assigned",
       "Created Date": new Date(voter.createdAt).toLocaleDateString(),
@@ -256,10 +274,11 @@ export async function exportToExcel(
 
     return { success: true, fileName };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Error exporting to Excel:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorMessage,
     };
   }
 }
@@ -382,7 +401,10 @@ export function printVoters(
                 const fullName =
                   `${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim();
                 const yearName = voter.year?.name || "Unknown";
-                const departmentName = voter.year?.departmentName || "General";
+                const departmentName =
+                  voter.year?.departmentName ||
+                  voter.year?.department?.name ||
+                  "Not assigned";
 
                 return `
                   <tr>
@@ -442,7 +464,7 @@ export async function exportElectionResults(
 
   try {
     // Dynamic import to avoid SSR issues
-    const [{ default: XLSX }, { default: saveAs }] = await Promise.all([
+    const [XLSX, { default: saveAs }] = await Promise.all([
       import("xlsx"),
       import("file-saver"),
     ]);
@@ -494,7 +516,8 @@ export async function exportElectionResults(
     const fileName = generateExportFilename(electionDetails.name);
     saveAs(blob, fileName);
   } catch (error) {
-    throw new Error(`Export failed: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Export failed: ${errorMessage}`);
   }
 }
 

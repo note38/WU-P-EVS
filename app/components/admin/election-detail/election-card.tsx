@@ -473,14 +473,6 @@ export function ElectionCard({
                 Edit Election
               </DropdownMenuItem>
 
-              {currentElectionStatus ===
-              "active" ? null : currentElectionStatus === "inactive" ? (
-                <DropdownMenuItem onClick={() => handleStatusChange("start")}>
-                  <PlayIcon className="h-4 w-4 mr-2" />
-                  Start Election
-                </DropdownMenuItem>
-              ) : null}
-
               <DropdownMenuSeparator />
 
               <DropdownMenuItem

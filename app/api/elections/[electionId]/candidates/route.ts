@@ -40,16 +40,15 @@ export async function GET(
     const skip = (page - 1) * limit;
 
     // Check if the election exists
-    const election = await prisma.election.findFirst({
+    const election = await prisma.election.findUnique({
       where: {
         id: electionId,
-        createdById: authResult.userId,
       },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }
@@ -222,16 +221,15 @@ export async function POST(
     }
 
     // Check if the election exists
-    const election = await prisma.election.findFirst({
+    const election = await prisma.election.findUnique({
       where: {
         id: electionId,
-        createdById: authResult.userId,
       },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }

@@ -15,7 +15,6 @@ export default async function BallotPage() {
 
   // For now, let's comment out the user type check since we're using email-based lookup
   // This will allow any authenticated user to try to access the ballot
-  // TODO: Implement proper role checking based on your Clerk setup
 
   // Check if user is a voter (you'll need to adapt this based on how you store user roles in Clerk)
   // Option 1: Check user metadata
@@ -33,7 +32,6 @@ export default async function BallotPage() {
   // Since we don't have clerkId in the voter table, we'll find the voter by email
   const userEmail = user.emailAddresses[0]?.emailAddress;
   if (!userEmail) {
-    console.error("No email address found for user:", user.id);
     redirect("/sign-in?redirect_url=" + encodeURIComponent("/ballot"));
   }
 

@@ -118,7 +118,6 @@ export default function RootLayout({
                       observer.observe({type: 'event', buffered: true});
                     } catch (e) {
                       // Fallback for browsers that don't support event timing
-                      console.log('Event timing not supported');
                     }
                   }
 

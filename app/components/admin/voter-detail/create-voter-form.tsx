@@ -104,7 +104,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       const response = await fetch("/api/departments");
       if (response.ok) {
         const data = await response.json();
-        console.log("Departments data:", data); // Debug log
+
         setDepartments(data);
       } else {
         console.error("Failed to fetch departments");
@@ -132,7 +132,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       const response = await fetch(`/api/years/by-department/${departmentId}`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Years data:", data); // Debug log
+
         setYears(data);
       } else {
         console.error("Failed to fetch years");
@@ -160,7 +160,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       const response = await fetch("/api/elections");
       if (response.ok) {
         const data = await response.json();
-        console.log("Elections data from API:", data); // Debug log
+
         setElections(data);
       } else {
         console.error("Failed to fetch elections");
