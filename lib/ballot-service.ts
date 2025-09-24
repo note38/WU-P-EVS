@@ -56,7 +56,7 @@ export async function submitBallot(submission: BallotSubmission) {
         };
       }
 
-      if (voter.status === VoterStatus.VOTED) {
+      if (voter.status === VoterStatus.CAST) {
         return { success: false, error: "Voter has already voted" };
       }
 
@@ -79,7 +79,7 @@ export async function submitBallot(submission: BallotSubmission) {
       // Update voter status within the same transaction
       await tx.voter.update({
         where: { id: voterId },
-        data: { status: VoterStatus.VOTED },
+        data: { status: VoterStatus.CAST },
       });
 
       return { success: true };

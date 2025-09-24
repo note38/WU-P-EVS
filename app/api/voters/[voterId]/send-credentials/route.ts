@@ -82,22 +82,21 @@ export async function POST(
     }
 
     // Send email using the template
-    const emailResult = await resend.emails.send({
-      from: process.env.FROM_EMAIL || "WUP Voting System <noreply@wup-evs.com>",
-      to: voter.email,
-      subject: `Your Voting Credentials - ${voter.election.name}`,
-      react: VoterCredentialsEmail(emailData),
-    });
+    if (resend && (resend as any).emails) {
+      const emailResult = await (resend as any).emails.send({
+        from:
+          process.env.FROM_EMAIL || "WUP Voting System <noreply@wup-evs.com>",
+        to: voter.email,
+        subject: `Your Voting Credentials - ${voter.election.name}`,
+        react: VoterCredentialsEmail(emailData),
+      });
 
-    if (emailResult.error) {
-      throw new Error(emailResult.error.message);
+      if (emailResult.error) {
+        throw new Error(emailResult.error.message);
+      }
+    } else {
+      throw new Error("Email service not available");
     }
-
-    // Update voter to mark credentials as sent
-    await prisma.voter.update({
-      where: { id: voterId },
-      data: { credentialsSent: true },
-    });
 
     return NextResponse.json({
       message: "Credentials sent successfully",

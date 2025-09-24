@@ -16,7 +16,7 @@ export interface DatabaseUser {
   // Voter specific fields
   firstName?: string;
   lastName?: string;
-  status?: "REGISTERED" | "VOTED";
+  status?: "UNCAST" | "CAST";
   electionId?: number;
   yearId?: number;
 }
@@ -52,11 +52,12 @@ export function useClerkAuth() {
         } else if (response.status === 404) {
           // User not found in database - redirect to sign-in with error message
           setError("Email not registered in system");
-          
+
           // Show error message
           toast({
             title: "Access Denied",
-            description: "This email is not registered in our system. Please try with a different email or contact an administrator.",
+            description:
+              "This email is not registered in our system. Please try with a different email or contact an administrator.",
             variant: "destructive",
           });
 
@@ -64,7 +65,9 @@ export function useClerkAuth() {
           setTimeout(async () => {
             try {
               await signOut();
-              router.push("/sign-in?error=email_not_registered&message=This email is not registered in our system");
+              router.push(
+                "/sign-in?error=email_not_registered&message=This email is not registered in our system"
+              );
             } catch (signOutError) {
               console.error("Error during sign out:", signOutError);
               // Fallback redirect

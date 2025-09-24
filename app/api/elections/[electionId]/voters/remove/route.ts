@@ -79,7 +79,7 @@ export async function POST(
       },
       data: {
         electionId: null,
-        status: "REGISTERED", // Reset status
+        status: "UNCAST", // Reset status
       },
     });
 

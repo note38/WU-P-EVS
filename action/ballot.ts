@@ -84,10 +84,10 @@ export async function submitBallot(selections: Record<string, string>) {
 
       await Promise.all(votePromises);
 
-      // Update voter status to VOTED
+      // Update voter status to CAST
       await tx.voter.update({
         where: { id: voterId },
-        data: { status: "VOTED" },
+        data: { status: "CAST" },
       });
 
       return { success: true };

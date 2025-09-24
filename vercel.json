@@ -8,11 +8,5 @@
     "NEXT_TELEMETRY_DISABLED": "1",
     "NODE_ENV": "production",
     "TYPESCRIPT_DISABLE_TYPE_CHECKING": "1"
-  },
-  "crons": [
-    {
-      "path": "/api/cron/election-status",
-      "schedule": "0 7 * * *"
-    }
-  ]
+  }
 }

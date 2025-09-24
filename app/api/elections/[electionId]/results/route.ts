@@ -57,7 +57,7 @@ export async function GET(req: NextRequest, context: any) {
 
     // Create a map of candidate ID to vote count
     const voteCountMap = voteCounts.reduce(
-      (acc, vote) => {
+      (acc: Record<number, number>, vote: { candidateId: number; _count: { candidateId: number } }) => {
         acc[vote.candidateId] = vote._count.candidateId;
         return acc;
       },
@@ -76,14 +76,13 @@ export async function GET(req: NextRequest, context: any) {
     });
 
     const votedCount =
-      voterStats.find((stat) => stat.status === "VOTED")?._count.status || 0;
+      voterStats.find((stat: { status: string; _count: { status: number } }) => stat.status === "CAST")?._count.status || 0;
     const registeredCount =
-      voterStats.find((stat) => stat.status === "REGISTERED")?._count.status ||
-      0;
+      voterStats.find((stat: { status: string; _count: { status: number } }) => stat.status === "UNCAST")?._count.status || 0;
 
     // Format positions with candidates and their vote counts
-    const formattedPositions = election.positions.map((position) => {
-      const candidates = position.candidates.map((candidate) => ({
+    const formattedPositions = election.positions.map((position: any) => {
+      const candidates = position.candidates.map((candidate: any) => ({
         id: candidate.id,
         name: candidate.name,
         avatar: candidate.avatar,
@@ -92,7 +91,7 @@ export async function GET(req: NextRequest, context: any) {
       }));
 
       // Sort candidates by vote count (descending)
-      candidates.sort((a, b) => b.votes - a.votes);
+      candidates.sort((a: { votes: number }, b: { votes: number }) => b.votes - a.votes);
 
       return {
         id: position.id,
@@ -100,7 +99,7 @@ export async function GET(req: NextRequest, context: any) {
         maxCandidates: position.maxCandidates,
         candidates,
         totalVotes: candidates.reduce(
-          (sum, candidate) => sum + candidate.votes,
+          (sum: number, candidate: { votes: number }) => sum + candidate.votes,
           0
         ),
       };

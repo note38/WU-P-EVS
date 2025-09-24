@@ -10,7 +10,6 @@ export interface VoterData {
   email: string;
   status: VoterStatus;
   avatar: string;
-  credentialsSent: boolean;
   createdAt: Date;
   election: { name: string; id: number } | null;
   year: {
@@ -28,7 +27,6 @@ export interface StatsResult {
   totalRegistered: number;
   votedCount: number;
   notVotedCount: number;
-  credentialsSentCount: number;
   newRegistrations: number;
 }
 
@@ -49,7 +47,6 @@ export class VoterDataService {
         email: true,
         status: true,
         avatar: true,
-        credentialsSent: true,
         createdAt: true,
         election: { select: { name: true, id: true } },
         year: {
@@ -80,38 +77,29 @@ export class VoterDataService {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    const [
-      totalRegistered,
-      votedCount,
-      notVotedCount,
-      credentialsSentCount,
-      newRegistrations,
-    ] = await Promise.all([
-      prisma.voter.count(),
-      prisma.voter.count({
-        where: { status: "VOTED" },
-      }),
-      prisma.voter.count({
-        where: { status: "REGISTERED" },
-      }),
-      prisma.voter.count({
-        where: { credentialsSent: true },
-      }),
-      prisma.voter.count({
-        where: {
-          createdAt: {
-            gte: oneWeekAgo,
+    const [totalRegistered, votedCount, notVotedCount, newRegistrations] =
+      await Promise.all([
+        prisma.voter.count(),
+        prisma.voter.count({
+          where: { status: "CAST" },
+        }),
+        prisma.voter.count({
+          where: { status: "UNCAST" },
+        }),
+        prisma.voter.count({
+          where: {
+            createdAt: {
+              gte: oneWeekAgo,
+            },
           },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     return {
       data: {
         totalRegistered,
         votedCount,
         notVotedCount,
-        credentialsSentCount,
         newRegistrations,
       },
       info: null, // Accelerate info is available on the prisma client level
@@ -128,7 +116,6 @@ export class VoterDataService {
     avatar: string;
     electionId: number;
     yearId: number;
-    credentialsSent?: boolean;
     status?: VoterStatus;
   }) {
     return prisma.voter.create({

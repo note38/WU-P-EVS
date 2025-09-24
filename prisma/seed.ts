@@ -192,7 +192,7 @@ async function main() {
         avatar: `https://ui-avatars.com/api/?name=${voter.firstName}+${voter.lastName}&background=random`,
         yearId: voter.yearId,
         electionId: election.id,
-        status: VoterStatus.REGISTERED,
+        status: VoterStatus.UNCAST,
       },
     });
     console.log(

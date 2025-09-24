@@ -33,8 +33,8 @@ import { useState } from "react";
 
 // Define VoterStatus enum since we don't have @prisma/client
 export enum VoterStatus {
-  REGISTERED = "REGISTERED",
-  VOTED = "VOTED",
+  UNCAST = "UNCAST",
+  CAST = "CAST",
 }
 
 export type Voter = {
@@ -45,7 +45,6 @@ export type Voter = {
   email: string;
   status: VoterStatus;
   avatar: string;
-  credentialsSent: boolean;
   createdAt: Date;
   election?: {
     name: string;
@@ -139,7 +138,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
             .voter-table th { background-color: #f2f2f2; font-weight: bold; }
             .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
             .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
             @media print {
               body { margin: 0; }
@@ -191,13 +190,12 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       <td>${yearName}</td>
                       <td>${departmentName}</td>
                       <td>
-                        <span class="${voter.status === "VOTED" ? "status-voted" : "status-registered"}">
+                        <span class="${voter.status === "CAST" ? "status-voted" : "status-uncast"}">
                           ${voter.status.toLowerCase()}
                         </span>
                       </td>
                       <td>${voter.election?.name || "Not assigned"}</td>
                       <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
-                      <td>${voter.credentialsSent ? "Sent" : "Pending"}</td>
                     </tr>
                   `;
                 })
@@ -243,7 +241,7 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
             .voter-table th { background-color: #f2f2f2; font-weight: bold; }
             .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
             .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
             @media print {
               body { margin: 0; }
@@ -295,13 +293,12 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       <td>${yearName}</td>
                       <td>${departmentName}</td>
                       <td>
-                        <span class="${voter.status === "VOTED" ? "status-voted" : "status-registered"}">
+                        <span class="${voter.status === "CAST" ? "status-voted" : "status-uncast"}">
                           ${voter.status.toLowerCase()}
                         </span>
                       </td>
                       <td>${voter.election?.name || "Not assigned"}</td>
                       <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
-                      <td>${voter.credentialsSent ? "Sent" : "Pending"}</td>
                     </tr>
                   `;
                 })
@@ -477,9 +474,9 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                     <div className="flex justify-between items-center">
                       <Badge
                         variant={
-                          voter.status === VoterStatus.REGISTERED
+                          voter.status === VoterStatus.UNCAST
                             ? "secondary"
-                            : voter.status === VoterStatus.VOTED
+                            : voter.status === VoterStatus.CAST
                               ? "default"
                               : "destructive"
                         }
@@ -504,13 +501,15 @@ export default function VoterCards({ voters, info }: VoterCardsProps) {
                       {departmentName || "Not assigned"}
                     </div>
                     <div className="text-sm">
-                      {voter.credentialsSent ? (
-                        <span className="text-green-600">Credentials sent</span>
-                      ) : (
-                        <span className="text-orange-600">
-                          Pending credentials
-                        </span>
-                      )}
+                      <span className="font-medium">Status:</span>{" "}
+                      <Badge
+                        variant={
+                          voter.status === "CAST" ? "destructive" : "secondary"
+                        }
+                        className="ml-1"
+                      >
+                        {voter.status === "CAST" ? "Voted" : "Not Voted"}
+                      </Badge>
                     </div>
                   </div>
                 </CardContent>

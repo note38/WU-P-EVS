@@ -100,8 +100,7 @@ export async function POST(request: Request) {
           email: String(data.email).trim(),
           hashpassword,
           yearId: parseInt(data.yearId),
-          status: "REGISTERED" as VoterStatus,
-          credentialsSent: false,
+          status: "UNCAST" as VoterStatus,
           ...(data.electionId ? { electionId: parseInt(data.electionId) } : {}),
         },
         include: {
@@ -140,27 +139,26 @@ export async function POST(request: Request) {
               : "http://localhost:3000/login",
           };
 
-          const emailResult = await resend.emails.send({
-            from:
-              process.env.FROM_EMAIL ||
-              "WUP Voting System <noreply@wup-evs.com>",
-            to: voter.email,
-            subject: `Your Voting Credentials - ${voter.election?.name || "Election"}`,
-            react: VoterCredentialsEmail(emailData),
-          });
-
-          if (!emailResult.error) {
-            // Update voter to mark credentials as sent
-            await prisma.voter.update({
-              where: { id: voter.id },
-              data: { credentialsSent: true },
+          if (resend && (resend as any).emails) {
+            const emailResult = await (resend as any).emails.send({
+              from:
+                process.env.FROM_EMAIL ||
+                "WUP Voting System <noreply@wup-evs.com>",
+              to: voter.email,
+              subject: `Your Voting Credentials - ${voter.election?.name || "Election"}`,
+              react: VoterCredentialsEmail(emailData),
             });
-            credentialsSent = true;
+
+            if (!emailResult.error) {
+              credentialsSent = true;
+            } else {
+              console.error(
+                "Error sending credentials email:",
+                emailResult.error
+              );
+            }
           } else {
-            console.error(
-              "Error sending credentials email:",
-              emailResult.error
-            );
+            console.warn("Resend service is not available");
           }
         } catch (emailError) {
           console.error("Error sending credentials:", emailError);

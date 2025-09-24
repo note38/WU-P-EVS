@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
 import {
   EditIcon,
   EyeIcon,
@@ -117,23 +116,6 @@ export function ElectionCard({
       cleanupDialogState();
     };
   }, []);
-
-  // Use the automatic status checking hook
-  useElectionAutoStatus({
-    enabled: true,
-    interval: 30000, // Check every 30 seconds
-    onStatusUpdate: (updates) => {
-      // Update local status if this election was updated
-      const thisElectionUpdate = updates.find(
-        (update) => update.id === election.id
-      );
-      if (thisElectionUpdate) {
-        setCurrentElectionStatus(
-          thisElectionUpdate.suggestedStatus.toLowerCase()
-        );
-      }
-    },
-  });
 
   // Update local status when election prop changes
   useEffect(() => {

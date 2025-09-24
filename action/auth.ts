@@ -34,7 +34,7 @@ export async function voterLogin(formData: LoginFormData) {
     }
 
     // Check if the voter has already voted
-    if (voter.status === "VOTED") {
+    if (voter.status === "CAST") {
       return {
         success: false,
         message: "You have already voted in this election",
@@ -98,7 +98,7 @@ export async function getVoterSession() {
 
     if (
       !voter ||
-      voter.status === "VOTED" ||
+      voter.status === "CAST" ||
       voter.election?.status !== "ACTIVE"
     ) {
       // Clear cookies if voter is not valid, has voted, or election is not active

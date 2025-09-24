@@ -66,7 +66,6 @@ interface Voter {
   status: string;
   votedAt?: string | null;
   electionId: number | null;
-  credentialsSent?: boolean;
 }
 
 interface VotersTabProps {
@@ -397,7 +396,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
             .voter-table th { background-color: #f2f2f2; font-weight: bold; }
             .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
             .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
             @media print {
               body { margin: 0; }
@@ -434,8 +433,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
                   <td>${voter.department?.name || "N/A"}</td>
                   <td>${voter.year?.name || "N/A"}</td>
                   <td>
-                    <span class="${voter.votedAt ? "status-voted" : "status-registered"}">
-                      ${voter.votedAt ? "Voted" : "Registered"}
+                    <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
+                      ${voter.votedAt ? "Voted" : "Not Voted"}
                     </span>
                   </td>
                   <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
@@ -488,7 +487,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
             .voter-table th { background-color: #f2f2f2; font-weight: bold; }
             .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
             .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-registered { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
             .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
             @media print {
               body { margin: 0; }
@@ -525,8 +524,8 @@ export function VotersTab({ electionId }: VotersTabProps) {
                   <td>${voter.department?.name || "N/A"}</td>
                   <td>${voter.year?.name || "N/A"}</td>
                   <td>
-                    <span class="${voter.votedAt ? "status-voted" : "status-registered"}">
-                      ${voter.votedAt ? "Voted" : "Registered"}
+                    <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
+                      ${voter.votedAt ? "Voted" : "Not Voted"}
                     </span>
                   </td>
                   <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
@@ -684,7 +683,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                             : "bg-gray-500 hover:bg-gray-600"
                         }
                       >
-                        {voter.votedAt ? "Voted" : "Registered"}
+                        {voter.votedAt ? "Voted" : "Not Voted"}
                       </Badge>
                     </TableCell>
                     <TableCell>

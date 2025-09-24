@@ -1,0 +1,69 @@
+name: Election Status Auto Update
+
+on:
+  schedule:
+    # Run every minute as requested
+    - cron: '* * * * *'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual trigger'
+
+jobs:
+  update-election-status:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Election Status Cron Endpoint
+        run: |
+          echo "🚀 Triggering election status update..."
+          echo "⏰ Current time: $(date)"
+          
+          # Make request to the cron endpoint
+          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: github-actions-cron/1.0" \
+            "${{ secrets.DEPLOYMENT_URL }}/api/cron/election-status")
+          
+          # Extract HTTP status and response body
+          http_status=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
+          response_body=$(echo "$response" | sed '$d')
+          
+          echo "📊 Response Status: $http_status"
+          echo "📄 Response Body: $response_body"
+          
+          # Check if request was successful
+          if [ "$http_status" -eq 200 ]; then
+            echo "✅ Election status update completed successfully"
+            
+            # Parse and display update information
+            updated_count=$(echo "$response_body" | jq -r '.updatedCount // 0' 2>/dev/null || echo "0")
+            message=$(echo "$response_body" | jq -r '.message // "Status check completed"' 2>/dev/null || echo "Status check completed")
+            
+            echo "📈 Updated elections: $updated_count"
+            echo "💬 Message: $message"
+            
+            # Display updated elections if any
+            if [ "$updated_count" -gt 0 ]; then
+              echo "🗳️ Updated Elections:"
+              echo "$response_body" | jq -r '.updatedElections[]? | "  - \(.name) (ID: \(.id)) → \(.status)"' 2>/dev/null || echo "  - Details not available"
+            fi
+          else
+            echo "❌ Election status update failed with status: $http_status"
+            echo "💥 Error response: $response_body"
+            exit 1
+          fi
+
+      - name: Log Completion
+        if: always()
+        run: |
+          echo "🏁 Election status cron job completed at $(date)"
+          echo "📋 Workflow triggered by: ${{ github.event_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "📝 Manual trigger reason: ${{ github.event.inputs.reason }}"
+          fi

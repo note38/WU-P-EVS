@@ -22,8 +22,8 @@ enum ElectionStatus {
 }
 
 enum VoterStatus {
-  REGISTERED
-  VOTED
+  UNCAST
+  CAST
 }
 
 model User {
@@ -113,8 +113,7 @@ model Voter {
   electionId      Int?
   year            Year        @relation(fields: [yearId], references: [id])
   yearId          Int
-  status          VoterStatus @default(REGISTERED)
-  credentialsSent Boolean     @default(false)
+  status          VoterStatus @default(UNCAST)
   votes           Vote[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

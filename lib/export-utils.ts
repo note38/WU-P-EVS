@@ -9,7 +9,6 @@ export interface ExportVoter {
   email: string;
   status: string;
   createdAt: Date | string;
-  credentialsSent: boolean;
   year?: {
     id: number;
     name: string;
@@ -82,7 +81,6 @@ export function prepareVoterDataForExport(
       email: voter.email,
       status: voter.status,
       createdAt: voter.createdAt,
-      credentialsSent: voter.credentialsSent,
       year: voter.year
         ? {
             ...voter.year,
@@ -132,7 +130,6 @@ export async function exportToPDF(
       voter.status.toLowerCase(),
       voter.election?.name || "Not assigned",
       new Date(voter.createdAt).toLocaleDateString(),
-      voter.credentialsSent ? "Sent" : "Pending",
     ]);
 
     // Add table
@@ -147,7 +144,6 @@ export async function exportToPDF(
           "Status",
           "Election",
           "Created",
-          "Credentials",
         ],
       ],
       body: tableData,
@@ -173,7 +169,6 @@ export async function exportToPDF(
         5: { cellWidth: 20 }, // Status
         6: { cellWidth: 30 }, // Election
         7: { cellWidth: 25 }, // Created
-        8: { cellWidth: 20 }, // Credentials
       },
     });
 
@@ -221,7 +216,6 @@ export async function exportToExcel(
       Election: voter.election?.name || "Not assigned",
       "Created Date": new Date(voter.createdAt).toLocaleDateString(),
       "Created Time": new Date(voter.createdAt).toLocaleTimeString(),
-      "Credentials Sent": voter.credentialsSent ? "Yes" : "No",
     }));
 
     // Create workbook and worksheet
@@ -242,7 +236,6 @@ export async function exportToExcel(
       { wch: 25 }, // Election
       { wch: 15 }, // Created Date
       { wch: 15 }, // Created Time
-      { wch: 15 }, // Credentials Sent
     ];
     worksheet["!cols"] = columnWidths;
 
@@ -414,13 +407,12 @@ export function printVoters(
                     <td>${yearName}</td>
                     <td>${departmentName}</td>
                     <td>
-                      <span class="${voter.status === "VOTED" ? "status-voted" : "status-registered"}">
+                      <span class="${voter.status === "CAST" ? "status-voted" : "status-uncast"}">
                         ${voter.status.toLowerCase()}
                       </span>
                     </td>
                     <td>${voter.election?.name || "Not assigned"}</td>
                     <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
-                    <td>${voter.credentialsSent ? "Sent" : "Pending"}</td>
                   </tr>
                 `;
               })

@@ -98,7 +98,7 @@ export async function POST(
           },
           data: {
             electionId: electionId,
-            status: "REGISTERED",
+            status: "UNCAST",
           },
         });
         console.log(`Batch ${Math.floor(i / BATCH_SIZE) + 1} result:`, result);

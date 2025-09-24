@@ -22,14 +22,14 @@ export default function TestAutoStatusPage() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Use the automatic status checking hook
+  // Use the automatic status checking hook - DISABLED to prevent interfering with main page
   const { manualCheck } = useElectionAutoStatus({
-    enabled: true,
-    interval: 10000, // Check every 10 seconds for testing
+    enabled: false, // Disabled - only main elections page should auto-update
+    interval: 10000, // Check every 10 seconds for testing (when enabled)
     onStatusUpdate: (updates) => {
       toast({
         title: "Auto Status Update",
-        description: `${updates.length} election(s) status updated automatically`,
+        description: `${updates?.length || 0} election(s) status updated automatically`,
         variant: "default",
       });
       fetchElectionStatuses();
@@ -265,8 +265,12 @@ export default function TestAutoStatusPage() {
             inactive election if it's within the scheduled time period
           </p>
           <p className="text-sm">
-            • Status checks happen automatically every 30 seconds on the main
-            elections page
+            • Status checks happen automatically every 60 seconds on the main
+            elections page (but not on this test page)
+          </p>
+          <p className="text-sm text-orange-600">
+            <strong>Note:</strong> Auto-status checking is disabled on this test page
+            to prevent interference with the main elections page. Use manual controls to test.
           </p>
         </CardContent>
       </Card>

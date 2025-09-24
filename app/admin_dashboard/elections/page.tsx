@@ -6,7 +6,7 @@ import { PlusIcon } from "lucide-react";
 import { ElectionCard } from "@/app/components/admin/election-detail/election-card";
 import { ElectionStats } from "@/app/components/admin/election-detail/election-stats";
 import { CreateElectionForm } from "@/app/components/admin/election-detail/create-election-form";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import {
   ElectionCardsSkeleton,
   ElectionStatsSkeleton,
@@ -111,13 +111,13 @@ function ElectionList({ onRefresh }: { onRefresh: number }) {
     );
 
     const totalVoters = election._count.voters;
-    // Count voters with VOTED status
+    // Count voters with CAST status
     const castVotes = election.voters.filter(
-      (voter) => voter.status === "VOTED"
+      (voter) => voter.status === "CAST"
     ).length;
-    // Count voters with REGISTERED status
+    // Count voters with UNCAST status
     const uncastVotes = election.voters.filter(
-      (voter) => voter.status === "REGISTERED"
+      (voter) => voter.status === "UNCAST"
     ).length;
 
     // Convert string dates to Date objects if necessary
@@ -171,29 +171,36 @@ function ElectionList({ onRefresh }: { onRefresh: number }) {
 export default function ElectionsPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const handleElectionCreated = () => {
+  const handleElectionCreated = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
-  };
+  }, []);
+
+  const handleStatusUpdate = useCallback(() => {
+    // Refresh the elections list when status updates occur
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Elections</h1>
-        <CreateElectionForm onElectionCreated={handleElectionCreated} />
-      </div>
-
-      <Suspense fallback={<ElectionStatsSkeleton />}>
-        <ElectionStats />
-      </Suspense>
-
-      <div className="space-y-4">
+    <ElectionPageClient onStatusUpdate={handleStatusUpdate}>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">All Elections</h2>
+          <h1 className="text-3xl font-bold">Elections</h1>
+          <CreateElectionForm onElectionCreated={handleElectionCreated} />
         </div>
-        <Suspense fallback={<ElectionCardsSkeleton />}>
-          <ElectionList onRefresh={refreshTrigger} />
+
+        <Suspense fallback={<ElectionStatsSkeleton />}>
+          <ElectionStats />
         </Suspense>
+
+        <div className="space-y-4 ">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">All Elections</h2>
+          </div>
+          <Suspense fallback={<ElectionCardsSkeleton />}>
+            <ElectionList onRefresh={refreshTrigger} />
+          </Suspense>
+        </div>
       </div>
-    </div>
+    </ElectionPageClient>
   );
 }

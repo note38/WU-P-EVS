@@ -139,7 +139,6 @@ export async function GET(
       votedAt:
         voter.votes.length > 0 ? voter.votes[0].votedAt.toISOString() : null,
       electionId: voter.electionId,
-      credentialsSent: voter.credentialsSent,
     }));
 
     return NextResponse.json({
