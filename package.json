@@ -14,6 +14,7 @@
     "email": "email dev --dir app/emails",
     "test:cron": "node scripts/test-cron.js",
     "test:cron:prod": "node scripts/test-cron.js production",
+    "test:db": "node scripts/test-db-connection.js",
     "debug:cron": "node scripts/debug-cron.js",
     "debug:cron:advanced": "node scripts/debug-cron-advanced.js"
   },

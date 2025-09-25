@@ -127,6 +127,7 @@ export function DataLogs() {
 
   // Loading states
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Pagination states
   const [voterPagination, setVoterPagination] = useState<Pagination>({
@@ -167,6 +168,7 @@ export function DataLogs() {
   const fetchData = useCallback(
     async (tab: string, page: number = 1) => {
       setLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
           search: debouncedSearchTerm,
@@ -195,7 +197,11 @@ export function DataLogs() {
 
         const response = await fetch(`${endpoint}?${params}`);
         if (!response.ok) {
-          throw new Error("Failed to fetch data");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ||
+              `Failed to fetch data: ${response.status} ${response.statusText}`
+          );
         }
 
         const result = await response.json();
@@ -219,8 +225,9 @@ export function DataLogs() {
             setActivityPagination(result.pagination);
             break;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data:", error);
+        setError(error.message || "An error occurred while fetching data");
       } finally {
         setLoading(false);
       }
@@ -342,6 +349,7 @@ export function DataLogs() {
     }
   };
 
+  // In the render function, add error display
   return (
     <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
       <Card className="min-h-[300px]">
@@ -386,6 +394,18 @@ export function DataLogs() {
               </div>
             </div>
 
+            {/* Error message display */}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-destructive">
+                <p className="font-medium">Error loading data:</p>
+                <p>{error}</p>
+                <p className="mt-2 text-sm">
+                  Please check your database connection and environment
+                  variables.
+                </p>
+              </div>
+            )}
+
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid grid-cols-4 mb-4">
                 <TabsTrigger value="voters" className="flex items-center gap-2">
@@ -409,9 +429,14 @@ export function DataLogs() {
                 </TabsTrigger>
               </TabsList>
 
+              {/* Update each tab content to show error state */}
               <TabsContent value="voters">
                 {loading ? (
                   <TableSkeleton />
+                ) : error ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Failed to load voter logs. {error}
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -462,9 +487,14 @@ export function DataLogs() {
                 )}
               </TabsContent>
 
+              {/* Apply similar error handling to other tabs */}
               <TabsContent value="votes">
                 {loading ? (
                   <TableSkeleton />
+                ) : error ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Failed to load vote logs. {error}
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -521,6 +551,10 @@ export function DataLogs() {
               <TabsContent value="admin">
                 {loading ? (
                   <TableSkeleton />
+                ) : error ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Failed to load admin logs. {error}
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>
@@ -563,6 +597,10 @@ export function DataLogs() {
               <TabsContent value="activity">
                 {loading ? (
                   <TableSkeleton />
+                ) : error ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Failed to load activity logs. {error}
+                  </div>
                 ) : (
                   <Table>
                     <TableHeader>

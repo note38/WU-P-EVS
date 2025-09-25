@@ -208,10 +208,10 @@ export async function POST(request: NextRequest) {
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
-        { 
+        {
           error: "Unauthorized",
-          message: "This endpoint requires a valid CRON_SECRET token"
-        }, 
+          message: "This endpoint requires a valid CRON_SECRET token",
+        },
         { status: 401 }
       );
     }

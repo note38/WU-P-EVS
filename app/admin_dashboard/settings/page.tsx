@@ -2,8 +2,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettings } from "@/app/components/settings/profile-setting";
-import { DepartmentSettings } from "@/app/components/settings/department-form";
-import { YearSettings } from "@/app/components/settings/year-form";
 import { DataLogs } from "@/app/components/settings/data-log";
 import { AccountSettings } from "@/app/components/settings/account-form";
 import { useState } from "react";
@@ -31,22 +29,12 @@ export default function SettingsPage() {
       >
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="years">Year Level</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="logs">Data Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
           <ProfileSettings />
-        </TabsContent>
-
-        <TabsContent value="departments" className="space-y-4">
-          <DepartmentSettings />
-        </TabsContent>
-
-        <TabsContent value="years" className="space-y-4">
-          <YearSettings />
         </TabsContent>
 
         <TabsContent value="account" className="space-y-4">

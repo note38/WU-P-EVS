@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Election, Candidate, Partylist } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if prisma client is properly initialized
+    if (!prisma) {
+      console.error("Prisma client is not initialized");
+      return NextResponse.json(
+        { error: "Database connection error" },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const dateFilter = searchParams.get("dateFilter") || "all";
@@ -61,7 +71,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    elections.forEach((election) => {
+    elections.forEach((election: any) => {
       logs.push({
         id: `election-${election.id}`,
         admin: election.createdBy.username,
@@ -95,7 +105,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    candidates.forEach((candidate) => {
+    candidates.forEach((candidate: any) => {
       logs.push({
         id: `candidate-${candidate.id}`,
         admin: candidate.election.createdBy.username,
@@ -126,7 +136,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    partylists.forEach((partylist) => {
+    partylists.forEach((partylist: any) => {
       logs.push({
         id: `partylist-${partylist.id}`,
         admin: partylist.election.createdBy.username,

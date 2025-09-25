@@ -25,6 +25,7 @@ This project includes a GitHub Actions workflow for automatically updating elect
 ### Setup Instructions
 
 1. Set up the following GitHub Secrets:
+
    - `CRON_SECRET`: A secure random string
    - `DEPLOYMENT_URL`: Your Vercel application URL (e.g., `https://your-app.vercel.app`)
 

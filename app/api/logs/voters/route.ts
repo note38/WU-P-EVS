@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { Voter } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if prisma client is properly initialized
+    if (!prisma) {
+      console.error("Prisma client is not initialized");
+      return NextResponse.json(
+        { error: "Database connection error" },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const dateFilter = searchParams.get("dateFilter") || "all";
@@ -69,7 +79,7 @@ export async function GET(request: NextRequest) {
     const totalCount = await prisma.voter.count({ where: whereClause });
 
     // Transform data for frontend
-    const voterLogs = voters.map((voter) => ({
+    const voterLogs = voters.map((voter: any) => ({
       id: voter.id.toString(),
       name: `${voter.firstName} ${voter.lastName}`,
       email: voter.email,

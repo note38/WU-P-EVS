@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { User, Voter, Vote } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if prisma client is properly initialized
+    if (!prisma) {
+      console.error("Prisma client is not initialized");
+      return NextResponse.json(
+        { error: "Database connection error" },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const dateFilter = searchParams.get("dateFilter") || "all";
@@ -52,7 +62,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    users.forEach((user) => {
+    users.forEach((user: User) => {
       logs.push({
         id: `user-${user.id}`,
         user: user.username,
@@ -78,7 +88,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    voters.forEach((voter) => {
+    voters.forEach((voter: Voter) => {
       logs.push({
         id: `voter-${voter.id}`,
         user: `${voter.firstName} ${voter.lastName}`,
@@ -105,7 +115,7 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    votes.forEach((vote) => {
+    votes.forEach((vote: any) => {
       const voterName = `${vote.voter.firstName} ${vote.voter.lastName}`;
       if (!search || voterName.toLowerCase().includes(search.toLowerCase())) {
         logs.push({

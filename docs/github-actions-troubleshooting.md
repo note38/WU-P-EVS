@@ -5,6 +5,7 @@ This guide helps you troubleshoot the "Process completed with exit code 3" error
 ## Understanding Exit Code 3
 
 Exit code 3 from curl typically indicates:
+
 - **URL Malformed**: The URL is incorrectly formatted
 - **Failed to Parse URL**: Issues with URL construction
 - **Protocol Failure**: Problems with the HTTP request
@@ -16,6 +17,7 @@ Exit code 3 from curl typically indicates:
 **Problem**: The `DEPLOYMENT_URL` secret is missing, malformed, or has trailing slashes.
 
 **Solution**:
+
 1. Go to your GitHub repository
 2. Navigate to Settings → Secrets and variables → Actions
 3. Check the `DEPLOYMENT_URL` value
@@ -27,6 +29,7 @@ Exit code 3 from curl typically indicates:
 **Problem**: The `CRON_SECRET` is not set or doesn't match the Vercel environment variable.
 
 **Solution**:
+
 1. Verify `CRON_SECRET` is set in GitHub Secrets
 2. Check that it matches exactly with the Vercel environment variable
 3. Ensure there are no extra spaces or characters
@@ -36,6 +39,7 @@ Exit code 3 from curl typically indicates:
 **Problem**: GitHub Actions cannot reach your deployed application.
 
 **Solution**:
+
 1. Verify your application is deployed and running
 2. Check if there are any firewall restrictions
 3. Ensure your Vercel application is not in a development-only state
@@ -61,6 +65,7 @@ Exit code 3 from curl typically indicates:
 Use one of these methods to test:
 
 **Using curl**:
+
 ```bash
 curl -X GET \
   -H "Authorization: Bearer YOUR_CRON_SECRET_HERE" \
@@ -69,6 +74,7 @@ curl -X GET \
 ```
 
 **Using the test scripts**:
+
 ```bash
 # Bash (Linux/Mac)
 ./scripts/test-cron.sh
@@ -99,14 +105,17 @@ The updated workflow now includes better error handling:
 ## Preventive Measures
 
 ### 1. Regular Testing
+
 - Test your cron endpoint regularly using the provided scripts
 - Monitor the GitHub Actions logs for any issues
 
 ### 2. Environment Synchronization
+
 - Always ensure GitHub Secrets and Vercel Environment Variables are synchronized
 - Use the same `CRON_SECRET` value in both places
 
 ### 3. URL Validation
+
 - Always store URLs without trailing slashes
 - Verify URLs are accessible before setting them as secrets
 
@@ -115,19 +124,24 @@ The updated workflow now includes better error handling:
 If the basic troubleshooting steps don't resolve the issue:
 
 ### 1. Enable Verbose Logging
+
 Add this to your workflow for more detailed information:
+
 ```yaml
 env:
   DEBUG: true
 ```
 
 ### 2. Manual Testing with Debug Script
+
 Run the debug script locally:
+
 ```bash
 npm run debug:cron
 ```
 
 ### 3. Check Vercel Function Logs
+
 1. Go to your Vercel dashboard
 2. Select your project
 3. Go to the "Functions" tab

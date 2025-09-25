@@ -3,8 +3,8 @@ name: Election Status Auto Update (Configurable)
 on:
   schedule:
     # Default: Every 5 minutes (more reasonable for production)
-    - cron: '*/5 * * * *'
-    
+    - cron: "*/5 * * * *"
+
     # Alternative schedules (uncomment as needed):
     # - cron: '* * * * *'        # Every minute (high frequency)
     # - cron: '*/2 * * * *'      # Every 2 minutes
@@ -12,22 +12,22 @@ on:
     # - cron: '*/15 * * * *'     # Every 15 minutes
     # - cron: '*/30 * * * *'     # Every 30 minutes
     # - cron: '0 * * * *'        # Every hour
-  
+
   # Allow manual triggering with options
   workflow_dispatch:
     inputs:
       frequency:
-        description: 'Trigger frequency'
+        description: "Trigger frequency"
         required: false
-        default: 'single'
+        default: "single"
         type: choice
         options:
           - single
           - test-5-times
       reason:
-        description: 'Reason for manual trigger'
+        description: "Reason for manual trigger"
         required: false
-        default: 'Manual trigger'
+        default: "Manual trigger"
 
 env:
   # Workflow configuration
@@ -37,7 +37,7 @@ env:
 jobs:
   update-election-status:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Setup Job Info
         run: |
@@ -46,7 +46,7 @@ jobs:
           echo "  - Time: $(date)"
           echo "  - Repository: ${{ github.repository }}"
           echo "  - Workflow: ${{ github.workflow }}"
-          
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "  - Manual frequency: ${{ github.event.inputs.frequency }}"
             echo "  - Reason: ${{ github.event.inputs.reason }}"
@@ -55,7 +55,7 @@ jobs:
       - name: Validate Secrets
         run: |
           echo "🔐 Validating required secrets..."
-          
+
           # Validate required secrets are set
           if [ -z "${{ secrets.DEPLOYMENT_URL }}" ]; then
             echo "❌ DEPLOYMENT_URL secret is not set"
@@ -63,29 +63,29 @@ jobs:
             echo "📝 Current value: '${{ secrets.DEPLOYMENT_URL }}'"
             exit 1
           fi
-          
+
           if [ -z "${{ secrets.CRON_SECRET }}" ]; then
             echo "❌ CRON_SECRET secret is not set"
             echo "💡 Please set the CRON_SECRET secret in GitHub repository settings"
             exit 1
           fi
-          
+
           echo "✅ All required secrets are set"
 
       - name: Call Election Status Endpoint (Single)
         if: github.event_name == 'schedule' || github.event.inputs.frequency == 'single'
         run: |
           echo "🚀 Triggering single election status update..."
-          
+
           # Construct the full URL
           BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
           # Remove trailing slash if present
           BASE_URL="${BASE_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/election-status"
-          
+
           echo "📡 Calling endpoint: $ENDPOINT"
           echo "🔐 Using CRON_SECRET: ${{ secrets.CRON_SECRET }}"
-          
+
           # Function to make the API call
           make_request() {
             local attempt=$1
@@ -143,7 +143,7 @@ jobs:
               return 1
             fi
           }
-          
+
           # Retry logic
           for i in $(seq 1 $MAX_RETRIES); do
             if make_request $i; then
@@ -166,15 +166,15 @@ jobs:
         if: github.event.inputs.frequency == 'test-5-times'
         run: |
           echo "🧪 Running test with 5 requests (30-second intervals)..."
-          
+
           # Construct the full URL
           BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
           # Remove trailing slash if present
           BASE_URL="${BASE_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/election-status"
-          
+
           echo "📡 Calling endpoint: $ENDPOINT"
-          
+
           for i in {1..5}; do
             echo ""
             echo "🔄 Test Request $i/5 at $(date)"
@@ -214,11 +214,11 @@ jobs:
           echo "  - Trigger: ${{ github.event_name }}"
           echo "  - Completed: $(date)"
           echo "  - Status: ${{ job.status }}"
-          
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "  - Manual trigger reason: ${{ github.event.inputs.reason }}"
           fi
-          
+
           echo ""
           echo "🔗 Useful Links:"
           echo "  - Workflow runs: https://github.com/${{ github.repository }}/actions"

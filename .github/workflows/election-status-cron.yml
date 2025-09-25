@@ -3,26 +3,26 @@ name: Election Status Auto Update
 on:
   schedule:
     # Run every minute as requested
-    - cron: '* * * * *'
-  
+    - cron: "* * * * *"
+
   # Allow manual triggering
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason for manual trigger'
+        description: "Reason for manual trigger"
         required: false
-        default: 'Manual trigger'
+        default: "Manual trigger"
 
 jobs:
   update-election-status:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Call Election Status Cron Endpoint
         run: |
           echo "🚀 Triggering election status update..."
           echo "⏰ Current time: $(date)"
-          
+
           # Validate required secrets are set
           if [ -z "${{ secrets.DEPLOYMENT_URL }}" ]; then
             echo "❌ DEPLOYMENT_URL secret is not set"
@@ -30,22 +30,22 @@ jobs:
             echo "📝 Current value: '${{ secrets.DEPLOYMENT_URL }}'"
             exit 1
           fi
-          
+
           if [ -z "${{ secrets.CRON_SECRET }}" ]; then
             echo "❌ CRON_SECRET secret is not set"
             echo "💡 Please set the CRON_SECRET secret in GitHub repository settings"
             exit 1
           fi
-          
+
           # Construct the full URL
           BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
           # Remove trailing slash if present
           BASE_URL="${BASE_URL%/}"
           ENDPOINT="$BASE_URL/api/cron/election-status"
-          
+
           echo "📡 Calling endpoint: $ENDPOINT"
           echo "🔐 Using CRON_SECRET: ${{ secrets.CRON_SECRET }}"
-          
+
           # Make request to the cron endpoint with verbose output for debugging
           echo "🔍 Making request with curl..."
           response=$(curl -v -s -w "\nHTTP_STATUS:%{http_code}\nTOTAL_TIME:%{time_total}\nCONNECT_TIME:%{time_connect}\nHTTP_CODE:%{http_code}" \
@@ -53,28 +53,28 @@ jobs:
             -H "Content-Type: application/json" \
             -H "User-Agent: github-actions-cron/1.0" \
             "$ENDPOINT" 2>&1)
-          
+
           # Extract timing information
           total_time=$(echo "$response" | grep "TOTAL_TIME:" | sed 's/TOTAL_TIME://')
           connect_time=$(echo "$response" | grep "CONNECT_TIME:" | sed 's/CONNECT_TIME://')
           http_code=$(echo "$response" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
-          
+
           echo "⏱️  Connection time: ${connect_time}s"
           echo "⏱️  Total time: ${total_time}s"
           echo "📊 Response Status: $http_code"
-          
+
           # Extract HTTP status and response body
           http_status=$(echo "$response" | grep "HTTP_STATUS:" | sed 's/HTTP_STATUS://')
           response_body=$(echo "$response" | sed -n '/HTTP_STATUS:/q;p' | sed '/^*/d' | sed '/^>/d' | sed '/^</d' | sed '/^}/d' | sed '/^$/d' | head -n -3 | tail -n +2)
-          
+
           echo "📄 Response Body: $response_body"
-          
+
           # If we still get 000, show the full response for debugging
           if [ "$http_status" = "000" ]; then
             echo "🔍 Detailed curl output for debugging:"
             echo "$response"
           fi
-          
+
           # Check if request was successful
           if [ "$http_status" -eq 200 ]; then
             echo "✅ Election status update completed successfully"

@@ -13,6 +13,7 @@ The 000 status code from curl indicates that the request failed to complete succ
 **Problem**: The `DEPLOYMENT_URL` secret is not set, is set to a placeholder value, or is incorrect.
 
 **Solution**:
+
 1. Go to your GitHub repository
 2. Navigate to Settings → Secrets and variables → Actions
 3. Check the `DEPLOYMENT_URL` value
@@ -24,6 +25,7 @@ The 000 status code from curl indicates that the request failed to complete succ
 **Problem**: GitHub Actions cannot resolve the domain name in your URL.
 
 **Solution**:
+
 1. Verify the domain name is correct
 2. Check if the application is deployed and accessible
 3. Try accessing the URL in your browser
@@ -33,6 +35,7 @@ The 000 status code from curl indicates that the request failed to complete succ
 **Problem**: GitHub Actions runners cannot connect to your application due to network restrictions.
 
 **Solution**:
+
 1. Ensure your Vercel application is publicly accessible
 2. Check if there are any firewall rules blocking GitHub Actions IP ranges
 3. Verify your application is not in a development-only state
@@ -42,6 +45,7 @@ The 000 status code from curl indicates that the request failed to complete succ
 **Problem**: SSL certificate problems prevent the connection from being established.
 
 **Solution**:
+
 1. Ensure your Vercel application has a valid SSL certificate
 2. Check if there are any certificate errors when accessing the URL in a browser
 
@@ -79,6 +83,7 @@ npm run debug:cron:advanced
 ### 1. Fix DEPLOYMENT_URL Secret
 
 Make sure your `DEPLOYMENT_URL` secret is set correctly:
+
 - It should be your actual Vercel deployment URL
 - It should not contain placeholder text like "your-deployment-url"
 - It should not have trailing slashes
@@ -138,6 +143,7 @@ The updated workflow now includes verbose curl output for better debugging.
 ### 2. Manual Testing with Advanced Debug Script
 
 Run the advanced debug script locally:
+
 ```bash
 npm run debug:cron:advanced
 ```
@@ -145,6 +151,7 @@ npm run debug:cron:advanced
 ### 3. Check Network Connectivity
 
 Test DNS resolution and port connectivity:
+
 ```bash
 nslookup your-app-name.vercel.app
 telnet your-app-name.vercel.app 443
