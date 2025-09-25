@@ -183,9 +183,15 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
       console.log("API Response:", response.status, data); // Debug log
 
       if (response.ok) {
+        // With Clerk integration, voters will authenticate through Clerk
+        // So we don't need to show temporary passwords
+        const message = data.credentialsSent
+          ? `Voter added to election. Login credentials have been sent to ${data.voter.email}.`
+          : `Voter added to election. They will authenticate through Clerk.`;
+
         toast({
           title: "Success",
-          description: `Voter added to election. Temporary password: ${data.tempPassword}`,
+          description: message,
         });
         setOpen(false);
         onVoterAdded(data.voter || data);
@@ -232,7 +238,8 @@ export function AddVoterForm({ electionId, onVoterAdded }: AddVoterFormProps) {
           <DialogHeader>
             <DialogTitle>Add Voter to Election</DialogTitle>
             <DialogDescription>
-              Register a new voter directly to this election.
+              Register a new voter directly to this election. Voters will
+              authenticate through Clerk.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

@@ -97,11 +97,15 @@ export async function GET(req: NextRequest) {
       const isRedirect = url.searchParams.get("redirect") !== "false";
 
       if (isRedirect) {
-        // Redirect to home page for users not in database
+        // Instead of redirecting to home, redirect back to sign-in with error
         console.log(
-          `🔀 Redirecting user ${userId} to home page (not in database)`
+          `🔀 Redirecting user ${userId} back to sign-in (not in database)`
         );
-        return NextResponse.redirect(new URL("/home", req.url));
+        // Sign out the user from Clerk first to clear the session
+        const signOutUrl = new URL("/sign-in", req.url);
+        signOutUrl.searchParams.set("error", "email_not_registered");
+        signOutUrl.searchParams.set("message", "This email is not registered in our system. Please try with a different email.");
+        return NextResponse.redirect(signOutUrl);
       }
 
       return NextResponse.json(

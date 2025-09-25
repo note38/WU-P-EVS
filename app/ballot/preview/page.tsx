@@ -7,9 +7,11 @@ import { ChevronLeft, Check } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 
 export default function PreviewPage() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,8 +53,15 @@ export default function PreviewPage() {
         localStorage.removeItem("ballotSelections");
         localStorage.removeItem("ballotPositions");
 
-        // Redirect to thank you page
-        router.push("/ballot/thank-you");
+        // Sign out the user and redirect to homepage
+        try {
+          await signOut();
+        } catch (err) {
+          console.log("Session already clear or error clearing session");
+        }
+
+        // Redirect to homepage
+        router.push("/");
       } else {
         alert(result.error || "Failed to submit ballot. Please try again.");
         setSubmitting(false);

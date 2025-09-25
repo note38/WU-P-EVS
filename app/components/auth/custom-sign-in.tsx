@@ -91,7 +91,7 @@ export default function CustomSignIn() {
           text-underline-offset: 2px !important;
         }
       `}</style>
-      <div className="w-full max-w-md shadow-lg animate-fadeIn rounded-xl border bg-card text-card-foreground card-gradient">
+      <div className="w-full shadow-lg animate-fadeIn rounded-xl border bg-card text-card-foreground card-gradient">
         <div className="flex flex-col space-y-1.5 p-6">
           <div className="flex justify-center mb-2">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -109,7 +109,7 @@ export default function CustomSignIn() {
             Wesleyan University Philippines - Enhanced Voting System
           </div>
         </div>
-        <div className="">
+        <div className="px-6 pb-6">
           <SignIn
             appearance={{
               elements: {
@@ -161,8 +161,9 @@ export default function CustomSignIn() {
                 helpPageUrl: undefined,
               },
             }}
-            redirectUrl="/api/auth/validate-session"
-            afterSignInUrl="/api/auth/validate-session"
+            // Use a fresh redirect URL to ensure proper session handling
+            redirectUrl="/api/auth/validate-session?redirect=true"
+            afterSignInUrl="/api/auth/validate-session?redirect=true"
           />
         </div>
       </div>

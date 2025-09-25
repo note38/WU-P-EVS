@@ -58,6 +58,9 @@ export async function getElectionForVoter(voterId: string) {
     },
     include: {
       election: {
+        where: {
+          status: "ACTIVE", // Only include active elections
+        },
         include: {
           positions: {
             include: {
@@ -87,6 +90,9 @@ export async function getElectionForVoterByEmail(email: string) {
     },
     include: {
       election: {
+        where: {
+          status: "ACTIVE", // Only include active elections
+        },
         include: {
           positions: {
             include: {

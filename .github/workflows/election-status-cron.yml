@@ -23,12 +23,33 @@ jobs:
           echo "🚀 Triggering election status update..."
           echo "⏰ Current time: $(date)"
           
+          # Validate required secrets are set
+          if [ -z "${{ secrets.DEPLOYMENT_URL }}" ]; then
+            echo "❌ DEPLOYMENT_URL secret is not set"
+            echo "💡 Please set the DEPLOYMENT_URL secret in GitHub repository settings"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "❌ CRON_SECRET secret is not set"
+            echo "💡 Please set the CRON_SECRET secret in GitHub repository settings"
+            exit 1
+          fi
+          
+          # Construct the full URL
+          BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
+          # Remove trailing slash if present
+          BASE_URL="${BASE_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/election-status"
+          
+          echo "📡 Calling endpoint: $ENDPOINT"
+          
           # Make request to the cron endpoint
           response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             -H "User-Agent: github-actions-cron/1.0" \
-            "${{ secrets.DEPLOYMENT_URL }}/api/cron/election-status")
+            "$ENDPOINT")
           
           # Extract HTTP status and response body
           http_status=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
@@ -56,7 +77,10 @@ jobs:
           else
             echo "❌ Election status update failed with status: $http_status"
             echo "💥 Error response: $response_body"
-            exit 1
+            # Only exit with error for server errors, not client errors
+            if [ "$http_status" -ge 500 ]; then
+              exit 1
+            fi
           fi
 
       - name: Log Completion

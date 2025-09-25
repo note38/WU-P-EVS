@@ -44,6 +44,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if CRON_SECRET is configured
+    if (!cronSecret) {
+      console.error("[CRON] CRON_SECRET environment variable is not set");
+      return NextResponse.json(
+        {
+          error: "Server Configuration Error",
+          message: "CRON_SECRET environment variable is not configured",
+          timestamp: new Date().toISOString(),
+        },
+        { status: 500 }
+      );
+    }
+
     console.log(
       "[CRON] Authentication successful, proceeding with status update"
     );
@@ -52,6 +65,21 @@ export async function GET(request: NextRequest) {
     console.log(
       `[CRON] Starting election status check at ${now.toISOString()}`
     );
+
+    // Check database connectivity
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (dbError) {
+      console.error("[CRON] Database connection failed:", dbError);
+      return NextResponse.json(
+        {
+          error: "Database Connection Error",
+          message: "Failed to connect to the database",
+          timestamp: new Date().toISOString(),
+        },
+        { status: 500 }
+      );
+    }
 
     // Find elections that need status updates
     const electionsToUpdate = await prisma.election.findMany({
@@ -152,9 +180,9 @@ export async function GET(request: NextRequest) {
       timestamp: now.toISOString(),
       updatedCount: successfulUpdates.length,
       updatedElections: successfulUpdates.map((election) => ({
-        id: election?.id,
-        name: election?.name,
-        status: election?.status,
+        id: election.id,
+        name: election.name,
+        status: election.status,
       })),
     });
   } catch (error) {
@@ -179,7 +207,13 @@ export async function POST(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { 
+          error: "Unauthorized",
+          message: "This endpoint requires a valid CRON_SECRET token"
+        }, 
+        { status: 401 }
+      );
     }
 
     // Reuse the same logic as GET
@@ -191,6 +225,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: "Failed to manually update election statuses",
         timestamp: new Date().toISOString(),
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

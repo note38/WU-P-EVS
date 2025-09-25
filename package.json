@@ -13,7 +13,8 @@
     "seed": "node --loader ts-node/esm prisma/seed.ts",
     "email": "email dev --dir app/emails",
     "test:cron": "node scripts/test-cron.js",
-    "test:cron:prod": "node scripts/test-cron.js production"
+    "test:cron:prod": "node scripts/test-cron.js production",
+    "debug:cron": "node scripts/debug-cron.js"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"
@@ -46,6 +47,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.2",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.7.3",
     "jspdf": "^3.0.1",

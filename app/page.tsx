@@ -16,7 +16,7 @@ export default function Home() {
       // Wait for Clerk to load
       if (!isLoaded) return;
 
-      // If user is not authenticated, redirect to home page
+      // If user is not authenticated, redirect to home page (public landing page)
       if (!userId) {
         console.log("🔀 Redirecting unauthenticated user to /home");
         router.push("/home");
@@ -41,40 +41,35 @@ export default function Home() {
           }
         } else {
           console.log(
-            "⚠️ User not found in database, signing out and redirecting to home"
+            "⚠️ User not found in database, signing out and redirecting to sign-in"
           );
-          // Sign out the user since they're not in our database
-          await signOut({ redirectUrl: "/home" });
+          
+          // Clear the session and redirect to sign-in with error
+          try {
+            await signOut();
+          } catch (signOutError) {
+            console.error("Error during sign out:", signOutError);
+          }
+          
+          // Redirect to sign-in with error message
+          router.push(
+            "/sign-in?error=email_not_registered&message=This email is not registered in our system. Please try with a different email or contact an administrator."
+          );
         }
-      } catch (error) {
-        console.error("❌ Error checking user role:", error);
-        // Sign out the user on error
-        await signOut({ redirectUrl: "/home" });
+      } catch (err) {
+        console.error("Error checking user role:", err);
+        // On error, still redirect to sign-in to avoid getting stuck
+        try {
+          await signOut();
+        } catch (signOutError) {
+          console.error("Error during sign out:", signOutError);
+        }
+        router.push("/sign-in");
       }
     };
 
     handleRedirect();
   }, [isLoaded, userId, router, signOut]);
 
-  // Show loading while checking authentication
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading while redirecting
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-        <p className="text-slate-600 dark:text-slate-400">Redirecting...</p>
-      </div>
-    </div>
-  );
+  return null;
 }

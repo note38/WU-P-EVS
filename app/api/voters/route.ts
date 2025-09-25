@@ -85,9 +85,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate a secure password using the utility function
-    const tempPassword = generatePassword(12);
-    const hashpassword = await bcrypt.hash(tempPassword, 12);
+    // For Clerk integration, we don't need to generate a password immediately
+    // We'll only generate one if we need to send email credentials
+    let tempPassword = null;
+    let hashpassword = null;
+
+    // Only generate password if we're going to send credentials via email
+    const shouldSendCredentials =
+      data.electionId && data.sendCredentials !== false && resend;
+    if (shouldSendCredentials) {
+      tempPassword = generatePassword(12);
+      hashpassword = await bcrypt.hash(tempPassword, 12);
+    }
 
     try {
       // Create voter
@@ -98,7 +107,8 @@ export async function POST(request: Request) {
           lastName: String(data.lastName).trim(),
           middleName: data.middleName ? String(data.middleName).trim() : "",
           email: String(data.email).trim(),
-          hashpassword,
+          // Only store password hash if we generated one
+          ...(hashpassword ? { hashpassword } : {}),
           yearId: parseInt(data.yearId),
           status: "UNCAST" as VoterStatus,
           ...(data.electionId ? { electionId: parseInt(data.electionId) } : {}),
@@ -122,8 +132,13 @@ export async function POST(request: Request) {
 
       // If the voter is assigned to an election, automatically send credentials
       let credentialsSent = false;
-      if (data.electionId && data.sendCredentials !== false && resend) {
+      if (shouldSendCredentials) {
         try {
+          // Generate password now if we didn't earlier
+          if (!tempPassword) {
+            tempPassword = generatePassword(12);
+          }
+
           const emailData = {
             voterId: voter.id.toString(),
             firstName: voter.firstName,
@@ -151,6 +166,13 @@ export async function POST(request: Request) {
 
             if (!emailResult.error) {
               credentialsSent = true;
+
+              // Update voter with password hash after sending email
+              const hashpassword = await bcrypt.hash(tempPassword, 12);
+              await prisma.voter.update({
+                where: { id: voter.id },
+                data: { hashpassword },
+              });
             } else {
               console.error(
                 "Error sending credentials email:",
@@ -181,7 +203,12 @@ export async function POST(request: Request) {
             email: voter.email,
             credentialsSent,
           },
-          tempPassword: credentialsSent ? undefined : tempPassword, // Only return password if email wasn't sent
+          // Don't return tempPassword when using Clerk since voters will authenticate through Clerk
+          // Only return password info if email wasn't sent and we're not using Clerk
+          tempPassword:
+            credentialsSent || !shouldSendCredentials
+              ? undefined
+              : "Voter will authenticate through Clerk",
         },
         { status: 201 }
       );

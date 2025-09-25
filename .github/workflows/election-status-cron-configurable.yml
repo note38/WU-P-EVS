@@ -52,10 +52,37 @@ jobs:
             echo "  - Reason: ${{ github.event.inputs.reason }}"
           fi
 
+      - name: Validate Secrets
+        run: |
+          echo "🔐 Validating required secrets..."
+          
+          # Validate required secrets are set
+          if [ -z "${{ secrets.DEPLOYMENT_URL }}" ]; then
+            echo "❌ DEPLOYMENT_URL secret is not set"
+            echo "💡 Please set the DEPLOYMENT_URL secret in GitHub repository settings"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "❌ CRON_SECRET secret is not set"
+            echo "💡 Please set the CRON_SECRET secret in GitHub repository settings"
+            exit 1
+          fi
+          
+          echo "✅ All required secrets are set"
+
       - name: Call Election Status Endpoint (Single)
         if: github.event_name == 'schedule' || github.event.inputs.frequency == 'single'
         run: |
           echo "🚀 Triggering single election status update..."
+          
+          # Construct the full URL
+          BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
+          # Remove trailing slash if present
+          BASE_URL="${BASE_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/election-status"
+          
+          echo "📡 Calling endpoint: $ENDPOINT"
           
           # Function to make the API call
           make_request() {
@@ -67,7 +94,7 @@ jobs:
               -H "Content-Type: application/json" \
               -H "User-Agent: github-actions-cron/1.0" \
               -X GET \
-              "${{ secrets.DEPLOYMENT_URL }}/api/cron/election-status")
+              "$ENDPOINT")
             
             # Extract HTTP status and response body
             http_status=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
@@ -109,7 +136,11 @@ jobs:
               sleep $RETRY_DELAY
             else
               echo "💀 All $MAX_RETRIES attempts failed"
-              exit 1
+              # Only exit with error for server errors, not client errors
+              if [ "$http_status" -ge 500 ]; then
+                exit 1
+              fi
+              break
             fi
           done
 
@@ -117,6 +148,14 @@ jobs:
         if: github.event.inputs.frequency == 'test-5-times'
         run: |
           echo "🧪 Running test with 5 requests (30-second intervals)..."
+          
+          # Construct the full URL
+          BASE_URL="${{ secrets.DEPLOYMENT_URL }}"
+          # Remove trailing slash if present
+          BASE_URL="${BASE_URL%/}"
+          ENDPOINT="$BASE_URL/api/cron/election-status"
+          
+          echo "📡 Calling endpoint: $ENDPOINT"
           
           for i in {1..5}; do
             echo ""
@@ -126,7 +165,7 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
               -H "Content-Type: application/json" \
               -H "User-Agent: github-actions-cron-test/1.0" \
-              "${{ secrets.DEPLOYMENT_URL }}/api/cron/election-status")
+              "$ENDPOINT")
             
             http_status=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
             response_body=$(echo "$response" | sed '$d')

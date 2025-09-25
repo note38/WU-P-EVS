@@ -90,8 +90,8 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
 
   useEffect(() => {
     if (selectedDepartmentId) {
-      fetchYears(selectedDepartmentId);
-      setFormData((prev) => ({ ...prev, yearId: "" }));
+      fetchYearsByDepartment(parseInt(selectedDepartmentId));
+      setFormData((prev) => ({ ...prev, yearId: "" })); // Reset year selection when department changes
     } else {
       setYears([]);
       setFormData((prev) => ({ ...prev, yearId: "" }));
@@ -101,18 +101,10 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
   const fetchDepartments = async () => {
     setIsLoadingDepartments(true);
     try {
-      const response = await fetch("/api/departments");
+      const response = await fetch("/api/admin/departments");
       if (response.ok) {
         const data = await response.json();
-
         setDepartments(data);
-      } else {
-        console.error("Failed to fetch departments");
-        toast({
-          title: "Error",
-          description: "Failed to load departments",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -126,21 +118,13 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
     }
   };
 
-  const fetchYears = async (departmentId: string) => {
+  const fetchYearsByDepartment = async (departmentId: number) => {
     setIsLoadingYears(true);
     try {
       const response = await fetch(`/api/years/by-department/${departmentId}`);
       if (response.ok) {
         const data = await response.json();
-
         setYears(data);
-      } else {
-        console.error("Failed to fetch years");
-        toast({
-          title: "Error",
-          description: "Failed to load years",
-          variant: "destructive",
-        });
       }
     } catch (error) {
       console.error("Error fetching years:", error);
@@ -160,15 +144,11 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       const response = await fetch("/api/elections");
       if (response.ok) {
         const data = await response.json();
-
-        setElections(data);
-      } else {
-        console.error("Failed to fetch elections");
-        toast({
-          title: "Error",
-          description: "Failed to load elections",
-          variant: "destructive",
-        });
+        // Filter for active elections
+        const activeElections = data.filter(
+          (election: any) => election.status === "ACTIVE"
+        );
+        setElections(activeElections);
       }
     } catch (error) {
       console.error("Error fetching elections:", error);
@@ -193,11 +173,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
-
+  const validateForm = () => {
     const requiredFields = ["firstName", "lastName", "email", "yearId"];
     const newErrors: { [key: string]: string } = {};
 
@@ -208,8 +184,16 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       }
     });
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
+
+    if (!validateForm()) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -219,11 +203,12 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       return;
     }
 
-    // Prepare data - if electionId is empty, set it to null for the API
+    // Prepare data for submission
     const submissionData = {
       ...formData,
-      electionId: formData.electionId || null,
       middleName: formData.middleName || null,
+      electionId: formData.electionId || null,
+      yearId: formData.yearId,
     };
 
     try {
@@ -238,9 +223,15 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       console.log("API Response:", response.status, data); // Debug log
 
       if (response.ok) {
+        // With Clerk integration, voters will authenticate through Clerk
+        // So we don't need to show temporary passwords
+        const message = data.credentialsSent
+          ? `Voter created successfully. Login credentials have been sent to ${data.voter.email}.`
+          : `Voter created successfully. They will authenticate through Clerk.`;
+
         toast({
           title: "Success",
-          description: `Voter added. Temporary password: ${data.tempPassword}`,
+          description: message,
         });
         setOpen(false);
 
@@ -282,7 +273,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button>
           <PlusIcon className="mr-2 h-4 w-4" />
           Add Voter
         </Button>
@@ -290,42 +281,45 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Voter</DialogTitle>
+            <DialogTitle>Create New Voter</DialogTitle>
             <DialogDescription>
-              Register a new voter with their academic year and optional
-              election.
+              Add a new voter to the system. Voters will authenticate through
+              Clerk.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className={errors.lastName ? "border-red-500" : ""}
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className={errors.firstName ? "border-red-500" : ""}
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.firstName}
-                  </p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    className={errors.lastName ? "border-red-500" : ""}
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.lastName}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="firstName">First Name *</Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    className={errors.firstName ? "border-red-500" : ""}
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.firstName}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -339,7 +333,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
               </div>
 
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   name="email"
@@ -354,7 +348,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
               </div>
 
               <div>
-                <Label>Department</Label>
+                <Label>Department *</Label>
                 <Select
                   value={selectedDepartmentId}
                   onValueChange={setSelectedDepartmentId}
@@ -388,7 +382,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
               </div>
 
               <div>
-                <Label>Year</Label>
+                <Label>Year *</Label>
                 <Select
                   value={formData.yearId}
                   onValueChange={(value) => handleSelectChange("yearId", value)}
@@ -441,8 +435,8 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
                         isLoadingElections
                           ? "Loading elections..."
                           : elections.length === 0
-                            ? "No elections available"
-                            : "Select election (optional)"
+                            ? "No active elections"
+                            : "Select election"
                       }
                     />
                   </SelectTrigger>
@@ -458,7 +452,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
                       ))
                     ) : !isLoadingElections ? (
                       <SelectItem value="none" disabled>
-                        No elections available
+                        No active elections available
                       </SelectItem>
                     ) : null}
                   </SelectContent>

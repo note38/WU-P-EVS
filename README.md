@@ -1,3 +1,5 @@
+# Voting System
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -8,7 +10,6 @@ First, run the development server:
 npm run dev
 npm run seed
 npm prisma i
-
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
@@ -16,6 +17,24 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Election Status Cron Job
+
+This project includes a GitHub Actions workflow for automatically updating election statuses.
+
+### Setup Instructions
+
+1. Set up the following GitHub Secrets:
+   - `CRON_SECRET`: A secure random string
+   - `DEPLOYMENT_URL`: Your Vercel application URL (e.g., `https://your-app.vercel.app`)
+
+2. Set the same `CRON_SECRET` as an environment variable in Vercel.
+
+For detailed setup instructions, see [GitHub Actions Documentation](docs/github-actions.md).
+
+### Troubleshooting
+
+If you encounter the "Process completed with exit code 3" error, refer to the [GitHub Actions Troubleshooting Guide](docs/github-actions-troubleshooting.md).
 
 ## Learn More
 

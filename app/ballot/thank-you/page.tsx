@@ -13,8 +13,11 @@ export default function ThankYouPage() {
         Your vote has been successfully submitted. Your participation in this
         election is greatly appreciated.
       </p>
-      <Link href="/login">
-        <Button>Return to Login</Button>
+      <p className="text-muted-foreground mb-8">
+        You have been automatically signed out for security purposes.
+      </p>
+      <Link href="/">
+        <Button>Return to Homepage</Button>
       </Link>
     </div>
   );

@@ -73,9 +73,16 @@ export const VoterCredentialsEmail = ({
               Hello {fullName},
             </Text>
             <Text className="text-black text-[14px] leading-[24px]">
-              You have been registered as a voter for the Enhanced Voting System
-              Please use the credentials below to log in and cast your vote.
+              You have been registered as a voter for the Enhanced Voting
+              System. Please use the information below to log in and cast your
+              vote.
             </Text>
+
+            {electionName && (
+              <Text className="text-black text-[14px] leading-[24px]">
+                <strong>Election:</strong> {electionName}
+              </Text>
+            )}
 
             {yearName && (
               <Text className="text-black text-[14px] leading-[24px]">
@@ -85,15 +92,29 @@ export const VoterCredentialsEmail = ({
 
             <Section className="bg-gray-50 border border-solid border-gray-200 rounded p-4 my-6">
               <Text className="text-black text-[14px] font-semibold mb-2">
-                Your Login Credentials:
+                Your Login Information:
               </Text>
 
               <Text className="text-black text-[14px] leading-[24px] mb-1">
                 <strong>Email:</strong> {email}
               </Text>
-              <Text className="text-black text-[14px] leading-[24px] mb-1">
-                <strong>Password:</strong> {password}
-              </Text>
+
+              {password ? (
+                <>
+                  <Text className="text-black text-[14px] leading-[24px] mb-1">
+                    <strong>Password:</strong> {password}
+                  </Text>
+                  <Text className="text-black text-[12px] leading-[20px] text-red-600 mt-2">
+                    <strong>Note:</strong> This is a temporary password. You
+                    will be prompted to change it on your first login.
+                  </Text>
+                </>
+              ) : (
+                <Text className="text-black text-[14px] leading-[24px] mb-1">
+                  <strong>Login Method:</strong> You will authenticate through
+                  the system's integrated authentication provider.
+                </Text>
+              )}
             </Section>
 
             <Section className="text-center mt-[32px] mb-[32px]">
@@ -108,7 +129,7 @@ export const VoterCredentialsEmail = ({
             <Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
 
             <Text className="text-[#666666] text-[12px] leading-[24px]">
-              This email contains your confidential voting credentials. Do not
+              This email contains your confidential voting information. Do not
               share this information with anyone. If you were not expecting this
               email or have any questions, please contact the election
               administrator.
@@ -126,6 +147,7 @@ VoterCredentialsEmail.PreviewProps = {
   middleName: "David",
   email: "john.smith@example.com",
   password: "dajws1234!",
+  electionName: "Student Council Elections 2025",
 } as VoterCredentialsEmailProps;
 
 export default VoterCredentialsEmail;

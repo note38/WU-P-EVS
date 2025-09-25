@@ -65,13 +65,14 @@ export function useClerkAuth() {
           setTimeout(async () => {
             try {
               await signOut();
-              router.push(
-                "/sign-in?error=email_not_registered&message=This email is not registered in our system"
+              // Use replace instead of push to prevent back navigation issues
+              router.replace(
+                "/sign-in?error=email_not_registered&message=This email is not registered in our system. Please try with a different email or contact an administrator."
               );
             } catch (signOutError) {
               console.error("Error during sign out:", signOutError);
               // Fallback redirect
-              window.location.href = "/sign-in?error=email_not_registered";
+              window.location.href = "/sign-in?error=email_not_registered&message=This email is not registered in our system. Please try with a different email or contact an administrator.";
             }
           }, 2000);
         } else {
