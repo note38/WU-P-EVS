@@ -27,6 +27,7 @@ jobs:
           if [ -z "${{ secrets.DEPLOYMENT_URL }}" ]; then
             echo "❌ DEPLOYMENT_URL secret is not set"
             echo "💡 Please set the DEPLOYMENT_URL secret in GitHub repository settings"
+            echo "📝 Current value: '${{ secrets.DEPLOYMENT_URL }}'"
             exit 1
           fi
           
@@ -43,20 +44,36 @@ jobs:
           ENDPOINT="$BASE_URL/api/cron/election-status"
           
           echo "📡 Calling endpoint: $ENDPOINT"
+          echo "🔐 Using CRON_SECRET: ${{ secrets.CRON_SECRET }}"
           
-          # Make request to the cron endpoint
-          response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          # Make request to the cron endpoint with verbose output for debugging
+          echo "🔍 Making request with curl..."
+          response=$(curl -v -s -w "\nHTTP_STATUS:%{http_code}\nTOTAL_TIME:%{time_total}\nCONNECT_TIME:%{time_connect}\nHTTP_CODE:%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             -H "User-Agent: github-actions-cron/1.0" \
-            "$ENDPOINT")
+            "$ENDPOINT" 2>&1)
+          
+          # Extract timing information
+          total_time=$(echo "$response" | grep "TOTAL_TIME:" | sed 's/TOTAL_TIME://')
+          connect_time=$(echo "$response" | grep "CONNECT_TIME:" | sed 's/CONNECT_TIME://')
+          http_code=$(echo "$response" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
+          
+          echo "⏱️  Connection time: ${connect_time}s"
+          echo "⏱️  Total time: ${total_time}s"
+          echo "📊 Response Status: $http_code"
           
           # Extract HTTP status and response body
-          http_status=$(echo "$response" | tail -n1 | sed 's/HTTP_STATUS://')
-          response_body=$(echo "$response" | sed '$d')
+          http_status=$(echo "$response" | grep "HTTP_STATUS:" | sed 's/HTTP_STATUS://')
+          response_body=$(echo "$response" | sed -n '/HTTP_STATUS:/q;p' | sed '/^*/d' | sed '/^>/d' | sed '/^</d' | sed '/^}/d' | sed '/^$/d' | head -n -3 | tail -n +2)
           
-          echo "📊 Response Status: $http_status"
           echo "📄 Response Body: $response_body"
+          
+          # If we still get 000, show the full response for debugging
+          if [ "$http_status" = "000" ]; then
+            echo "🔍 Detailed curl output for debugging:"
+            echo "$response"
+          fi
           
           # Check if request was successful
           if [ "$http_status" -eq 200 ]; then
@@ -78,7 +95,7 @@ jobs:
             echo "❌ Election status update failed with status: $http_status"
             echo "💥 Error response: $response_body"
             # Only exit with error for server errors, not client errors
-            if [ "$http_status" -ge 500 ]; then
+            if [ "$http_status" -ge 500 ] || [ "$http_status" = "000" ]; then
               exit 1
             fi
           fi

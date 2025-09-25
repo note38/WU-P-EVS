@@ -14,7 +14,8 @@
     "email": "email dev --dir app/emails",
     "test:cron": "node scripts/test-cron.js",
     "test:cron:prod": "node scripts/test-cron.js production",
-    "debug:cron": "node scripts/debug-cron.js"
+    "debug:cron": "node scripts/debug-cron.js",
+    "debug:cron:advanced": "node scripts/debug-cron-advanced.js"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"

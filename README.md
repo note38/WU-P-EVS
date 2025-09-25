@@ -36,6 +36,8 @@ For detailed setup instructions, see [GitHub Actions Documentation](docs/github-
 
 If you encounter the "Process completed with exit code 3" error, refer to the [GitHub Actions Troubleshooting Guide](docs/github-actions-troubleshooting.md).
 
+If you encounter "000 status code" errors, refer to the [GitHub Actions 000 Error Guide](docs/github-actions-000-error.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
