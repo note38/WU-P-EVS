@@ -147,10 +147,21 @@ const ProfileSection = ({
     setIsSubmitting(true);
     try {
       // Update Clerk user profile using the client-side method
-      await user.update({ 
-        firstName: firstName,
-        lastName: lastName
-      });
+      // We're using a more comprehensive approach to handle different Clerk configurations
+      const updateData: any = {};
+
+      // Only include fields that have values to avoid sending empty strings
+      if (firstName.trim() !== "") {
+        updateData.firstName = firstName.trim();
+      }
+      if (lastName.trim() !== "") {
+        updateData.lastName = lastName.trim();
+      }
+
+      // Only make the API call if we have data to update
+      if (Object.keys(updateData).length > 0) {
+        await user.update(updateData);
+      }
 
       // Update position in your database (always send position, even if empty)
       try {
@@ -207,7 +218,7 @@ const ProfileSection = ({
       const errorMessage =
         err.errors?.[0]?.longMessage ||
         err.message ||
-        "Failed to update profile. Please check permissions in your Clerk dashboard.";
+        "Failed to update profile. This might be due to Clerk configuration settings. Please contact support if the issue persists.";
       toast({
         title: "Error",
         description: errorMessage,
@@ -629,7 +640,7 @@ export function ProfileSettings() {
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Profile update error:", error);
       toast({
         title: "Error",
