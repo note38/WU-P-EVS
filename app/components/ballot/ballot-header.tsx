@@ -86,13 +86,18 @@ export function BallotHeader() {
           {/* User Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+              <Button
+                variant="ghost"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0"
+              >
                 <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                   <AvatarImage
                     src={user.imageUrl}
                     alt={user.fullName || "User Avatar"}
                   />
-                  <AvatarFallback className="text-xs sm:text-sm">{getInitials(user.fullName)}</AvatarFallback>
+                  <AvatarFallback className="text-xs sm:text-sm">
+                    {getInitials(user.fullName)}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
