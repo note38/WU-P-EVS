@@ -146,8 +146,13 @@ const ProfileSection = ({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Update Clerk user profile
-      await user.update({ firstName, lastName });
+      // Update Clerk user profile using the proper Clerk client method
+      const { clerkClient } = await import("@clerk/nextjs/server");
+      const clerk = await clerkClient();
+      await clerk.users.updateUser(user.id, {
+        firstName: firstName,
+        lastName: lastName,
+      });
 
       // Update position in your database (always send position, even if empty)
       try {
@@ -203,6 +208,7 @@ const ProfileSection = ({
       console.error("Error updating profile:", JSON.stringify(err, null, 2));
       const errorMessage =
         err.errors?.[0]?.longMessage ||
+        err.message ||
         "Failed to update profile. Please check permissions in your Clerk dashboard.";
       toast({
         title: "Error",
@@ -593,8 +599,10 @@ export function ProfileSettings() {
     try {
       setIsProfileSubmitting(true);
 
-      // Update user profile using Clerk's user.update method
-      await user.update({
+      // Update user profile using the proper Clerk client method
+      const { clerkClient } = await import("@clerk/nextjs/server");
+      const clerk = await clerkClient();
+      await clerk.users.updateUser(user.id, {
         firstName: data.username.split(" ")[0] || data.username,
         lastName: data.username.split(" ").slice(1).join(" ") || "",
       });
