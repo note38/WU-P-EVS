@@ -146,23 +146,11 @@ const ProfileSection = ({
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Update Clerk user profile using the proper Clerk client method
-      // First try the client method, fall back to direct update if needed
-      try {
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const clerk = await clerkClient();
-        await clerk.users.updateUser(user.id, {
-          firstName: firstName,
-          lastName: lastName,
-        });
-      } catch (clerkError) {
-        // Fallback to direct update method if client method fails
-        console.log("Falling back to direct user update method");
-        await user.update({
-          firstName: firstName,
-          lastName: lastName,
-        });
-      }
+      // Update Clerk user profile using the client-side method
+      await user.update({ 
+        firstName: firstName,
+        lastName: lastName
+      });
 
       // Update position in your database (always send position, even if empty)
       try {
@@ -609,22 +597,11 @@ export function ProfileSettings() {
     try {
       setIsProfileSubmitting(true);
 
-      // Update user profile using the proper Clerk client method with fallback
-      try {
-        const { clerkClient } = await import("@clerk/nextjs/server");
-        const clerk = await clerkClient();
-        await clerk.users.updateUser(user.id, {
-          firstName: data.username.split(" ")[0] || data.username,
-          lastName: data.username.split(" ").slice(1).join(" ") || "",
-        });
-      } catch (clerkError) {
-        // Fallback to direct update method if client method fails
-        console.log("Falling back to direct user update method");
-        await user.update({
-          firstName: data.username.split(" ")[0] || data.username,
-          lastName: data.username.split(" ").slice(1).join(" ") || "",
-        });
-      }
+      // Update user profile using the client-side method
+      await user.update({
+        firstName: data.username.split(" ")[0] || data.username,
+        lastName: data.username.split(" ").slice(1).join(" ") || "",
+      });
 
       // Note: Email updates in Clerk require verification
       // If email is different, we need to add it as a new email address
