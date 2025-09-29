@@ -18,9 +18,13 @@ import {
   School,
   SendIcon,
   Users,
+  GridIcon,
+  ListIcon,
 } from "lucide-react";
 import { useState } from "react";
-import VoterCards, { Voter as VoterCardType } from "./voter-card";
+import VoterCards from "./voter-card";
+import { Voter as VoterCardType } from "./voter-card";
+import VoterTable from "./voter-table";
 
 // Reuse the Voter and VoterStatus types from VoterCards to avoid duplication
 type Voter = VoterCardType & { voterId?: string };
@@ -52,12 +56,14 @@ interface DepartmentCardProps {
   voters: Voter[];
   info?: any | null;
   departmentsData?: any[];
+  onVoterUpdate?: () => void;
 }
 
 export default function DepartmentCard({
   voters,
   info,
   departmentsData,
+  onVoterUpdate,
 }: DepartmentCardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
@@ -66,6 +72,8 @@ export default function DepartmentCard({
   );
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [showYears, setShowYears] = useState(false);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card"); // New state for view mode
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
@@ -157,8 +165,11 @@ export default function DepartmentCard({
 
       // Create year objects for this department
       const years = yearNames.map((yearName, yearIndex) => {
+        // Filter voters by both year name AND department name to get accurate count
         const yearVoters = voters.filter(
-          (voter) => voter.year?.name === yearName
+          (voter) =>
+            voter.year?.name === yearName &&
+            voter.year?.department?.name === deptName
         );
         const yearId = yearName.toLowerCase().replace(/\s+/g, "-");
 
@@ -168,7 +179,7 @@ export default function DepartmentCard({
           description: `${yearName} students`,
           icon: <School className="h-4 w-4 mr-1" />,
           color: getYearColor(yearName, yearIndex),
-          voterCount: yearVoters.length,
+          voterCount: yearVoters.length, // Now correctly filtered by department
           departmentId: deptName.toLowerCase().replace(/\s+/g, "-"),
         };
       });
@@ -257,8 +268,46 @@ export default function DepartmentCard({
     (y) => y.id === selectedYear
   );
 
+  // Handle voter update - trigger refresh
+  const handleVoterUpdate = () => {
+    // Notify parent to refresh voters data
+    if (onVoterUpdate) {
+      onVoterUpdate();
+    }
+    // Also trigger local refresh
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   return (
     <div className="space-y-6">
+      {/* View Toggle Button */}
+      {selectedYear && (
+        <div className="flex justify-end">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <Button
+              type="button"
+              variant={viewMode === "card" ? "default" : "outline"}
+              size="sm"
+              className="rounded-r-none border-r"
+              onClick={() => setViewMode("card")}
+            >
+              <GridIcon className="h-4 w-4 mr-2" />
+              Card View
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="sm"
+              className="rounded-l-none"
+              onClick={() => setViewMode("table")}
+            >
+              <ListIcon className="h-4 w-4 mr-2" />
+              Table View
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
         {departments.map((dept) => (
           <Card
@@ -399,7 +448,21 @@ export default function DepartmentCard({
             </CardHeader>
             <CardContent>
               {filteredVoters.length > 0 ? (
-                <VoterCards voters={filteredVoters} info={info} />
+                viewMode === "card" ? (
+                  <VoterCards
+                    voters={filteredVoters}
+                    info={info}
+                    onVoterUpdate={handleVoterUpdate}
+                    onVoterDelete={handleVoterUpdate}
+                  />
+                ) : (
+                  <VoterTable
+                    voters={filteredVoters}
+                    info={info}
+                    onVoterDelete={handleVoterUpdate}
+                    onVoterUpdate={handleVoterUpdate}
+                  />
+                )
               ) : (
                 <div className="text-center py-12">
                   <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">

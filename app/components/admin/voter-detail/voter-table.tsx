@@ -1,10 +1,32 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
+  PrinterIcon,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
+import { useState } from "react";
+import { Voter, VoterStatus } from "./voter-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,77 +35,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  EditIcon,
-  MoreHorizontal,
-  PrinterIcon,
-  School,
-  TrashIcon,
-} from "lucide-react";
-import { useState } from "react";
+import { EditIcon, MoreHorizontal, TrashIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 import { EditVoterForm } from "./edit-voter-form";
+import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 
-// Define VoterStatus enum since we don't have @prisma/client
-export enum VoterStatus {
-  UNCAST = "UNCAST",
-  CAST = "CAST",
-}
-
-export type Voter = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  middleName: string;
-  email: string;
-  status: VoterStatus;
-  avatar: string;
-  createdAt: Date;
-  election?: {
-    name: string;
-    id: number;
-  };
-  year?: {
-    name: string;
-    id: number;
-    department?: {
-      id: number;
-      name: string;
-      image: string | null;
-    };
-  };
-  info?: any;
-};
-
-interface VoterCardsProps {
+interface VoterTableProps {
   voters: Voter[];
   info?: any | null;
   onVoterUpdate?: (updatedVoter: Voter) => void;
   onVoterDelete?: (voterId: number) => void;
 }
 
-export default function VoterCards({
+export default function VoterTable({
   voters,
   info,
   onVoterUpdate,
   onVoterDelete,
-}: VoterCardsProps) {
+}: VoterTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [voterToDelete, setVoterToDelete] = useState<Voter | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [voterToDelete, setVoterToDelete] = useState<Voter | null>(null);
+  const itemsPerPage = 10;
 
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
@@ -113,6 +91,14 @@ export default function VoterCards({
     return matchesSearch && matchesYearFilter;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredVoters.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedVoters = filteredVoters.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+
   const toggleVoterSelection = (voterId: number) => {
     setSelectedVoters((prev) =>
       prev.includes(voterId)
@@ -122,11 +108,25 @@ export default function VoterCards({
   };
 
   const toggleSelectAll = () => {
-    setSelectedVoters(
-      selectedVoters.length === filteredVoters.length
-        ? []
-        : filteredVoters.map((voter) => voter.id)
-    );
+    if (selectedVoters.length === paginatedVoters.length) {
+      // If all currently displayed voters are selected, unselect them
+      const currentPageVoterIds = paginatedVoters.map((voter) => voter.id);
+      setSelectedVoters((prev) =>
+        prev.filter((id) => !currentPageVoterIds.includes(id))
+      );
+    } else {
+      // Otherwise, select all currently displayed voters
+      const currentPageVoterIds = paginatedVoters.map((voter) => voter.id);
+      setSelectedVoters((prev) => {
+        const newSelection = [...prev];
+        currentPageVoterIds.forEach((id) => {
+          if (!newSelection.includes(id)) {
+            newSelection.push(id);
+          }
+        });
+        return newSelection;
+      });
+    }
   };
 
   const handlePrintAll = () => {
@@ -343,24 +343,6 @@ export default function VoterCards({
     setEditDialogOpen(true);
   };
 
-  // Handle voter update
-  const handleVoterUpdated = () => {
-    // Close the dialog
-    setEditDialogOpen(false);
-    setSelectedVoter(null);
-
-    // Show success message
-    toast({
-      title: "Success",
-      description: "Voter updated successfully.",
-    });
-
-    // Notify parent component to refresh the voter list
-    if (onVoterUpdate) {
-      onVoterUpdate(selectedVoter as Voter);
-    }
-  };
-
   // Handle voter delete - open confirmation dialog
   const handleDeleteVoter = (voter: Voter) => {
     setVoterToDelete(voter);
@@ -409,6 +391,32 @@ export default function VoterCards({
       setVoterToDelete(null);
     }
   };
+
+  // Handle voter update
+  const handleVoterUpdated = () => {
+    // Close the dialog
+    setEditDialogOpen(false);
+    setSelectedVoter(null);
+
+    // Show success message
+    toast({
+      title: "Success",
+      description: "Voter updated successfully.",
+    });
+
+    // Notify parent component to refresh the voter list
+    if (onVoterUpdate) {
+      onVoterUpdate(selectedVoter as Voter);
+    }
+  };
+
+  // Pagination functions
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToPreviousPage = () =>
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  const goToNextPage = () =>
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  const goToLastPage = () => setCurrentPage(totalPages);
 
   return (
     <div className="space-y-4">
@@ -489,151 +497,173 @@ export default function VoterCards({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Checkbox
-          checked={
-            selectedVoters.length === filteredVoters.length &&
-            filteredVoters.length > 0
-          }
-          onCheckedChange={toggleSelectAll}
-          id="select-all"
-        />
-        <label htmlFor="select-all" className="text-sm font-medium">
-          Select All ({filteredVoters.length} voters)
-        </label>
-      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={
+                    paginatedVoters.length > 0 &&
+                    paginatedVoters.every((voter) =>
+                      selectedVoters.includes(voter.id)
+                    )
+                  }
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Year</TableHead>
+              <TableHead>Department</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Election</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedVoters.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className="h-24 text-center">
+                  No voters found
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedVoters.map((voter) => {
+                const fullName = getFullName(voter);
+                const yearName = voter.year?.name || "Unknown";
+                // Try multiple sources for department name
+                let departmentName = "Not assigned";
+                if (voter.year?.department?.name) {
+                  departmentName = voter.year.department.name;
+                } else if (voter.year?.name) {
+                  // Fallback: try to extract from year name if department is missing
+                  const parts = voter.year.name.split(" - ");
+                  if (parts.length > 1) {
+                    departmentName = parts[1];
+                  }
+                }
 
-      {filteredVoters.length === 0 ? (
-        <div className="text-center text-muted-foreground py-8">
-          No voters found
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredVoters.map((voter) => {
-            const fullName = getFullName(voter);
-            const yearName = voter.year?.name || "Unknown";
-            // Try multiple sources for department name
-            let departmentName = "Not assigned";
-            if (voter.year?.department?.name) {
-              departmentName = voter.year.department.name;
-            } else if (voter.year?.name) {
-              // Fallback: try to extract from year name if department is missing
-              const parts = voter.year.name.split(" - ");
-              if (parts.length > 1) {
-                departmentName = parts[1];
-              }
-            }
-
-            return (
-              <Card key={voter.id} className="overflow-hidden group">
-                <CardHeader className="flex flex-row items-center justify-between p-4 pb-0">
-                  <div className="flex items-center space-x-4">
-                    <Checkbox
-                      checked={selectedVoters.includes(voter.id)}
-                      onCheckedChange={() => toggleVoterSelection(voter.id)}
-                    />
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={
-                          voter.avatar ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`
-                        }
-                        alt={fullName}
+                return (
+                  <TableRow
+                    key={voter.id}
+                    className={
+                      selectedVoters.includes(voter.id) ? "bg-muted" : ""
+                    }
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedVoters.includes(voter.id)}
+                        onCheckedChange={() => toggleVoterSelection(voter.id)}
                       />
-                      <AvatarFallback>
-                        {fullName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                      <div className="font-medium line-clamp-1">{fullName}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-1">
-                        {voter.email}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        ID: {voter.id}
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-
-                      <DropdownMenuItem
-                        onClick={() => handleEditVoter(voter.id)}
-                      >
-                        <EditIcon className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteVoter(voter);
-                        }}
-                      >
-                        <TrashIcon className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="flex flex-col space-y-2 mt-2">
-                    <div className="flex justify-between items-center">
-                      <Badge
-                        variant={
-                          voter.status === VoterStatus.UNCAST
-                            ? "secondary"
-                            : voter.status === VoterStatus.CAST
-                              ? "default"
-                              : "destructive"
-                        }
+                    </TableCell>
+                    <TableCell className="font-medium">{voter.id}</TableCell>
+                    <TableCell>{fullName}</TableCell>
+                    <TableCell>{voter.email}</TableCell>
+                    <TableCell>{yearName}</TableCell>
+                    <TableCell>{departmentName}</TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          voter.status === VoterStatus.CAST
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
                       >
                         {voter.status.toLowerCase()}
-                      </Badge>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(voter.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="text-sm line-clamp-1">
-                      <span className="font-medium">Election:</span>{" "}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       {voter.election?.name || "Not assigned"}
-                    </div>
-                    <div className="text-sm line-clamp-1 flex items-center">
-                      <School className="h-3 w-3 mr-1" />
-                      <span className="font-medium mr-1">Year:</span>{" "}
-                      {yearName || "Not assigned"}
-                    </div>
-                    <div className="text-sm line-clamp-1">
-                      <span className="font-medium">Department:</span>{" "}
-                      {departmentName || "Not assigned"}
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">Status:</span>{" "}
-                      <Badge
-                        variant={
-                          voter.status === "CAST" ? "destructive" : "secondary"
-                        }
-                        className="ml-1"
-                      >
-                        {voter.status === "CAST" ? "Voted" : "Not Voted"}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(voter.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleEditVoter(voter.id)}
+                          >
+                            <EditIcon className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteVoter(voter);
+                            }}
+                          >
+                            <TrashIcon className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to{" "}
+            {Math.min(startIndex + itemsPerPage, filteredVoters.length)} of{" "}
+            {filteredVoters.length} voters
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToFirstPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToLastPage}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");
-    const includeAvatar = searchParams.get("include") === "avatar";
+    // Always include avatar and clerkId for proper display
+    const includeAvatar = true; // Always include avatar for proper display
 
     // Build where clause
     const whereClause: any = {};
@@ -54,18 +55,16 @@ export async function GET(request: NextRequest) {
       whereClause.role = role;
     }
 
-    // Build select clause
+    // Build select clause - always include avatar and clerkId
     const selectClause: any = {
       id: true,
       username: true,
       email: true,
       role: true,
       createdAt: true,
+      clerkId: true,
+      avatar: true, // Always include avatar
     };
-
-    if (includeAvatar) {
-      selectClause.avatar = true;
-    }
 
     console.log("📊 Fetching users with filters:", { role, includeAvatar });
 
@@ -78,6 +77,15 @@ export async function GET(request: NextRequest) {
     });
 
     console.log("✅ Found", users.length, "users");
+    // Log first user's avatar data for debugging
+    if (users.length > 0) {
+      console.log("📋 First user avatar data:", {
+        id: users[0].id,
+        username: users[0].username,
+        avatar: users[0].avatar,
+        clerkId: users[0].clerkId,
+      });
+    }
     return NextResponse.json(users);
   } catch (error) {
     console.error("Users fetch error:", error);

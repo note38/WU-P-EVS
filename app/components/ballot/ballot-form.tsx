@@ -122,7 +122,7 @@ export function BallotForm({
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4">
       <h2 className="text-xl font-bold mb-4 text-center">{electionName}</h2>
 
       {/* Progress indicator */}
@@ -147,13 +147,13 @@ export function BallotForm({
       </div>
 
       {currentPosition && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">
+        <Card className="mb-6 w-full">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl text-center sm:text-2xl">
               {currentPosition.title}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <PositionSelection
               position={currentPosition}
               selectedCandidate={selections[currentPosition.id] || ""}
@@ -162,12 +162,12 @@ export function BallotForm({
               }
             />
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
             <Button
               variant="outline"
               onClick={goToPreviousPosition}
               disabled={isFirstPosition}
-              className="flex items-center"
+              className="w-full sm:w-auto flex items-center"
             >
               <ChevronLeft className="mr-2 h-4 w-4" />
               Previous
@@ -179,7 +179,7 @@ export function BallotForm({
                 disabled={
                   !positions.every((position) => selections[position.id])
                 }
-                className="flex items-center"
+                className="w-full sm:w-auto flex items-center"
               >
                 Review Ballot
               </Button>
@@ -187,7 +187,7 @@ export function BallotForm({
               <Button
                 onClick={goToNextPosition}
                 disabled={!selections[currentPosition.id]}
-                className="flex items-center"
+                className="w-full sm:w-auto flex items-center"
               >
                 Next
                 <ChevronRight className="ml-2 h-4 w-4" />

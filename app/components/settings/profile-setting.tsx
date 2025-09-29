@@ -423,14 +423,45 @@ const SecuritySection = ({ user }: { user: any }) => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await user.delete();
+      console.log("Attempting to delete account for user:", user.id);
+      // Call our new API endpoint for self-deletion
+      const response = await fetch("/api/users/delete-account", {
+        method: "DELETE",
+      });
+
+      console.log("Response received:", response.status, response.statusText);
+
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get("content-type");
+      console.log("Content type:", contentType);
+
+      if (contentType && contentType.includes("application/json")) {
+        const responseData = await response.json();
+        console.log("Response data:", responseData);
+
+        if (!response.ok) {
+          const errorMessage = responseData.error || "Failed to delete account";
+          console.log("Error from server:", errorMessage);
+          throw new Error(errorMessage);
+        }
+      } else {
+        // If not JSON, log the text content for debugging
+        const text = await response.text();
+        console.log("Non-JSON response:", text);
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      console.log("Account deletion successful, signing out...");
       // Sign out - will redirect to "/" as configured in clerk.ts
       await signOut();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting account:", err);
       toast({
         title: "Error",
-        description: "Failed to delete account.",
+        description:
+          err.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
       setIsDeleting(false);
@@ -440,42 +471,6 @@ const SecuritySection = ({ user }: { user: any }) => {
 
   return (
     <div className="space-y-6">
-      {/* Sessions */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Active Sessions
-          </CardTitle>
-          <CardDescription>
-            Manage where you're signed in and review recent activity.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
-              <div className="flex items-center space-x-3">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                <div>
-                  <p className="font-medium">Current Session</p>
-                  <p className="text-sm text-muted-foreground">
-                    Chrome on Windows • {new Date().toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                Active
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="border-t bg-muted/20">
-          <Button variant="outline" className="w-full">
-            Sign Out All Other Sessions
-          </Button>
-        </CardFooter>
-      </Card>
-
       {/* Danger Zone */}
       <Card className="border-0 shadow-lg border-red-200 dark:border-red-900/30 bg-gradient-to-br from-red-50/50 to-background dark:from-red-950/20">
         <CardHeader className="space-y-1">

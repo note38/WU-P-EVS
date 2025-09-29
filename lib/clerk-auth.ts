@@ -90,11 +90,14 @@ export async function syncAdminUser(clerkData: ClerkUserData) {
         data: {
           email,
           username: clerkData.username || email.split("@")[0],
-          avatar: clerkData.image_url,
+          avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
           updatedAt: new Date(),
         },
       });
-      console.log(`✅ Admin user updated: ${updatedUser.id}`);
+      console.log(`✅ Admin user updated: ${updatedUser.id}`, {
+        avatar: updatedUser.avatar,
+        clerkId: updatedUser.clerkId,
+      });
       return updatedUser;
     } else {
       // Create new user
@@ -103,11 +106,14 @@ export async function syncAdminUser(clerkData: ClerkUserData) {
           clerkId: clerkData.id,
           email,
           username: clerkData.username || email.split("@")[0],
-          avatar: clerkData.image_url || "",
+          avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
           role: "ADMIN",
         },
       });
-      console.log(`✅ Admin user created: ${newUser.id}`);
+      console.log(`✅ Admin user created: ${newUser.id}`, {
+        avatar: newUser.avatar,
+        clerkId: newUser.clerkId,
+      });
       return newUser;
     }
   } catch (error) {
@@ -146,11 +152,14 @@ export async function syncVoter(clerkData: ClerkUserData) {
           email,
           firstName: clerkData.first_name || "",
           lastName: clerkData.last_name || "",
-          avatar: clerkData.image_url,
+          avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
           updatedAt: new Date(),
         },
       });
-      console.log(`✅ Voter updated: ${updatedVoter.id}`);
+      console.log(`✅ Voter updated: ${updatedVoter.id}`, {
+        avatar: updatedVoter.avatar,
+        clerkId: updatedVoter.clerkId,
+      });
       return updatedVoter;
     } else {
       // Find the voter by email to get existing data
@@ -169,11 +178,14 @@ export async function syncVoter(clerkData: ClerkUserData) {
           clerkId: clerkData.id,
           firstName: clerkData.first_name || existingVoterByEmail.firstName,
           lastName: clerkData.last_name || existingVoterByEmail.lastName,
-          avatar: clerkData.image_url || existingVoterByEmail.avatar,
+          avatar: clerkData.image_url || existingVoterByEmail.avatar || "", // Ensure we're storing the avatar URL
           updatedAt: new Date(),
         },
       });
-      console.log(`✅ Voter linked with Clerk ID: ${updatedVoter.id}`);
+      console.log(`✅ Voter linked with Clerk ID: ${updatedVoter.id}`, {
+        avatar: updatedVoter.avatar,
+        clerkId: updatedVoter.clerkId,
+      });
       return updatedVoter;
     }
   } catch (error) {

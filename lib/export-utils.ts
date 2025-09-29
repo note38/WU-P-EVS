@@ -385,7 +385,6 @@ export function printVoters(
               <th>Status</th>
               <th>Election</th>
               <th>Created</th>
-              <th>Credentials</th>
             </tr>
           </thead>
           <tbody>

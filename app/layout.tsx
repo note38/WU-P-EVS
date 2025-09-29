@@ -55,13 +55,44 @@ export default function RootLayout({
         <ClerkProvider
           appearance={{
             cssLayerName: "clerk",
+            baseTheme: undefined, // Will use automatic dark mode detection
             elements: {
+              // Global styling for all Clerk components
+              card: "bg-white dark:bg-[#1a1f29] shadow-lg rounded-xl border border-slate-200 dark:border-slate-700",
+              headerTitle: "text-slate-900 dark:text-slate-100",
+              headerSubtitle: "text-slate-600 dark:text-slate-400",
               formButtonPrimary:
                 "mt-4 w-full rounded-lg bg-green-500 text-white py-2.5 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50",
               formFieldInput:
                 "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2",
+              formFieldLabel: "text-slate-700 dark:text-slate-300",
               socialButtonsBlockButton:
                 "my-2 w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] py-2.5 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#23272f]/80 transition-colors disabled:opacity-50",
+              footerAction: "text-slate-600 dark:text-slate-400",
+              footerActionLink:
+                "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300",
+              // Specific styling for factor-one page
+              signInFactorOneTitle: "text-slate-900 dark:text-slate-100",
+              signInFactorOneSubtitle: "text-slate-600 dark:text-slate-400",
+              otpCodeFieldInput:
+                "w-12 h-12 text-center text-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 rounded-lg focus:border-green-500 focus:ring-green-500",
+              footer: "text-slate-600 dark:text-slate-400",
+              // Fix for "Didn't receive a code? Resend" text in dark mode
+              formResendCodeLink:
+                "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300",
+              formHelperText: "text-slate-600 dark:text-slate-400",
+              // Ensure factor-one page has proper background in dark mode
+              signInFactorOne: "bg-white dark:bg-[#1a1f29]",
+              // Style the OTP input container
+              otpCodeField: "justify-center gap-2",
+            },
+            variables: {
+              colorPrimary: "#10b981",
+              colorText: "rgb(15 23 42)", // slate-900
+              colorTextSecondary: "rgb(100 116 139)", // slate-500
+              colorBackground: "transparent",
+              colorInputBackground: "rgb(255 255 255)",
+              colorInputText: "rgb(15 23 42)",
             },
           }}
         >

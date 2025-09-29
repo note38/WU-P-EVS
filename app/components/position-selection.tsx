@@ -38,21 +38,22 @@ export function PositionSelection({
               id={`${position.id}-${candidate.id}`}
               className="sr-only"
             />
-            <div className="relative h-24 w-24 mb-3 overflow-hidden rounded-full border">
+            <div className="relative h-20 w-20 mb-2 overflow-hidden rounded-full border sm:h-24 sm:w-24">
               <Image
                 src={candidate.avatar || "/placeholder.svg"}
                 alt={candidate.name}
                 fill
                 className="object-cover"
+                sizes="(max-width: 640px) 80px, 96px"
               />
             </div>
             <Label
               htmlFor={`${position.id}-${candidate.id}`}
-              className="text-lg font-medium text-center cursor-pointer"
+              className="text-base font-medium text-center cursor-pointer sm:text-lg"
             >
               {candidate.name}
             </Label>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-xs text-muted-foreground text-center sm:text-sm">
               {candidate.party}
             </p>
           </div>

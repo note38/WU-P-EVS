@@ -68,6 +68,10 @@ export default function VotersPage() {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  const handleVoterUpdated = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       // Wait for Clerk to load and check authentication
@@ -184,7 +188,10 @@ export default function VotersPage() {
       <Card>
         <CardContent className="p-4 md:p-6">
           <Suspense fallback={<DepartmentCardSkeleton />}>
-            <DepartmentCard voters={votersData} />
+            <DepartmentCard
+              voters={votersData}
+              onVoterUpdate={handleVoterUpdated}
+            />
           </Suspense>
         </CardContent>
       </Card>

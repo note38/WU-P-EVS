@@ -27,7 +27,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, User, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy load heavy components
@@ -63,6 +63,7 @@ type User = {
   role: "ADMIN" | "VOTER";
   createdAt: string;
   avatar?: string;
+  clerkId?: string;
 };
 
 // Enhanced form validation schema
@@ -183,9 +184,7 @@ export function AccountSettings() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadedAvatars, setLoadedAvatars] = useState<Record<number, boolean>>(
-    {}
-  );
+  const [autoSyncing, setAutoSyncing] = useState(false); // For automatic syncing
 
   // Form setup with validation
   const form = useForm<AdminAccountFormValues>({
@@ -199,51 +198,101 @@ export function AccountSettings() {
 
   // Helper function to get avatar URL
   const getAvatarUrl = (user: User) => {
-    if (!user.avatar) {
-      // Return UI Avatars URL with optimized parameters
+    // If user has a Clerk ID and an avatar URL, use the Clerk avatar
+    if (user.clerkId && user.avatar) {
+      // Validate that avatar is a proper URL
+      try {
+        new URL(user.avatar);
+        return user.avatar;
+      } catch (e) {
+        // If not a valid URL, use fallback
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user.username
+        )}&background=random&size=96`;
+      }
+    }
+
+    // If user has a Clerk ID but no avatar in database, use fallback
+    if (user.clerkId && !user.avatar) {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(
         user.username
-      )}&background=random&size=96`; // Specify exact size needed
+      )}&background=random&size=96`;
     }
 
-    // If avatar is already a full URL
-    if (
-      user.avatar.startsWith("http://") ||
-      user.avatar.startsWith("https://")
-    ) {
-      return user.avatar;
+    // If user doesn't have a Clerk ID but has a local avatar
+    if (!user.clerkId && user.avatar) {
+      // Check if avatar is a valid URL
+      if (
+        user.avatar.startsWith("http://") ||
+        user.avatar.startsWith("https://")
+      ) {
+        try {
+          new URL(user.avatar);
+          return user.avatar;
+        } catch (e) {
+          // If not a valid URL, use fallback
+          return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            user.username
+          )}&background=random&size=96`;
+        }
+      }
+
+      // If avatar is a base64 string
+      if (user.avatar.startsWith("data:image/")) {
+        return user.avatar;
+      }
+
+      // If avatar is a path or filename, construct the URL
+      if (user.avatar.startsWith("/")) {
+        return user.avatar;
+      }
+
+      // Default case - assume it's a filename
+      return `/avatars/${user.avatar}`;
     }
 
-    // If avatar is a base64 string
-    if (user.avatar.startsWith("data:image/")) {
-      return user.avatar;
-    }
-
-    // If avatar is a path or filename, construct the URL
-    if (user.avatar.startsWith("/")) {
-      return user.avatar;
-    }
-
-    // Default case - assume it's a filename
-    return `/avatars/${user.avatar}`;
+    // If no avatar is available, use UI Avatars
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user.username
+    )}&background=random&size=96`;
   };
 
-  const handleAvatarLoad = (userId: number) => {
-    setLoadedAvatars((prev) => ({ ...prev, [userId]: true }));
-  };
+  // Auto-sync avatars when component mounts
+  useEffect(() => {
+    const autoSyncAvatars = async () => {
+      setAutoSyncing(true);
+      try {
+        // Call the manual sync endpoint to ensure avatars are up to date
+        const response = await fetch("/api/auth/manual-sync", {
+          method: "POST",
+        });
+
+        if (response.ok) {
+          console.log("✅ Avatars auto-synced successfully");
+        }
+      } catch (error) {
+        console.error("Failed to auto-sync avatars:", error);
+        // Don't show error toast for auto-sync to avoid annoying users
+      } finally {
+        setAutoSyncing(false);
+      }
+    };
+
+    // Auto-sync on component mount
+    autoSyncAvatars();
+  }, []);
 
   useEffect(() => {
     // Fetch existing admin users
     const fetchUsers = async () => {
       try {
-        const response = await fetch("/api/users?role=ADMIN&include=avatar", {
+        const response = await fetch("/api/users?role=ADMIN", {
           method: "GET",
           headers: {
             "Cache-Control": "no-cache",
           },
         });
         const data = await response.json();
-        console.log("Fetched users with avatars:", data); // Debug log
 
         // Check if the response contains an error
         if (data && typeof data === "object" && "error" in data) {
@@ -392,6 +441,48 @@ export function AccountSettings() {
     }
   };
 
+  // Add delete user function
+  const handleDeleteUser = async (userId: number, hasClerkId: boolean) => {
+    if (hasClerkId) {
+      toast({
+        title: "Cannot Delete User",
+        description:
+          "Users with Clerk ID cannot be deleted from this interface.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Remove user from the list
+        setUsers(users.filter((user) => user.id !== userId));
+        toast({
+          title: "User Deleted",
+          description: "The user has been successfully deleted.",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Delete Failed",
+          description: errorData.error || "Failed to delete user.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      toast({
+        title: "Error",
+        description: "An error occurred while deleting the user.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <AccountSkeleton />;
   }
@@ -494,10 +585,20 @@ export function AccountSettings() {
 
       <Card className="min-h-[300px]">
         <CardHeader>
-          <CardTitle>Admin Accounts</CardTitle>
-          <CardDescription>
-            View and manage existing administrator accounts.
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Admin Accounts</CardTitle>
+              <CardDescription>
+                View and manage existing administrator accounts.
+              </CardDescription>
+            </div>
+            {autoSyncing && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Syncing avatars...
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -516,6 +617,7 @@ export function AccountSettings() {
                   <TableHead>Admin</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Created At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -523,33 +625,23 @@ export function AccountSettings() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="relative h-9 w-9">
-                          {!loadedAvatars[user.id] && <AvatarSkeleton />}
-                          <Avatar
-                            className={`h-9 w-9 transition-opacity duration-300 ${
-                              loadedAvatars[user.id]
-                                ? "opacity-100"
-                                : "opacity-0"
-                            }`}
-                          >
-                            <AvatarImage
-                              src={getAvatarUrl(user)}
-                              alt={user.username}
-                              onLoad={() => handleAvatarLoad(user.id)}
-                              loading="lazy"
-                              onError={(e) => {
-                                console.log(
-                                  `Failed to load avatar for ${user.username}:`,
-                                  getAvatarUrl(user)
-                                );
-                                handleAvatarLoad(user.id); // Show fallback on error
-                              }}
-                            />
-                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                              {user.username.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
+                        {/* Simplified avatar display - no loading state */}
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage
+                            src={getAvatarUrl(user)}
+                            alt={user.username}
+                            onError={(e) => {
+                              // Fallback to UI avatars if image fails to load
+                              const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                user.username
+                              )}&background=random&size=96`;
+                              e.currentTarget.src = fallbackUrl;
+                            }}
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            {user.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="font-medium">{user.username}</p>
                           <p className="text-sm text-muted-foreground">
@@ -561,6 +653,28 @@ export function AccountSettings() {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          handleDeleteUser(user.id, !!user.clerkId)
+                        }
+                        disabled={!!user.clerkId}
+                        className={
+                          user.clerkId
+                            ? "opacity-50 cursor-not-allowed"
+                            : "text-destructive hover:text-destructive"
+                        }
+                        title={
+                          user.clerkId
+                            ? "Cannot delete users with Clerk ID"
+                            : "Delete user"
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

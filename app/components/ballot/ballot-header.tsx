@@ -43,20 +43,20 @@ export function BallotHeader() {
   if (!user) {
     return (
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-6xl mx-auto px-4 flex h-16 items-center justify-between">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <img
               src="/wup-logo.png"
-              className="h-14 w-auto"
+              className="h-10 w-auto sm:h-14"
               alt="AWUP Logo"
               loading="eager"
               decoding="sync"
             />
-            <h1 className="text-xl font-bold hidden sm:block">
+            <h1 className="text-lg font-bold hidden sm:block">
               AWUP Voting System
             </h1>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1">
             <ThemeToggle />
           </div>
         </div>
@@ -66,33 +66,33 @@ export function BallotHeader() {
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="max-w-6xl mx-auto px-4 flex h-16 items-center justify-between">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <img
             src="/wup-logo.png"
-            className="h-14 w-auto"
+            className="h-10 w-auto sm:h-14"
             alt="AWUP Logo"
             loading="eager"
             decoding="sync"
           />
-          <h1 className="text-xl font-bold hidden sm:block">
+          <h1 className="text-lg font-bold hidden sm:block">
             AWUP Voting System
           </h1>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1">
           <ThemeToggle />
 
           {/* User Dropdown Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
+              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0">
+                <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                   <AvatarImage
                     src={user.imageUrl}
                     alt={user.fullName || "User Avatar"}
                   />
-                  <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
+                  <AvatarFallback className="text-xs sm:text-sm">{getInitials(user.fullName)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
