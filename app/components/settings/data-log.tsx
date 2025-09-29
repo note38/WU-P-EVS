@@ -74,7 +74,6 @@ interface ActivityLog {
   id: string;
   user: string;
   action: string;
-  ip: string;
   performedAt: Date;
 }
 
@@ -127,7 +126,7 @@ export function DataLogs() {
 
   // Loading states
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{message: string, tab: string} | null>(null);
 
   // Pagination states
   const [voterPagination, setVoterPagination] = useState<Pagination>({
@@ -200,6 +199,7 @@ export function DataLogs() {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
             errorData.error ||
+              errorData.message ||
               `Failed to fetch data: ${response.status} ${response.statusText}`
           );
         }
@@ -226,8 +226,8 @@ export function DataLogs() {
             break;
         }
       } catch (error: any) {
-        console.error("Error fetching data:", error);
-        setError(error.message || "An error occurred while fetching data");
+        console.error(`Error fetching ${tab} data:`, error);
+        setError({message: error.message || `An error occurred while fetching ${tab} data`, tab});
       } finally {
         setLoading(false);
       }
@@ -238,7 +238,7 @@ export function DataLogs() {
   // Fetch data when component mounts or filters change
   useEffect(() => {
     fetchData(activeTab);
-  }, [fetchData, activeTab]);
+  }, [fetchData, activeTab, debouncedSearchTerm, dateFilter]);
 
   // Handle tab change
   const handleTabChange = (tab: string) => {
@@ -320,11 +320,11 @@ export function DataLogs() {
           .join("\n");
         break;
       case "activity":
-        headers = "User,Action,IP Address,Date & Time\n";
+        headers = "User,Action,Date & Time\n"; // Removed IP Address column
         rows = activityLogs
           .map(
             (log) =>
-              `"${log.user}","${log.action}","${log.ip}","${format(new Date(log.performedAt), "PPP p")}"`
+              `"${log.user}","${log.action}","${format(new Date(log.performedAt), "PPP p")}"`
           )
           .join("\n");
         break;
@@ -395,10 +395,10 @@ export function DataLogs() {
             </div>
 
             {/* Error message display */}
-            {error && (
+            {error && error.tab === activeTab && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-destructive">
                 <p className="font-medium">Error loading data:</p>
-                <p>{error}</p>
+                <p>{error.message}</p>
                 <p className="mt-2 text-sm">
                   Please check your database connection and environment
                   variables.
@@ -433,9 +433,9 @@ export function DataLogs() {
               <TabsContent value="voters">
                 {loading ? (
                   <TableSkeleton />
-                ) : error ? (
+                ) : error && error.tab === "voters" ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Failed to load voter logs. {error}
+                    Failed to load voter logs. {error.message}
                   </div>
                 ) : (
                   <Table>
@@ -491,9 +491,9 @@ export function DataLogs() {
               <TabsContent value="votes">
                 {loading ? (
                   <TableSkeleton />
-                ) : error ? (
+                ) : error && error.tab === "votes" ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Failed to load vote logs. {error}
+                    Failed to load vote logs. {error.message}
                   </div>
                 ) : (
                   <Table>
@@ -551,9 +551,9 @@ export function DataLogs() {
               <TabsContent value="admin">
                 {loading ? (
                   <TableSkeleton />
-                ) : error ? (
+                ) : error && error.tab === "admin" ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Failed to load admin logs. {error}
+                    Failed to load admin logs. {error.message}
                   </div>
                 ) : (
                   <Table>
@@ -597,9 +597,9 @@ export function DataLogs() {
               <TabsContent value="activity">
                 {loading ? (
                   <TableSkeleton />
-                ) : error ? (
+                ) : error && error.tab === "activity" ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Failed to load activity logs. {error}
+                    Failed to load activity logs. {error.message}
                   </div>
                 ) : (
                   <Table>
@@ -607,7 +607,9 @@ export function DataLogs() {
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Action</TableHead>
-                        <TableHead>IP Address</TableHead>
+                        {/*
+                        Removed IP Address column
+                        */}
                         <TableHead>Date & Time</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -619,7 +621,9 @@ export function DataLogs() {
                               {log.user}
                             </TableCell>
                             <TableCell>{log.action}</TableCell>
-                            <TableCell>{log.ip}</TableCell>
+                            {/*
+                            Removed IP Address cell
+                            */}
                             <TableCell>
                               {format(new Date(log.performedAt), "PPP p")}
                             </TableCell>
@@ -628,8 +632,7 @@ export function DataLogs() {
                       ) : (
                         <TableRow>
                           <TableCell
-                            colSpan={4}
-                            className="text-center py-8 text-muted-foreground"
+                            colSpan={3}
                           >
                             No activity logs found
                           </TableCell>
@@ -639,6 +642,7 @@ export function DataLogs() {
                   </Table>
                 )}
               </TabsContent>
+
             </Tabs>
 
             {/* Pagination */}

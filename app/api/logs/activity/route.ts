@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { User, Voter, Vote } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,12 +61,12 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    users.forEach((user: User) => {
+    users.forEach((user: any) => {
       logs.push({
         id: `user-${user.id}`,
         user: user.username,
         action: "User registered",
-        ip: "192.168.1.100", // Mock IP since we don't track IPs
+        // Removed IP address
         performedAt: user.createdAt,
       });
     });
@@ -88,12 +87,12 @@ export async function GET(request: NextRequest) {
       take: Math.ceil(limit / 3),
     });
 
-    voters.forEach((voter: Voter) => {
+    voters.forEach((voter: any) => {
       logs.push({
         id: `voter-${voter.id}`,
         user: `${voter.firstName} ${voter.lastName}`,
         action: "Voter registered",
-        ip: "192.168.1.101", // Mock IP
+        // Removed IP address
         performedAt: voter.createdAt,
       });
     });
@@ -122,7 +121,7 @@ export async function GET(request: NextRequest) {
           id: `vote-${vote.id}`,
           user: voterName,
           action: "Cast vote",
-          ip: "192.168.1.102", // Mock IP
+          // Removed IP address
           performedAt: vote.votedAt,
         });
       }
@@ -145,10 +144,24 @@ export async function GET(request: NextRequest) {
         hasMore: page < Math.ceil(logs.length / limit),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching activity logs:", error);
+    // More detailed error logging
+    if (error.code === 'P2002') {
+      console.error("Database connection issue:", error.message);
+      return NextResponse.json(
+        { 
+          error: "Database connection error",
+          message: "Failed to connect to the database. Please check your database configuration."
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: "Failed to fetch activity logs" },
+      { 
+        error: "Failed to fetch activity logs",
+        message: process.env.NODE_ENV === "development" ? error.message : "Failed to fetch data: 404"
+      },
       { status: 500 }
     );
   }

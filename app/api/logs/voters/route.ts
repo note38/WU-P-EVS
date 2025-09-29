@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       name: `${voter.firstName} ${voter.lastName}`,
       email: voter.email,
       registeredAt: voter.createdAt,
-      status: voter.status.toLowerCase(),
+      status: voter.status?.toLowerCase() || "unknown",
       election: voter.election?.name || "No election",
       department: voter.year?.department?.name || "Unknown",
     }));
@@ -97,10 +97,24 @@ export async function GET(request: NextRequest) {
         hasMore: page < Math.ceil(totalCount / limit),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching voter logs:", error);
+    // More detailed error logging
+    if (error.code === 'P2002') {
+      console.error("Database connection issue:", error.message);
+      return NextResponse.json(
+        { 
+          error: "Database connection error",
+          message: "Failed to connect to the database. Please check your database configuration."
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: "Failed to fetch voter logs" },
+      { 
+        error: "Failed to fetch voter logs",
+        message: process.env.NODE_ENV === "development" ? error.message : "Failed to fetch data: 404"
+      },
       { status: 500 }
     );
   }
