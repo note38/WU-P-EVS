@@ -24,6 +24,7 @@ import {
   exportToExcel,
   ExportVoter,
   EnhancedVoterData,
+  PrintResult,
 } from "@/lib/export-utils";
 
 interface ExportButtonsProps {
@@ -39,16 +40,26 @@ export function ExportButtons({
 }: ExportButtonsProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
       const exportData = prepareVoterDataForExport(voters);
-      const result = printVoters(exportData, title);
+      const result: PrintResult = await printVoters(exportData, title);
 
       if (result.success) {
         toast({
           title: "Print Successful",
           description: "Print dialog opened successfully.",
         });
+      } else if (result.cancelled) {
+        // When user cancels print dialog, refresh the page
+        toast({
+          title: "Print Cancelled",
+          description: "Refreshing page...",
+        });
+        // Small delay to show the toast before refreshing
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         toast({
           title: "Print Failed",
@@ -178,14 +189,33 @@ export function CompactExportButtons({
 }: ExportButtonsProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
       const exportData = prepareVoterDataForExport(voters);
-      printVoters(exportData, title);
-      toast({
-        title: "Print Successful",
-        description: "Print dialog opened successfully.",
-      });
+      const result: PrintResult = await printVoters(exportData, title);
+
+      if (result.success) {
+        toast({
+          title: "Print Successful",
+          description: "Print dialog opened successfully.",
+        });
+      } else if (result.cancelled) {
+        // When user cancels print dialog, refresh the page
+        toast({
+          title: "Print Cancelled",
+          description: "Refreshing page...",
+        });
+        // Small delay to show the toast before refreshing
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast({
+          title: "Print Failed",
+          description: result.error || "Failed to open print dialog.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Print Error",
@@ -209,14 +239,17 @@ export function CompactExportButtons({
       } else {
         toast({
           title: "PDF Export Failed",
-          description: "Please install jspdf and jspdf-autotable packages.",
+          description:
+            result.error ||
+            "Failed to export PDF. Please install required dependencies.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "PDF Export Error",
-        description: "Please install required dependencies.",
+        description:
+          "Please install jspdf and jspdf-autotable packages to use PDF export.",
         variant: "destructive",
       });
     } finally {
@@ -238,14 +271,17 @@ export function CompactExportButtons({
       } else {
         toast({
           title: "Excel Export Failed",
-          description: "Please install xlsx and file-saver packages.",
+          description:
+            result.error ||
+            "Failed to export Excel. Please install required dependencies.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Excel Export Error",
-        description: "Please install required dependencies.",
+        description:
+          "Please install xlsx and file-saver packages to use Excel export.",
         variant: "destructive",
       });
     } finally {
@@ -254,32 +290,42 @@ export function CompactExportButtons({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={disabled || voters.length === 0 || isExporting}
-        >
-          <DownloadIcon className="mr-2 h-4 w-4" />
-          Export & Print
-          <ChevronDownIcon className="ml-2 h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={handlePrint}>
-          <PrinterIcon className="mr-2 h-4 w-4" />
-          Print Report
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
-          <FileTextIcon className="mr-2 h-4 w-4" />
-          Export as PDF
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportExcel} disabled={isExporting}>
-          <FileSpreadsheetIcon className="mr-2 h-4 w-4" />
-          Export as Excel
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex gap-2">
+      {/* Print Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handlePrint}
+        disabled={disabled || voters.length === 0}
+      >
+        <PrinterIcon className="mr-2 h-4 w-4" />
+        Print
+      </Button>
+
+      {/* Export Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={disabled || voters.length === 0 || isExporting}
+          >
+            <DownloadIcon className="mr-2 h-4 w-4" />
+            Export
+            <ChevronDownIcon className="ml-2 h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
+            <FileTextIcon className="mr-2 h-4 w-4" />
+            Export as PDF
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportExcel} disabled={isExporting}>
+            <FileSpreadsheetIcon className="mr-2 h-4 w-4" />
+            Export as Excel
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

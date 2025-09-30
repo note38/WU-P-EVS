@@ -57,6 +57,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log(`GET /api/users/profile: Fetching profile for user ${userId}`);
+
     // Get user data from database using Clerk ID
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
@@ -68,12 +70,20 @@ export async function GET() {
         position: true,
         role: true,
       },
-      cacheStrategy: { ttl: 30 }, // 30 seconds TTL for cache
+      // Removed cacheStrategy as it's not supported in this version
     });
 
     if (!user) {
+      console.log(
+        `GET /api/users/profile: User ${userId} not found in database`
+      );
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    console.log(
+      `GET /api/users/profile: Found user ${userId} with position:`,
+      user.position
+    );
 
     return NextResponse.json(user);
   } catch (error) {
@@ -114,7 +124,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { position } = await request.json();
+    const requestData = await request.json();
+    const { position } = requestData;
 
     console.log(
       `PATCH /api/users/profile: Updating position for user ${userId} to:`,

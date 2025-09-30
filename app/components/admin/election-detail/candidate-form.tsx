@@ -31,8 +31,8 @@ import {
 } from "lucide-react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useDebounce } from "../../../hooks/use-debounce";
-import { ImageCropDialog } from "./image-crop-dialog";
 import { toast } from "@/hooks/use-toast";
+import { ImageCropper } from "@/app/components/ui/image-cropper";
 
 interface Voter {
   id: number;
@@ -84,7 +84,7 @@ export function CandidateForm({
     string | null
   >(null);
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -322,35 +322,30 @@ export function CandidateForm({
         return;
       }
 
-      // Store the selected file and open crop dialog
-      setSelectedImageFile(file);
-      setIsCropDialogOpen(true);
+      // Convert file to data URL for cropper
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImageSrc(reader.result as string);
+        setIsCropDialogOpen(true);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleCropComplete = (croppedFile: File) => {
-    setAvatarFile(croppedFile);
-
-    // Create preview of cropped image
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setAvatarPreview(result);
-      setCustomAvatar(result);
-      setNewCandidate({
-        ...newCandidate,
-        avatar: result,
-      });
-    };
-    reader.readAsDataURL(croppedFile);
-
+  const handleCropComplete = (croppedImage: string) => {
+    setAvatarPreview(croppedImage);
+    setCustomAvatar(croppedImage);
+    setNewCandidate({
+      ...newCandidate,
+      avatar: croppedImage,
+    });
     setIsCropDialogOpen(false);
-    setSelectedImageFile(null);
+    setSelectedImageSrc(null);
   };
 
   const handleCropCancel = () => {
     setIsCropDialogOpen(false);
-    setSelectedImageFile(null);
+    setSelectedImageSrc(null);
     // Clear the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -395,7 +390,7 @@ export function CandidateForm({
     setExistingCandidatesError(null);
     setAvatarFile(null);
     setAvatarPreview("");
-    setSelectedImageFile(null);
+    setSelectedImageSrc(null);
     setIsCropDialogOpen(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -838,13 +833,15 @@ export function CandidateForm({
         </DialogFooter>
       </DialogContent>
 
-      {/* Image Crop Dialog */}
-      <ImageCropDialog
-        isOpen={isCropDialogOpen}
-        onClose={handleCropCancel}
+      {/* Image Crop Dialog - Updated to use unified component */}
+      <ImageCropper
+        open={isCropDialogOpen}
+        onOpenChange={setIsCropDialogOpen}
+        imageSrc={selectedImageSrc}
         onCropComplete={handleCropComplete}
-        imageFile={selectedImageFile}
-        originalFileName={selectedImageFile?.name || "cropped-avatar.jpg"}
+        onCancel={handleCropCancel}
+        title="Crop Candidate Photo"
+        description="Adjust the crop area for the candidate's photo"
       />
     </Dialog>
   );

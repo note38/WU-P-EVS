@@ -33,6 +33,7 @@ async function main() {
       password: adminPassword,
       role: Role.ADMIN,
       avatar: "https://ui-avatars.com/api/?name=Admin&background=random",
+      clerkId: "user_admin1", // Add clerkId field
     },
   });
   console.log(`Created admin user: ${admin.username}`);
@@ -46,6 +47,7 @@ async function main() {
       password: admin2Password,
       role: Role.ADMIN,
       avatar: "https://ui-avatars.com/api/?name=Sarah+Admin&background=random",
+      clerkId: "user_admin2", // Add clerkId field
     },
   });
   console.log(`Created second admin user: ${admin2.username}`);
@@ -99,6 +101,7 @@ async function main() {
       startDate: currentDate,
       endDate: nextMonth,
       status: "ACTIVE",
+      hideName: false, // Add hideName field
       createdById: admin.id,
     },
   });
@@ -192,7 +195,9 @@ async function main() {
         avatar: `https://ui-avatars.com/api/?name=${voter.firstName}+${voter.lastName}&background=random`,
         yearId: voter.yearId,
         electionId: election.id,
+        // Use the correct enum value that matches the database
         status: VoterStatus.UNCAST,
+        clerkId: `voter_${voter.firstName.toLowerCase()}_${voter.lastName.toLowerCase()}`, // Add clerkId field
       },
     });
     console.log(

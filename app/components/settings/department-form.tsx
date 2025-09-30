@@ -44,7 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { ImageCropDialog } from "../admin/election-detail/image-crop-dialog";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define the department type

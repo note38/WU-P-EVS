@@ -239,7 +239,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             {isPrinting ? "Preparing..." : "Print Results"}
           </Button>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={handleExportResults}
             disabled={isExporting || loading}

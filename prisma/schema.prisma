@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,8 +6,152 @@ datasource db {
   provider = "postgres"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id        Int        @id @default(autoincrement())
+  avatar    String?
+  username  String     @unique
+  email     String     @unique
+  password  String
+  role      Role       @default(ADMIN)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  clerkId   String?    @unique
+  position  String?
+  elections Election[]
+
+  @@index([clerkId])
+}
+
+model Election {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      ElectionStatus @default(INACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  createdById Int
+  hideName    Boolean        @default(false)
+  candidates  Candidate[]
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  partylists  Partylist[]
+  positions   Position[]
+  votes       Vote[]
+  voters      Voter[]
+
+  @@index([status, startDate, endDate])
+  @@index([hideName])
+}
+
+model Position {
+  id            Int         @id @default(autoincrement())
+  name          String
+  maxCandidates Int         @default(1)
+  electionId    Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  yearId        Int?
+  candidates    Candidate[]
+  election      Election    @relation(fields: [electionId], references: [id])
+  year          Year?       @relation(fields: [yearId], references: [id])
+  votes         Vote[]
+
+  @@index([electionId, yearId])
+}
+
+model Candidate {
+  id          Int       @id @default(autoincrement())
+  avatar      String?
+  name        String
+  positionId  Int
+  partylistId Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  electionId  Int
+  yearId      Int?
+  election    Election  @relation(fields: [electionId], references: [id])
+  partylist   Partylist @relation(fields: [partylistId], references: [id])
+  position    Position  @relation(fields: [positionId], references: [id])
+  year        Year?     @relation(fields: [yearId], references: [id])
+
+  @@index([positionId, partylistId])
+  @@index([electionId])
+  @@index([yearId])
+}
+
+model Voter {
+  id              Int         @id @default(autoincrement())
+  email           String      @unique
+  electionId      Int?
+  status          VoterStatus @default(UNCAST)
+  credentialsSent Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  avatar          String
+  firstName       String
+  hashpassword    String?
+  lastName        String
+  middleName      String
+  yearId          Int
+  role            Role        @default(VOTER)
+  clerkId         String?     @unique
+  votes           Vote[]
+  election        Election?   @relation(fields: [electionId], references: [id], onDelete: Restrict)
+  year            Year        @relation(fields: [yearId], references: [id])
+
+  @@index([electionId, yearId])
+  @@index([clerkId])
+}
+
+model Vote {
+  id          Int      @id @default(autoincrement())
+  voterId     Int
+  candidateId Int
+  positionId  Int
+  electionId  Int
+  votedAt     DateTime @default(now())
+  election    Election @relation(fields: [electionId], references: [id])
+  position    Position @relation(fields: [positionId], references: [id])
+  voter       Voter    @relation(fields: [voterId], references: [id])
+
+  @@unique([voterId, positionId, electionId])
+  @@index([candidateId, positionId, electionId])
+}
+
+model Partylist {
+  id         Int         @id @default(autoincrement())
+  name       String
+  electionId Int
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  candidates Candidate[]
+  election   Election    @relation(fields: [electionId], references: [id])
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  image     String?
+  years     Year[]
+}
+
+model Year {
+  id           Int         @id @default(autoincrement())
+  name         String
+  departmentId Int
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  candidates   Candidate[]
+  positions    Position[]
+  voters       Voter[]
+  department   Department  @relation(fields: [departmentId], references: [id])
+}
+
 enum Role {
-  
   ADMIN
   VOTER
 }
@@ -24,147 +165,4 @@ enum ElectionStatus {
 enum VoterStatus {
   UNCAST
   CAST
-}
-
-model User {
-  id          Int         @id @default(autoincrement())
-  clerkId     String?     @unique // Clerk user ID
-  avatar      String?
-  username    String      @unique
-  email       String      @unique
-  password    String?     // Made optional since Clerk handles auth
-  position    String?     // Job title or position
-  role        Role        @default(ADMIN)
-  elections   Election[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@index([clerkId])
-  @@index([email])
-}
-
-model Election {
-  id          Int           @id @default(autoincrement())
-  name        String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  status      ElectionStatus @default(INACTIVE)
-  positions   Position[]
-  partylists  Partylist[]
-  candidates  Candidate[]
-  voters      Voter[]
-  votes       Vote[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  createdBy   User          @relation(fields: [createdById], references: [id])
-  createdById Int
-
-  @@index([status, startDate, endDate])
-}
-
-model Position {
-  id            Int          @id @default(autoincrement())
-  name          String
-  maxCandidates Int          @default(1)
-  year          Year?        @relation(fields: [yearId], references: [id])
-  yearId        Int?
-  election      Election     @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  electionId    Int
-  candidates    Candidate[]
-  votes         Vote[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  @@index([electionId, yearId])
-}
-
-model Candidate {
-  id          Int       @id @default(autoincrement())
-  avatar      String?
-  name        String
-  position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  positionId  Int
-  partylist   Partylist @relation(fields: [partylistId], references: [id], onDelete: Cascade)
-  partylistId Int
-  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  electionId  Int
-  year        Year?     @relation(fields: [yearId], references: [id])
-  yearId      Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([positionId, partylistId])
-  @@index([electionId])
-  @@index([yearId])
-}
-
-model Voter {
-  id              Int         @id @default(autoincrement())
-  clerkId         String?     @unique // Clerk user ID for voters
-  avatar          String
-  firstName       String
-  lastName        String
-  middleName      String
-  email           String      @unique
-  hashpassword    String?     // Made optional since Clerk handles auth
-  role            Role        @default(VOTER)
-  election        Election?   @relation(fields: [electionId], references: [id], onDelete: SetNull)
-  electionId      Int?
-  year            Year        @relation(fields: [yearId], references: [id])
-  yearId          Int
-  status          VoterStatus @default(UNCAST)
-  votes           Vote[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  @@index([electionId, yearId])
-  @@index([clerkId])
-  @@index([email])
-}
-
-model Vote {
-  id          Int       @id @default(autoincrement())
-  voter       Voter     @relation(fields: [voterId], references: [id])
-  position    Position  @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  voterId     Int
-  candidateId Int
-  positionId  Int
-  electionId  Int
-  votedAt     DateTime  @default(now())
-
-  @@unique([voterId, positionId, electionId])
-  @@index([candidateId, positionId, electionId])
-}
-
-model Partylist {
-  id          Int         @id @default(autoincrement())
-  name        String
-  election    Election    @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  electionId  Int
-  candidates  Candidate[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-}
-
-model Department {
-  id          Int         @id @default(autoincrement())
-  image       String?
-  name        String
-  years       Year[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-}
-
-model Year {
-  id           Int         @id @default(autoincrement())
-  name         String
-  department   Department  @relation(fields: [departmentId], references: [id])
-  departmentId Int
-  positions    Position[]
-  voters       Voter[]
-  candidates   Candidate[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
 }

@@ -219,13 +219,28 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
         body: JSON.stringify(submissionData),
       });
 
-      const data = await response.json();
+      console.log("Response status:", response.status); // Debug log
+      console.log(
+        "Response headers:",
+        Object.fromEntries(response.headers.entries())
+      ); // Debug log
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If JSON parsing fails, get text content
+        const textContent = await response.text();
+        console.log("Raw response text:", textContent); // Debug log
+        data = { error: "Invalid response format", rawResponse: textContent };
+      }
+
       console.log("API Response:", response.status, data); // Debug log
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         // With Clerk integration, voters will authenticate through Clerk
         // So we don't need to show temporary passwords
-        const message = data.credentialsSent
+        const message = data.voter?.credentialsSent
           ? `Voter created successfully. Login credentials have been sent to ${data.voter.email}.`
           : `Voter created successfully. They will authenticate through Clerk.`;
 
@@ -250,19 +265,34 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
             variant: "destructive",
           });
         } else {
-          console.error("API Error Response:", data); // More detailed error logging
+          // Log more detailed error information
+          console.error("API Error Response:", {
+            status: response.status,
+            statusText: response.statusText,
+            data: data,
+            url: "/api/voters",
+            method: "POST",
+          });
+
+          // Show more descriptive error message to user
+          const errorMessage =
+            data?.error || data?.message || "Failed to add voter";
+          const errorDetails = data?.details ? `: ${data.details}` : "";
+
           toast({
             title: "Error",
-            description: data.error || "Failed to add voter",
+            description: `${errorMessage}${errorDetails}`,
             variant: "destructive",
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submission Error:", error);
       toast({
-        title: "Error",
-        description: "Failed to submit the form",
+        title: "Network Error",
+        description:
+          error.message ||
+          "Failed to submit the form. Please check your connection.",
         variant: "destructive",
       });
     } finally {

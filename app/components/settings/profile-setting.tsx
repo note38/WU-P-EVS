@@ -125,15 +125,34 @@ const ProfileSection = ({
   useEffect(() => {
     const loadProfile = async () => {
       try {
+        console.log("Loading profile data...");
         const response = await fetch("/api/users/profile");
+        console.log("Profile API response status:", response.status);
+
         if (response.ok) {
           const profileData = await response.json();
+          console.log("Profile data received:", profileData);
+
+          // Handle the case where position might be null or undefined
           const userPosition = profileData.position || "";
           setPosition(userPosition);
           setInitialPosition(userPosition);
+          console.log("Position set to:", userPosition);
+        } else {
+          console.error(
+            "Failed to load profile data:",
+            response.status,
+            response.statusText
+          );
+          // Set default empty values if fetch fails
+          setPosition("");
+          setInitialPosition("");
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
+        // Set default empty values if fetch fails
+        setPosition("");
+        setInitialPosition("");
       } finally {
         setIsLoadingProfile(false);
       }
@@ -236,6 +255,72 @@ const ProfileSection = ({
   const userInitial = user.firstName
     ? user.firstName.charAt(0).toUpperCase()
     : "?";
+
+  if (isLoadingProfile) {
+    return (
+      <div className="space-y-6">
+        {/* Profile Overview Card */}
+        <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-card to-card/80 backdrop-blur-sm">
+          <CardContent className="p-0">
+            {/* Cover Section */}
+            <div className="h-32 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+            </div>
+
+            {/* Profile Info */}
+            <div className="px-6 pb-6">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-6 -mt-16 sm:-mt-12">
+                <div className="relative">
+                  <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-background shadow-xl">
+                    <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-primary/20 to-primary/30">
+                      ?
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                <div className="mt-4 sm:mt-0 flex-1">
+                  <div className="h-6 bg-muted rounded w-1/3 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Personal Information */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>
+              Update your personal details and how others see you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">First Name</label>
+                <Input placeholder="Loading..." disabled />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Last Name</label>
+                <Input placeholder="Loading..." disabled />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Position</label>
+              <Input placeholder="Loading..." disabled />
+              <p className="text-xs text-muted-foreground">
+                Loading position...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -368,6 +453,9 @@ const ProfileSection = ({
                 onChange={(e) => setPosition(e.target.value)}
                 className="transition-all focus:ring-2 focus:ring-primary/20"
               />
+              <p className="text-xs text-muted-foreground">
+                This is your job title or role within the organization
+              </p>
             </div>
           </CardContent>
           <CardFooter className="bg-muted/20 border-t px-6 py-4 flex justify-between">

@@ -26,6 +26,13 @@ export interface ExportVoter {
   } | null;
 }
 
+// Type for print result
+export interface PrintResult {
+  success: boolean;
+  error?: string;
+  cancelled?: boolean;
+}
+
 // Enhanced voter type that includes department information
 export interface EnhancedVoterData extends Omit<VoterData, "year"> {
   year: {
@@ -280,7 +287,7 @@ export async function exportToExcel(
 export async function printVoters(
   voters: ExportVoter[],
   title: string = "Voters Report"
-) {
+): Promise<PrintResult> {
   const printWindow = window.open("", "_blank");
   if (!printWindow) {
     return { success: false, error: "Could not open print window" };
@@ -449,10 +456,45 @@ export async function printVoters(
   printWindow.document.write(printContent);
   printWindow.document.close();
   printWindow.focus();
-  printWindow.print();
-  printWindow.close();
 
-  return { success: true };
+  // Use a promise to handle print events
+  return new Promise((resolve) => {
+    let printed = false;
+
+    // Set a flag when print is initiated
+    printWindow.addEventListener("beforeprint", () => {
+      printed = true;
+    });
+
+    // Handle after print or close
+    const cleanup = () => {
+      // If print was never initiated, it means user cancelled
+      if (!printed) {
+        resolve({ success: false, cancelled: true });
+      } else {
+        resolve({ success: true });
+      }
+    };
+
+    // Listen for print events
+    printWindow.addEventListener("afterprint", cleanup);
+
+    // Also handle window close (in case user closes without printing)
+    const checkClosed = setInterval(() => {
+      if (printWindow.closed) {
+        clearInterval(checkClosed);
+        cleanup();
+      }
+    }, 1000);
+
+    // Try to print
+    try {
+      printWindow.print();
+    } catch (error) {
+      clearInterval(checkClosed);
+      resolve({ success: false, error: "Failed to open print dialog." });
+    }
+  });
 }
 
 import { formatDateTime, calculatePercentage } from "./print-templates";

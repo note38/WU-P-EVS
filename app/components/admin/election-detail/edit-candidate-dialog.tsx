@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { Upload, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { ImageCropDialog } from "./image-crop-dialog";
+import { ImageCropper } from "@/app/components/ui/image-cropper";
 
 interface Candidate {
   id: number;
@@ -365,12 +365,28 @@ export function EditCandidateDialog({
       </Dialog>
 
       {/* Image Crop Dialog */}
-      <ImageCropDialog
-        isOpen={isCropDialogOpen}
-        onClose={handleCropCancel}
-        onCropComplete={handleCropComplete}
-        imageFile={selectedImageFile}
-        originalFileName={selectedImageFile?.name || "cropped-avatar.jpg"}
+      <ImageCropper
+        open={isCropDialogOpen}
+        onOpenChange={setIsCropDialogOpen}
+        imageSrc={
+          selectedImageFile ? URL.createObjectURL(selectedImageFile) : null
+        }
+        onCropComplete={(croppedImage) => {
+          // Convert data URL to file
+          fetch(croppedImage)
+            .then((res) => res.blob())
+            .then((blob) => {
+              const file = new File(
+                [blob],
+                selectedImageFile?.name || "cropped-avatar.jpg",
+                { type: blob.type }
+              );
+              handleCropComplete(file);
+            });
+        }}
+        onCancel={handleCropCancel}
+        title="Crop Candidate Photo"
+        description="Adjust the crop area for the candidate's photo"
       />
     </>
   );
