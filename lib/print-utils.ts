@@ -23,54 +23,51 @@ export async function printElectionResults(
 ): Promise<void> {
   const { electionDetails, positions, currentUser, userPosition } = options;
 
-  return new Promise((resolve, reject) => {
-    try {
-      // Generate the complete HTML content using the template
-      const printContent = generatePrintTemplate({
-        electionDetails,
-        positions,
-        currentUser,
-        userPosition,
-      });
+  try {
+    // Generate the complete HTML content using the template
+    const printContent = await generatePrintTemplate({
+      electionDetails,
+      positions,
+      currentUser,
+      userPosition,
+    });
 
-      // Open print window
-      const printWindow = window.open("", "_blank");
+    // Open print window
+    const printWindow = window.open("", "_blank");
 
-      if (!printWindow) {
-        throw new Error(
-          "Unable to open print window. Please check your popup blocker settings."
-        );
-      }
-
-      // Write content to the print window
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-
-      // Wait for content to load then print
-      const printTimeout = setTimeout(() => {
-        try {
-          printWindow.print();
-
-          // Close the window after a short delay to allow printing dialog to appear
-          setTimeout(() => {
-            printWindow.close();
-          }, 1000);
-
-          resolve();
-        } catch (error) {
-          reject(new Error(`Failed to initiate print: ${error}`));
-        }
-      }, 500);
-
-      // Handle window close event
-      printWindow.addEventListener("beforeunload", () => {
-        clearTimeout(printTimeout);
-      });
-    } catch (error) {
-      reject(new Error(`Print preparation failed: ${error}`));
+    if (!printWindow) {
+      throw new Error(
+        "Unable to open print window. Please check your popup blocker settings."
+      );
     }
-  });
+
+    // Write content to the print window
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+
+    // Wait for content to load then print
+    const printTimeout = setTimeout(() => {
+      try {
+        printWindow.print();
+
+        // Close the window after a short delay to allow printing dialog to appear
+        setTimeout(() => {
+          printWindow.close();
+        }, 1000);
+      } catch (error) {
+        console.error("Failed to initiate print:", error);
+      }
+    }, 500);
+
+    // Handle window close event
+    printWindow.addEventListener("beforeunload", () => {
+      clearTimeout(printTimeout);
+    });
+  } catch (error) {
+    console.error("Print preparation failed:", error);
+    throw new Error(`Print preparation failed: ${error}`);
+  }
 }
 
 /**

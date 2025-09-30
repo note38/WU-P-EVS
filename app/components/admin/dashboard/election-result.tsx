@@ -255,26 +255,28 @@ export default function VoterPage() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => setShowNames(!showNames)}
-              >
-                {showNames ? (
-                  <>
-                    <EyeOff className="h-3 w-3 mr-1" />
-                    Hide Names
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3 w-3 mr-1" />
-                    Show Names
-                  </>
-                )}
-              </Button>
-            </div>
+            {!isFullscreen && (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setShowNames(!showNames)}
+                >
+                  {showNames ? (
+                    <>
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      Hide Names
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-3 w-3 mr-1" />
+                      Show Names
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
 
             <Button
               variant="outline"

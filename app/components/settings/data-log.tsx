@@ -126,7 +126,9 @@ export function DataLogs() {
 
   // Loading states
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<{message: string, tab: string} | null>(null);
+  const [error, setError] = useState<{ message: string; tab: string } | null>(
+    null
+  );
 
   // Pagination states
   const [voterPagination, setVoterPagination] = useState<Pagination>({
@@ -227,7 +229,11 @@ export function DataLogs() {
         }
       } catch (error: any) {
         console.error(`Error fetching ${tab} data:`, error);
-        setError({message: error.message || `An error occurred while fetching ${tab} data`, tab});
+        setError({
+          message:
+            error.message || `An error occurred while fetching ${tab} data`,
+          tab,
+        });
       } finally {
         setLoading(false);
       }
@@ -631,9 +637,7 @@ export function DataLogs() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell
-                            colSpan={3}
-                          >
+                          <TableCell colSpan={3}>
                             No activity logs found
                           </TableCell>
                         </TableRow>
@@ -642,7 +646,6 @@ export function DataLogs() {
                   </Table>
                 )}
               </TabsContent>
-
             </Tabs>
 
             {/* Pagination */}

@@ -1,5 +1,29 @@
 "use client";
 
+// Utility function to convert image to data URL
+async function getImageAsDataUrl(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        reject(new Error("Could not get canvas context"));
+      }
+    };
+    img.onerror = () => {
+      reject(new Error("Could not load image"));
+    };
+    img.src = imageUrl;
+  });
+}
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -379,7 +403,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
   };
 
-  const handlePrintAll = () => {
+  const handlePrintAll = async () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -389,15 +413,90 @@ export function VotersTab({ electionId }: VotersTabProps) {
         <head>
           <title>All Voters - Election Report</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
-            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
-            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
-            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #333;
+            }
+            .election-header {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              padding: 24px;
+              background-color: #ffffff;
+              border-bottom: 1px solid #dee2e6;
+              text-align: center;
+            }
+            .branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 16px;
+              margin-bottom: 16px;
+            }
+            .logo {
+              width: 60px;
+              height: 60px;
+            }
+            .university-info {
+              text-align: left;
+            }
+            .university-name {
+              margin: 0;
+              font-size: 1.5rem;
+              font-weight: 600;
+              color: #212529;
+            }
+            .system-name {
+              margin: 0;
+              font-size: 1rem;
+              color: #6c757d;
+            }
+            .election-title {
+              margin: 0;
+              font-size: 1.25rem;
+              font-weight: 500;
+              color: #495057;
+              background-color: #f8f9fa;
+              padding: 8px 12px;
+              border-radius: 8px;
+              display: inline-block;
+            }
+            .voter-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px;
+            }
+            .voter-table th, .voter-table td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left; 
+            }
+            .voter-table th { 
+              background-color: #f2f2f2; 
+              font-weight: bold;
+            }
+            .voter-table tr:nth-child(even) { 
+              background-color: #f9f9f9; 
+            }
+            .status-voted { 
+              background-color: #d4edda; 
+              color: #155724; 
+              padding: 2px 6px; 
+              border-radius: 3px;
+            }
+            .status-uncast { 
+              background-color: #d1ecf1; 
+              color: #0c5460; 
+              padding: 2px 6px; 
+              border-radius: 3px;
+            }
+            .footer { 
+              margin-top: 30px; 
+              text-align: center; 
+              color: #666; 
+              font-size: 12px;
+              border-top: 1px solid #ddd;
+              padding-top: 15px;
+            }
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
@@ -405,11 +504,17 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Election Voters Report</h1>
-            <p>Total Voters: ${totalVoters}</p>
-            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-          </div>
+          <header class="election-header">
+            <div class="branding">
+              <img src="../wup-logo.png" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
+              <div class="university-info">
+                <h1 class="university-name">Wesleyan University-Philippines</h1>
+                <p class="system-name">Enhanced Voting System</p>
+              </div>
+            </div>
+            <h2 class="election-title">Election Voters Report</h2>
+            <p><strong>Total Voters:</strong> ${totalVoters}</p>
+          </header>
           <table class="voter-table">
             <thead>
               <tr>
@@ -446,6 +551,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </table>
           <div class="footer">
             <p>This report contains ${voters.length} voters from the current page.</p>
+            <p>Generated by: Wesleyan University Philippines - Enhanced Voting System</p>
           </div>
         </body>
       </html>
@@ -458,7 +564,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     printWindow.close();
   };
 
-  const handlePrintSelected = () => {
+  const handlePrintSelected = async () => {
     if (selectedVoters.length === 0) {
       toast({
         title: "No Selection",
@@ -480,15 +586,90 @@ export function VotersTab({ electionId }: VotersTabProps) {
         <head>
           <title>Selected Voters - Election Report</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
-            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
-            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
-            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
-            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #333;
+            }
+            .election-header {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              padding: 24px;
+              background-color: #ffffff;
+              border-bottom: 1px solid #dee2e6;
+              text-align: center;
+            }
+            .branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 16px;
+              margin-bottom: 16px;
+            }
+            .logo {
+              width: 60px;
+              height: 60px;
+            }
+            .university-info {
+              text-align: left;
+            }
+            .university-name {
+              margin: 0;
+              font-size: 1.5rem;
+              font-weight: 600;
+              color: #212529;
+            }
+            .system-name {
+              margin: 0;
+              font-size: 1rem;
+              color: #6c757d;
+            }
+            .election-title {
+              margin: 0;
+              font-size: 1.25rem;
+              font-weight: 500;
+              color: #495057;
+              background-color: #f8f9fa;
+              padding: 8px 12px;
+              border-radius: 8px;
+              display: inline-block;
+            }
+            .voter-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px;
+            }
+            .voter-table th, .voter-table td { 
+              border: 1px solid #ddd; 
+              padding: 8px; 
+              text-align: left; 
+            }
+            .voter-table th { 
+              background-color: #f2f2f2; 
+              font-weight: bold;
+            }
+            .voter-table tr:nth-child(even) { 
+              background-color: #f9f9f9; 
+            }
+            .status-voted { 
+              background-color: #d4edda; 
+              color: #155724; 
+              padding: 2px 6px; 
+              border-radius: 3px;
+            }
+            .status-uncast { 
+              background-color: #d1ecf1; 
+              color: #0c5460; 
+              padding: 2px 6px; 
+              border-radius: 3px;
+            }
+            .footer { 
+              margin-top: 30px; 
+              text-align: center; 
+              color: #666; 
+              font-size: 12px;
+              border-top: 1px solid #ddd;
+              padding-top: 15px;
+            }
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
@@ -496,11 +677,17 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Selected Voters Report</h1>
-            <p>Selected Voters: ${selectedVoterData.length}</p>
-            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-          </div>
+          <header class="election-header">
+            <div class="branding">
+              <img src="../wup-logo.png" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
+              <div class="university-info">
+                <h1 class="university-name">Wesleyan University-Philippines</h1>
+                <p class="system-name">Enhanced Voting System</p>
+              </div>
+            </div>
+            <h2 class="election-title">Selected Voters Report</h2>
+            <p><strong>Selected Voters:</strong> ${selectedVoterData.length}</p>
+          </header>
           <table class="voter-table">
             <thead>
               <tr>
@@ -537,6 +724,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </table>
           <div class="footer">
             <p>This report contains ${selectedVoterData.length} selected voters.</p>
+            <p>Generated by: Wesleyan University Philippines - Enhanced Voting System</p>
           </div>
         </body>
       </html>
@@ -602,14 +790,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
               <span className="text-sm text-muted-foreground">
                 {selectedVoters.length} selected
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleSendCredentials(selectedVoters)}
-              >
-                <SendIcon className="h-4 w-4 mr-2" />
-                Email Selected
-              </Button>
+
               <Button variant="outline" size="sm" onClick={handlePrintSelected}>
                 <PrinterIcon className="h-4 w-4 mr-2" />
                 Print Selected

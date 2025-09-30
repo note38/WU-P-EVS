@@ -147,20 +147,24 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Error fetching activity logs:", error);
     // More detailed error logging
-    if (error.code === 'P2002') {
+    if (error.code === "P2002") {
       console.error("Database connection issue:", error.message);
       return NextResponse.json(
-        { 
+        {
           error: "Database connection error",
-          message: "Failed to connect to the database. Please check your database configuration."
+          message:
+            "Failed to connect to the database. Please check your database configuration.",
         },
         { status: 500 }
       );
     }
     return NextResponse.json(
-      { 
+      {
         error: "Failed to fetch activity logs",
-        message: process.env.NODE_ENV === "development" ? error.message : "Failed to fetch data: 404"
+        message:
+          process.env.NODE_ENV === "development"
+            ? error.message
+            : "Failed to fetch data: 404",
       },
       { status: 500 }
     );
