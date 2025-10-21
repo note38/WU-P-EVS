@@ -48,6 +48,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Voter, VoterStatus } from "./voter-card";
@@ -59,7 +60,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EditIcon, MoreHorizontal, TrashIcon } from "lucide-react";
+import { EditIcon, MoreHorizontal } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { EditVoterForm } from "./edit-voter-form";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
@@ -85,6 +86,7 @@ export default function VoterTable({
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [voterToDelete, setVoterToDelete] = useState<Voter | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const itemsPerPage = 10;
 
   const getFullName = (voter: Voter) => {
@@ -571,6 +573,11 @@ export default function VoterTable({
     setDeleteDialogOpen(true);
   };
 
+  // Handle bulk delete - open confirmation dialog
+  const handleBulkDeleteVoter = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
   // Perform the actual deletion
   const performDeleteVoter = async () => {
     if (!voterToDelete) return;
@@ -611,6 +618,54 @@ export default function VoterTable({
       });
     } finally {
       setVoterToDelete(null);
+    }
+  };
+
+  // Perform bulk deletion
+  const performBulkDeleteVoters = async () => {
+    if (selectedVoters.length === 0) return;
+
+    try {
+      const response = await fetch("/api/voters/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ voterIds: selectedVoters }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${selectedVoters.length} voter(s) deleted successfully.`,
+        });
+
+        // Clear selection
+        setSelectedVoters([]);
+
+        // Notify parent component to refresh the voter list
+        if (onVoterDelete) {
+          // We can call it with any voter ID since the parent will refresh all data
+          onVoterDelete(selectedVoters[0]);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete voters.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting voters:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the voters.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkDeleteDialogOpen(false);
     }
   };
 
@@ -665,6 +720,15 @@ export default function VoterTable({
         itemType="voter"
       />
 
+      {/* Bulk Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+        onConfirm={performBulkDeleteVoters}
+        itemName={`${selectedVoters.length} selected voter${selectedVoters.length !== 1 ? "s" : ""}`}
+        itemType="voters"
+      />
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
           <Input
@@ -713,6 +777,14 @@ export default function VoterTable({
               <Button variant="outline" size="sm" onClick={handlePrintSelected}>
                 <PrinterIcon className="mr-2 h-4 w-4" />
                 Print Selected
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDeleteVoter}
+              >
+                <TrashIcon className="mr-2 h-4 w-4" />
+                Delete Selected
               </Button>
             </>
           )}

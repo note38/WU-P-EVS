@@ -1,8 +1,6 @@
 // app/api/voters/route.ts
 import { prisma } from "@/lib/db";
-import { resend } from "@/lib/resend";
 import { generatePassword } from "@/lib/utils";
-import { VoterCredentialsEmail } from "@/app/emails/credentials-send";
 import { VoterStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
@@ -88,17 +86,9 @@ export async function POST(request: Request) {
     }
 
     // For Clerk integration, we don't need to generate a password immediately
-    // We'll only generate one if we need to send email credentials
+    // We'll only generate one if we need to send credentials via email
     let tempPassword = null;
     let hashpassword = null;
-
-    // Only generate password if we're going to send credentials via email
-    const shouldSendCredentials =
-      data.electionId && data.sendCredentials !== false && resend;
-    if (shouldSendCredentials) {
-      tempPassword = generatePassword(12);
-      hashpassword = await bcrypt.hash(tempPassword, 12);
-    }
 
     try {
       console.log("Creating voter with data:", {
@@ -149,68 +139,6 @@ export async function POST(request: Request) {
 
       console.log("Voter created:", voter); // Debug log
 
-      // If the voter is assigned to an election, automatically send credentials
-      let credentialsSent = false;
-      if (shouldSendCredentials) {
-        try {
-          // Generate password now if we didn't earlier
-          if (!tempPassword) {
-            tempPassword = generatePassword(12);
-          }
-
-          const emailData = {
-            voterId: voter.id.toString(),
-            firstName: voter.firstName,
-            lastName: voter.lastName,
-            middleName: voter.middleName || "",
-            email: voter.email,
-            password: tempPassword,
-            electionName: voter.election?.name || "",
-            departmentName: voter.year?.department?.name || "",
-            yearName: voter.year?.name || "",
-            loginLink: process.env.NEXT_PUBLIC_BASE_URL
-              ? `${process.env.NEXT_PUBLIC_BASE_URL}/login`
-              : "http://localhost:3000/login",
-          };
-
-          if (resend && (resend as any).emails) {
-            const emailResult = await (resend as any).emails.send({
-              from:
-                process.env.FROM_EMAIL ||
-                "WUP Voting System <noreply@wup-evs.com>",
-              to: voter.email,
-              subject: `Your Voting Credentials - ${voter.election?.name || "Election"}`,
-              react: VoterCredentialsEmail(emailData),
-            });
-
-            if (!emailResult.error) {
-              credentialsSent = true;
-
-              // Update voter with password hash after sending email
-              const hashpassword = await bcrypt.hash(tempPassword, 12);
-              await prisma.voter.update({
-                where: { id: voter.id },
-                data: { hashpassword },
-              });
-            } else {
-              console.error(
-                "Error sending credentials email:",
-                emailResult.error
-              );
-            }
-          } else {
-            console.warn("Resend service is not available");
-          }
-        } catch (emailError) {
-          console.error("Error sending credentials:", emailError);
-          // Don't fail the voter creation if email fails
-        }
-      } else if (data.electionId && data.sendCredentials !== false && !resend) {
-        console.warn(
-          "Email service not configured - credentials not sent automatically"
-        );
-      }
-
       return NextResponse.json(
         {
           success: true,
@@ -220,14 +148,7 @@ export async function POST(request: Request) {
             firstName: voter.firstName,
             lastName: voter.lastName,
             email: voter.email,
-            credentialsSent,
           },
-          // Don't return tempPassword when using Clerk since voters will authenticate through Clerk
-          // Only return password info if email wasn't sent and we're not using Clerk
-          tempPassword:
-            credentialsSent || !shouldSendCredentials
-              ? undefined
-              : "Voter will authenticate through Clerk",
         },
         { status: 201 }
       );

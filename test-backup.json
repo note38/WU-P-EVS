@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "id": "user1",
+      "username": "testuser",
+      "email": "test@example.com",
+      "password": "hashedpassword",
+      "role": "VOTER",
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-01T00:00:00.000Z"
+    }
+  ],
+  "elections": [
+    {
+      "id": "election1",
+      "name": "Test Election",
+      "description": "A test election",
+      "startDate": "2023-01-01T00:00:00.000Z",
+      "endDate": "2023-12-31T00:00:00.000Z",
+      "status": "ACTIVE",
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-01T00:00:00.000Z",
+      "createdById": "user1",
+      "hideName": false
+    }
+  ],
+  "departments": [],
+  "years": [],
+  "positions": [],
+  "candidates": [],
+  "voters": [],
+  "votes": [],
+  "partylists": [],
+  "metadata": {
+    "version": "1.0.0",
+    "timestamp": "2023-01-01T00:00:00.000Z",
+    "systemInfo": "Voting System Backup"
+  }
+}

@@ -22,6 +22,9 @@ import {
   VoteIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 type Election = {
   id: number;
@@ -46,6 +49,39 @@ export default function ElectionDetailClient({
   election: Election;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
+
+  // Use the auto status hook to check for election status updates
+  const { manualCheck } = useElectionAutoStatus({
+    enabled: false, // We'll manually trigger checks
+    onStatusUpdate: (updates) => {
+      if (updates && updates.length > 0) {
+        // Check if our current election was updated
+        const currentElectionUpdated = updates.some(
+          (update) => update.id === election.id
+        );
+
+        if (currentElectionUpdated) {
+          toast({
+            title: "Election Status Changed",
+            description: "The election status has been updated. Refreshing...",
+          });
+
+          // Redirect to the elections list page
+          setTimeout(() => {
+            router.push("/admin_dashboard/elections");
+          }, 2000);
+        }
+      }
+    },
+  });
+
+  // Run a manual check when the component mounts
+  useEffect(() => {
+    if (manualCheck) {
+      manualCheck();
+    }
+  }, [manualCheck]);
 
   const getStatusClassName = (status: string) => {
     switch (status.toLowerCase()) {
@@ -125,17 +161,26 @@ export default function ElectionDetailClient({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="positions" className="w-full">
+      <Tabs defaultValue="results" className="w-full">
         <TabsList className="grid grid-cols-4 mb-4">
-          <TabsTrigger value="positions">
+          <TabsTrigger
+            value="positions"
+            disabled={election.status === "COMPLETED"}
+          >
             <ListIcon className="h-4 w-4 mr-2" />
             Positions
           </TabsTrigger>
-          <TabsTrigger value="voters">
+          <TabsTrigger
+            value="voters"
+            disabled={election.status === "COMPLETED"}
+          >
             <UsersIcon className="h-4 w-4 mr-2" />
             Voters
           </TabsTrigger>
-          <TabsTrigger value="candidates">
+          <TabsTrigger
+            value="candidates"
+            disabled={election.status === "COMPLETED"}
+          >
             <VoteIcon className="h-4 w-4 mr-2" />
             Candidates
           </TabsTrigger>

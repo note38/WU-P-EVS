@@ -17,7 +17,9 @@ interface Position {
 interface ElectionResult {
   id: number;
   name: string;
-  status: "ACTIVE" | "COMPLETED" | "UPCOMING";
+  status: "ACTIVE" | "COMPLETED";
+  hideName?: boolean;
+  totalVoters?: number; // Add total voters count
   positions: Position[];
 }
 

@@ -111,6 +111,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
   const [totalVoters, setTotalVoters] = useState(0);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
   const [voterToRemove, setVoterToRemove] = useState<Voter | null>(null);
+  const [isBulkRemoveDialogOpen, setIsBulkRemoveDialogOpen] = useState(false);
 
   // Debounce search term
   useEffect(() => {
@@ -267,6 +268,62 @@ export function VotersTab({ electionId }: VotersTabProps) {
     } catch (error) {
       // Revert optimistic update on error
       setVoters(originalVoters);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDeleteVoters = async () => {
+    if (selectedVoters.length === 0) return;
+
+    // Optimistic update: immediately remove from UI
+    const originalVoters = [...voters];
+    const originalSelectedVoters = [...selectedVoters];
+
+    setVoters((prevVoters) =>
+      prevVoters.filter((voter) => !selectedVoters.includes(voter.id))
+    );
+    setSelectedVoters([]);
+
+    try {
+      const response = await fetch(
+        `/api/elections/${electionId}/voters/remove`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ voterIds: selectedVoters }),
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${selectedVoters.length} voter(s) removed from election successfully`,
+        });
+        // Refresh in background to ensure consistency
+        setTimeout(() => {
+          fetchVoters(currentPage);
+        }, 500);
+      } else {
+        // Revert optimistic update on error
+        setVoters(originalVoters);
+        setSelectedVoters(originalSelectedVoters);
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.error || "Failed to remove voters from election",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      setVoters(originalVoters);
+      setSelectedVoters(originalSelectedVoters);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -795,6 +852,15 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <PrinterIcon className="h-4 w-4 mr-2" />
                 Print Selected
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsBulkRemoveDialogOpen(true)}
+                className="border-red-500 text-red-500 hover:bg-red-50"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                Remove Selected
+              </Button>
             </div>
           )}
         </div>
@@ -962,6 +1028,36 @@ export function VotersTab({ electionId }: VotersTabProps) {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmRemove}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remove from Election
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Remove Confirmation Dialog */}
+      <AlertDialog
+        open={isBulkRemoveDialogOpen}
+        onOpenChange={setIsBulkRemoveDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Voters from Election</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{" "}
+              <strong>{selectedVoters.length} selected voter(s)</strong> from
+              this election? This will not delete the voters from the system,
+              only remove them from this specific election.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleBulkDeleteVoters();
+                setIsBulkRemoveDialogOpen(false);
+              }}
               className="bg-red-600 hover:bg-red-700"
             >
               Remove from Election

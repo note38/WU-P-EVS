@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileSettings } from "@/app/components/settings/profile-setting";
 import { DataLogs } from "@/app/components/settings/data-log";
 import { AccountSettings } from "@/app/components/settings/account-form";
+import { BackupRestore } from "@/app/components/settings/backup-restore";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
           <TabsTrigger value="logs">Data Logs</TabsTrigger>
         </TabsList>
 
@@ -39,6 +41,10 @@ export default function SettingsPage() {
 
         <TabsContent value="account" className="space-y-4">
           <AccountSettings />
+        </TabsContent>
+
+        <TabsContent value="backup" className="space-y-4">
+          <BackupRestore />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">

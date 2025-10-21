@@ -24,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { EditIcon, TrashIcon } from "lucide-react";
 import { useState } from "react";
 import { EditCandidateDialog } from "./edit-candidate-dialog";
+import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 interface Candidate {
   id: number;
@@ -71,6 +72,7 @@ export function CandidatesTable({
   );
 
   // Remove client-side filtering since we now do server-side search
+  // Display candidates as they come from the API (sorted by ID ascending)
   const displayCandidates = candidates;
 
   const handleDeleteClick = (candidate: Candidate) => {
@@ -152,18 +154,21 @@ export function CandidatesTable({
                   <TableRow key={candidate.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage
-                            src={
-                              candidate.avatar ||
-                              "/placeholder.svg?height=40&width=40"
-                            }
-                            alt={candidate.name}
-                          />
-                          <AvatarFallback>
-                            {candidate.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="h-10 w-10 overflow-hidden rounded-full border">
+                          {candidate.avatar ? (
+                            <img
+                              src={candidate.avatar}
+                              alt={candidate.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <UserAvatarSvg
+                              name={candidate.name}
+                              size={40}
+                              className="h-full w-full"
+                            />
+                          )}
+                        </div>
                         <div>{candidate.name}</div>
                       </div>
                     </TableCell>

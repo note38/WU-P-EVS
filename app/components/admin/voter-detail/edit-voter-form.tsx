@@ -105,6 +105,10 @@ export function EditVoterForm({
         const deptId = voter.year.department.id.toString();
         setSelectedDepartmentId(deptId);
         fetchYearsByDepartment(voter.year.department.id);
+      } else {
+        // If no department, reset the selection
+        setSelectedDepartmentId("");
+        setYears([]);
       }
 
       fetchDepartments();
@@ -134,6 +138,13 @@ export function EditVoterForm({
       if (response.ok) {
         const data = await response.json();
         setDepartments(data);
+      } else {
+        console.error("Failed to fetch departments:", response.status);
+        toast({
+          title: "Error",
+          description: "Failed to load departments",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -155,6 +166,13 @@ export function EditVoterForm({
       if (response.ok) {
         const data = await response.json();
         setYears(data);
+      } else {
+        console.error("Failed to fetch years:", response.status);
+        toast({
+          title: "Error",
+          description: "Failed to load years",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error fetching years:", error);
@@ -180,6 +198,13 @@ export function EditVoterForm({
           (election: any) => election.status === "ACTIVE"
         );
         setElections(activeElections);
+      } else {
+        console.error("Failed to fetch elections:", response.status);
+        toast({
+          title: "Error",
+          description: "Failed to load elections",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error fetching elections:", error);
@@ -226,6 +251,11 @@ export function EditVoterForm({
       }
     });
 
+    // Add email format validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -248,7 +278,7 @@ export function EditVoterForm({
     // Prepare data for submission
     const submissionData = {
       ...formData,
-      middleName: formData.middleName || null,
+      middleName: formData.middleName || "",
       electionId: formData.electionId || null,
       yearId: formData.yearId,
     };

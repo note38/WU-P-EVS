@@ -57,7 +57,10 @@ export async function GET(req: NextRequest, context: any) {
 
     // Create a map of candidate ID to vote count
     const voteCountMap = voteCounts.reduce(
-      (acc: Record<number, number>, vote: { candidateId: number; _count: { candidateId: number } }) => {
+      (
+        acc: Record<number, number>,
+        vote: { candidateId: number; _count: { candidateId: number } }
+      ) => {
         acc[vote.candidateId] = vote._count.candidateId;
         return acc;
       },
@@ -76,9 +79,15 @@ export async function GET(req: NextRequest, context: any) {
     });
 
     const votedCount =
-      voterStats.find((stat: { status: string; _count: { status: number } }) => stat.status === "CAST")?._count.status || 0;
+      voterStats.find(
+        (stat: { status: string; _count: { status: number } }) =>
+          stat.status === "CAST"
+      )?._count.status || 0;
     const registeredCount =
-      voterStats.find((stat: { status: string; _count: { status: number } }) => stat.status === "UNCAST")?._count.status || 0;
+      voterStats.find(
+        (stat: { status: string; _count: { status: number } }) =>
+          stat.status === "UNCAST"
+      )?._count.status || 0;
 
     // Format positions with candidates and their vote counts
     const formattedPositions = election.positions.map((position: any) => {
@@ -91,7 +100,9 @@ export async function GET(req: NextRequest, context: any) {
       }));
 
       // Sort candidates by vote count (descending)
-      candidates.sort((a: { votes: number }, b: { votes: number }) => b.votes - a.votes);
+      candidates.sort(
+        (a: { votes: number }, b: { votes: number }) => b.votes - a.votes
+      );
 
       return {
         id: position.id,
@@ -118,6 +129,7 @@ export async function GET(req: NextRequest, context: any) {
       voters: election._count.voters,
       castedVotes: votedCount,
       uncastedVotes: registeredCount,
+      hideName: election.hideName, // Add hideName property
     };
 
     return NextResponse.json({

@@ -115,7 +115,10 @@ export async function PUT(
       data: {
         firstName: String(data.firstName).trim(),
         lastName: String(data.lastName).trim(),
-        middleName: data.middleName ? String(data.middleName).trim() : "",
+        middleName:
+          data.middleName !== undefined
+            ? String(data.middleName).trim()
+            : undefined,
         email: String(data.email).trim(),
         yearId: parseInt(data.yearId),
         ...(data.electionId ? { electionId: parseInt(data.electionId) } : {}),
@@ -145,6 +148,63 @@ export async function PUT(
     return NextResponse.json(
       {
         error: "Failed to update voter",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Add POST method for deleting multiple voters
+export async function POST(
+  request: Request,
+  { params }: { params: { voterId: string } }
+) {
+  // Check if this is the bulk delete endpoint
+  if (params.voterId !== "bulk-delete") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { voterIds } = await request.json();
+
+    if (!Array.isArray(voterIds) || voterIds.length === 0) {
+      return NextResponse.json({ error: "Invalid voter IDs" }, { status: 400 });
+    }
+
+    // Validate that all IDs are numbers
+    const validVoterIds = voterIds
+      .map((id) => parseInt(id))
+      .filter((id) => !isNaN(id));
+
+    if (validVoterIds.length !== voterIds.length) {
+      return NextResponse.json({ error: "Invalid voter IDs" }, { status: 400 });
+    }
+
+    // Delete multiple voters
+    await prisma.voter.deleteMany({
+      where: {
+        id: {
+          in: validVoterIds,
+        },
+      },
+    });
+
+    return NextResponse.json(
+      { message: `${validVoterIds.length} voter(s) deleted successfully` },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting voters:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to delete voters",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }

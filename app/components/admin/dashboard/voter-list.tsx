@@ -8,17 +8,10 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RecentVoter } from "@/lib/data/dashboard";
+import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 interface VoterListProps {
   voters: RecentVoter[];
-}
-
-// Function to generate avatar for voters
-function getVoterAvatar(voterId: number, voterName: string) {
-  const styles = ["avataaars"];
-  const style = styles[voterId % styles.length];
-  const seed = voterName.toLowerCase().replace(/\s+/g, "");
-  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
 }
 
 export default function VoterList({ voters }: VoterListProps) {
@@ -38,10 +31,10 @@ export default function VoterList({ voters }: VoterListProps) {
               >
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 overflow-hidden rounded-full border">
-                    <img
-                      src={getVoterAvatar(voter.id, voter.name)}
-                      alt={`Avatar for ${voter.name}`}
-                      className="h-full w-full object-cover"
+                    <UserAvatarSvg
+                      name={voter.name}
+                      size={32}
+                      className="h-full w-full"
                     />
                   </div>
                   <p className="font-medium">{voter.name}</p>

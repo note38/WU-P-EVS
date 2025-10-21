@@ -23,6 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { Upload, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { ImageCropper } from "@/app/components/ui/image-cropper";
+import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 interface Candidate {
   id: number;
@@ -244,15 +245,21 @@ export function EditCandidateDialog({
             {/* Avatar Upload Section */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage
-                    src={avatarPreview || "/placeholder.svg"}
-                    alt="Candidate avatar"
-                  />
-                  <AvatarFallback>
-                    {editForm.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="w-24 h-24 overflow-hidden rounded-full border">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Candidate preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <UserAvatarSvg
+                      name={editForm.name || "Candidate"}
+                      size={96}
+                      className="h-full w-full"
+                    />
+                  )}
+                </div>
                 {avatarPreview && avatarPreview !== "/placeholder.svg" && (
                   <Button
                     variant="destructive"

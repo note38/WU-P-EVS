@@ -2,8 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-// PATCH handler to update the status of an election - using any type for context
-export async function PUT(req: NextRequest, context: any) {
+// Handler to update the status of an election - using any type for context
+async function updateElectionStatus(req: NextRequest, context: any) {
   try {
     // Get the authenticated user from session
     const { userId } = await auth();
@@ -146,4 +146,13 @@ export async function PUT(req: NextRequest, context: any) {
         : "Failed to update election status";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
+}
+
+// Support both PUT and PATCH methods
+export async function PUT(req: NextRequest, context: any) {
+  return updateElectionStatus(req, context);
+}
+
+export async function PATCH(req: NextRequest, context: any) {
+  return updateElectionStatus(req, context);
 }

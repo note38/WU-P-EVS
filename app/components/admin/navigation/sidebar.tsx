@@ -23,7 +23,7 @@ const sidebarItems = [
   { name: "Elections", icon: Vote, href: "/admin_dashboard/elections" },
   { name: "Voters", icon: User, href: "/admin_dashboard/voters" },
   { name: "Departments", icon: Building, href: "/admin_dashboard/departments" },
-  { name: "Academic Years", icon: Calendar, href: "/admin_dashboard/years" },
+  { name: "Year Levels", icon: Calendar, href: "/admin_dashboard/years" },
   {
     name: "System Settings",
     icon: Settings,

@@ -30,6 +30,8 @@ export interface ElectionResult {
   id: number;
   name: string;
   status: "ACTIVE" | "COMPLETED" | "INACTIVE";
+  hideName?: boolean;
+  totalVoters?: number; // Add total voters count
   positions: {
     id: number;
     name: string;
@@ -80,7 +82,7 @@ export class DashboardDataService {
 
       // Voters who have voted
       prisma.voter.count({
-        where: { status: "VOTED" },
+        where: { status: "CAST" },
       }),
 
       // Total votes cast
@@ -270,6 +272,7 @@ export class DashboardDataService {
         id: election.id,
         name: election.name,
         status: election.status,
+        hideName: election.hideName, // Include hideName field
         positions,
       });
     }
@@ -290,6 +293,11 @@ export class DashboardDataService {
                   partylist: true,
                 },
               },
+            },
+          },
+          _count: {
+            select: {
+              voters: true,
             },
           },
         },
@@ -343,6 +351,8 @@ export class DashboardDataService {
         id: activeElection.id,
         name: activeElection.name,
         status: activeElection.status,
+        hideName: activeElection.hideName, // Include hideName field
+        totalVoters: activeElection._count.voters, // Include total voters count
         positions,
       };
 
@@ -383,6 +393,11 @@ export class DashboardDataService {
                   partylist: true,
                 },
               },
+            },
+          },
+          _count: {
+            select: {
+              voters: true,
             },
           },
         },
@@ -433,6 +448,8 @@ export class DashboardDataService {
         id: recentCompletedElection.id,
         name: recentCompletedElection.name,
         status: recentCompletedElection.status,
+        hideName: recentCompletedElection.hideName, // Include hideName field
+        totalVoters: recentCompletedElection._count.voters, // Include total voters count
         positions,
       };
     } catch (error) {
@@ -467,6 +484,11 @@ export class DashboardDataService {
                   partylist: true,
                 },
               },
+            },
+          },
+          _count: {
+            select: {
+              voters: true,
             },
           },
         },
@@ -520,6 +542,8 @@ export class DashboardDataService {
           id: election.id,
           name: election.name,
           status: election.status,
+          hideName: election.hideName, // Include hideName field
+          totalVoters: election._count.voters, // Include total voters count
           positions,
         });
       }

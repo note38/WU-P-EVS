@@ -9,7 +9,7 @@ export default function SignInPage() {
       <div className="absolute inset-0 z-0">
         <BackgroundPaths />
       </div>
-      <div className="container max-w-md px-4 z-10">
+      <div className="container max-w-md px-4 z-10 flex items-center justify-center">
         <Suspense fallback={<CustomSignIn />}>
           <SignInErrorHandler />
         </Suspense>

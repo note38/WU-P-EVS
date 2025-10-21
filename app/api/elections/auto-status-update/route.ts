@@ -111,18 +111,23 @@ export async function POST() {
 export async function GET() {
   try {
     const now = new Date();
-    console.log('[API-ELECTION-STATUS] Starting status check at', now.toISOString());
+    console.log(
+      "[API-ELECTION-STATUS] Starting status check at",
+      now.toISOString()
+    );
 
     const electionsNeedingUpdate = await prisma.election.findMany({
       where: {
         OR: [
+          // Elections that should be ACTIVE (current time is between start and end, and status is INACTIVE)
           {
             status: "INACTIVE",
             startDate: { lte: now },
             endDate: { gt: now },
           },
+          // Elections that should be COMPLETED (current time is past end date, and status is not COMPLETED)
           {
-            status: "ACTIVE",
+            status: { not: "COMPLETED" },
             endDate: { lte: now },
           },
         ],
@@ -145,7 +150,7 @@ export async function GET() {
         now < election.endDate
       ) {
         suggestedStatus = "ACTIVE";
-      } else if (election.status === "ACTIVE" && now >= election.endDate) {
+      } else if (election.status !== "COMPLETED" && now >= election.endDate) {
         suggestedStatus = "COMPLETED";
       } else {
         suggestedStatus = election.status as "ACTIVE" | "COMPLETED";
@@ -166,12 +171,15 @@ export async function GET() {
       count: statusUpdates.length,
     });
   } catch (error) {
-    console.error("[API-ELECTION-STATUS] Error checking election statuses:", error);
+    console.error(
+      "[API-ELECTION-STATUS] Error checking election statuses:",
+      error
+    );
     return NextResponse.json(
-      { 
+      {
         error: "Failed to check election statuses",
         details: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }
     );

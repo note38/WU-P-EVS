@@ -146,56 +146,59 @@ export function BallotForm({
         </div>
       </div>
 
-      {currentPosition && (
-        <Card className="mb-6 w-full">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl text-center sm:text-2xl">
-              {currentPosition.title}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <PositionSelection
-              position={currentPosition}
-              selectedCandidate={selections[currentPosition.id] || ""}
-              onSelect={(candidateId: string) =>
-                handleSelection(currentPosition.id, candidateId)
-              }
-            />
-          </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
-            <Button
-              variant="outline"
-              onClick={goToPreviousPosition}
-              disabled={isFirstPosition}
-              className="w-full sm:w-auto flex items-center"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Previous
-            </Button>
-
-            {isLastPosition ? (
-              <Button
-                onClick={handleReview}
-                disabled={
-                  !positions.every((position) => selections[position.id])
+      {/* Make the card container scrollable for long content */}
+      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+        {currentPosition && (
+          <Card className="mb-6 w-full">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl text-center sm:text-2xl">
+                {currentPosition.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <PositionSelection
+                position={currentPosition}
+                selectedCandidate={selections[currentPosition.id] || ""}
+                onSelect={(candidateId: string) =>
+                  handleSelection(currentPosition.id, candidateId)
                 }
-                className="w-full sm:w-auto flex items-center"
-              >
-                Review Ballot
-              </Button>
-            ) : (
+              />
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
               <Button
-                onClick={goToNextPosition}
-                disabled={!selections[currentPosition.id]}
+                variant="outline"
+                onClick={goToPreviousPosition}
+                disabled={isFirstPosition}
                 className="w-full sm:w-auto flex items-center"
               >
-                Next
-                <ChevronRight className="ml-2 h-4 w-4" />
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Previous
               </Button>
-            )}
-          </CardFooter>
-        </Card>
-      )}
+
+              {isLastPosition ? (
+                <Button
+                  onClick={handleReview}
+                  disabled={
+                    !positions.every((position) => selections[position.id])
+                  }
+                  className="w-full sm:w-auto flex items-center"
+                >
+                  Review Ballot
+                </Button>
+              ) : (
+                <Button
+                  onClick={goToNextPosition}
+                  disabled={!selections[currentPosition.id]}
+                  className="w-full sm:w-auto flex items-center"
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

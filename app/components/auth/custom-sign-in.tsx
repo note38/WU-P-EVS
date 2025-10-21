@@ -6,6 +6,22 @@ export default function CustomSignIn() {
   return (
     <>
       <style jsx global>{`
+        /* Remove all box shadows from Clerk components */
+        [class*="cl-"] {
+          box-shadow: none !important;
+        }
+
+        /* Even more specific rule to remove shadows */
+        div[class*="cl-signIn-factorOne"] {
+          box-shadow: none !important;
+          border: none !important;
+          background: transparent !important;
+        }
+
+        div[class*="cl-signIn-factorOne"] div {
+          box-shadow: none !important;
+        }
+
         .cl-card,
         .cl-signIn-start,
         .cl-card.cl-signIn-start,
@@ -38,6 +54,38 @@ export default function CustomSignIn() {
           box-shadow: none !important;
           padding: 0 !important;
           margin: 0 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+        }
+
+        /* Additional specific styling for factor-one page */
+        .cl-signIn-factorOne .cl-card {
+          box-shadow: none !important;
+          border: none !important;
+          background: transparent !important;
+        }
+
+        /* Target the specific factor-one container */
+        .cl-signIn-factorOne {
+          box-shadow: none !important;
+          border: none !important;
+          background: transparent !important;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+        }
+
+        /* Center the main content in factor-one */
+        .cl-signIn-factorOne .cl-main {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
         }
 
         /* Factor-one specific styling */
@@ -91,7 +139,10 @@ export default function CustomSignIn() {
           text-underline-offset: 2px !important;
         }
       `}</style>
-      <div className="w-full shadow-lg animate-fadeIn rounded-xl border bg-card text-card-foreground card-gradient">
+      <div
+        className="w-full animate-fadeIn rounded-xl border bg-card text-card-foreground"
+        style={{ boxShadow: "none" }}
+      >
         <div className="flex flex-col space-y-1.5 p-6">
           <div className="flex justify-center mb-2">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
@@ -106,15 +157,17 @@ export default function CustomSignIn() {
             WU-P EVS
           </div>
           <div className="text-sm text-muted-foreground text-center">
-            Wesleyan University Philippines - Enhanced Voting System
+            Wesleyan University-Philippines
+            <br />
+            Enhanced Voting System
           </div>
         </div>
         <div className="px-6 pb-6">
           <SignIn
             appearance={{
               elements: {
-                rootBox: "w-full",
-                card: "!shadow-none !border-none !bg-transparent !p-0 !m-0 !rounded-none !w-full [&]:!bg-transparent [&]:!border-0 [&]:!shadow-none [&]:!p-0 [&]:!m-0",
+                rootBox: "w-full flex items-center justify-center",
+                card: "!shadow-none !border-none !bg-transparent !p-0 !m-0 !rounded-none !w-full [&]:!bg-transparent [&]:!border-0 [&]:!shadow-none [&]:!p-0 [&]:!m-0 flex items-center justify-center",
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
                 socialButtonsBlockButton:
@@ -136,7 +189,7 @@ export default function CustomSignIn() {
                 footerActionLink:
                   "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium",
                 footerActionText: "text-gray-600 dark:text-gray-400",
-                main: "space-y-4 text-center",
+                main: "space-y-4 text-center flex flex-col items-center justify-center w-full",
                 socialButtonsBlock: "flex flex-col items-center space-y-2",
                 header: "hidden",
                 footer: "hidden",
@@ -144,6 +197,13 @@ export default function CustomSignIn() {
                 footer__poweredByClerk: "hidden",
                 poweredByClerk: "hidden",
                 footerText: "hidden",
+                // Specific factor-one elements
+                signInFactorOne:
+                  "!shadow-none !border-none !bg-transparent !p-0 flex flex-col items-center justify-center w-full",
+                "cl-signIn-factorOne .cl-card":
+                  "!shadow-none !border-none !p-0 flex items-center justify-center",
+                "cl-signIn-factorOne .cl-main":
+                  "flex flex-col items-center justify-center w-full",
               },
               variables: {
                 colorPrimary: "#10b981",

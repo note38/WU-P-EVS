@@ -35,54 +35,87 @@ export function useElectionAutoStatus(
 
   const checkAndUpdateStatuses = useCallback(async () => {
     if (isCheckingRef.current) {
-      console.log('[USE-ELECTION-STATUS] Skipping check - already in progress');
+      console.log("[USE-ELECTION-STATUS] Skipping check - already in progress");
       return; // Prevent concurrent checks
     }
 
     try {
       isCheckingRef.current = true;
-      console.log('[USE-ELECTION-STATUS] Starting status check at', new Date().toISOString());
+      const startTime = new Date().toISOString();
+      console.log("[USE-ELECTION-STATUS] Starting status check at", startTime);
 
       // First, check which elections need updates
       const checkResponse = await fetch("/api/elections/auto-status-update", {
         method: "GET",
         headers: {
-          'Cache-Control': 'no-cache',
+          "Cache-Control": "no-cache",
         },
       });
 
       if (!checkResponse.ok) {
+        // Handle 404 specifically
+        if (checkResponse.status === 404) {
+          console.warn(
+            "[USE-ELECTION-STATUS] API endpoint not found, skipping check"
+          );
+          return;
+        }
+
         const errorText = await checkResponse.text();
-        console.error('[USE-ELECTION-STATUS] Check failed:', checkResponse.status, errorText);
-        throw new Error(`Failed to check election statuses: ${checkResponse.status} ${checkResponse.statusText}`);
+        console.error(
+          "[USE-ELECTION-STATUS] Check failed:",
+          checkResponse.status,
+          errorText
+        );
+        throw new Error(
+          `Failed to check election statuses: ${checkResponse.status} ${checkResponse.statusText}`
+        );
       }
 
       const checkData = await checkResponse.json();
-      console.log('[USE-ELECTION-STATUS] Check completed, elections needing update:', checkData.electionsNeedingUpdate?.length || 0);
+      console.log(
+        "[USE-ELECTION-STATUS] Check completed, elections needing update:",
+        checkData.electionsNeedingUpdate?.length || 0
+      );
 
       if (
         checkData.electionsNeedingUpdate &&
         checkData.electionsNeedingUpdate.length > 0
       ) {
-        console.log('[USE-ELECTION-STATUS] Performing status updates...');
+        console.log("[USE-ELECTION-STATUS] Performing status updates...");
         // If there are elections that need updates, perform the updates
         const updateResponse = await fetch(
           "/api/elections/auto-status-update",
           {
             method: "POST",
             headers: {
-              'Cache-Control': 'no-cache',
+              "Cache-Control": "no-cache",
             },
           }
         );
 
         if (!updateResponse.ok) {
-          console.error('[USE-ELECTION-STATUS] Update failed:', updateResponse.status);
+          // Handle 404 specifically
+          if (updateResponse.status === 404) {
+            console.warn(
+              "[USE-ELECTION-STATUS] API endpoint not found, skipping update"
+            );
+            return;
+          }
+
+          console.error(
+            "[USE-ELECTION-STATUS] Update failed:",
+            updateResponse.status
+          );
           throw new Error("Failed to update election statuses");
         }
 
         const updateData = await updateResponse.json();
-        console.log('[USE-ELECTION-STATUS] Updates completed:', updateData.updatedElections?.length || 0, 'elections');
+        console.log(
+          "[USE-ELECTION-STATUS] Updates completed:",
+          updateData.updatedElections?.length || 0,
+          "elections"
+        );
 
         // Notify about the updates
         if (
@@ -110,18 +143,32 @@ export function useElectionAutoStatus(
           onStatusUpdateRef.current();
         }
       }
+
+      const endTime = new Date().toISOString();
+      console.log("[USE-ELECTION-STATUS] Status check completed at", endTime);
     } catch (error) {
-      console.error("[USE-ELECTION-STATUS] Error in automatic status update:", error);
+      console.error(
+        "[USE-ELECTION-STATUS] Error in automatic status update:",
+        error
+      );
       // Don't show toast for errors to avoid spam, just log them
+      // Only show toast for significant errors, not for 404s
+      if (error instanceof Error && !error.message.includes("404")) {
+        toast({
+          title: "Auto Status Update Error",
+          description:
+            "Failed to automatically update election statuses. Please check the console for details.",
+          variant: "destructive",
+        });
+      }
     } finally {
       isCheckingRef.current = false;
-      console.log('[USE-ELECTION-STATUS] Status check completed at', new Date().toISOString());
     }
   }, [toast]); // Removed onStatusUpdate from dependencies to prevent recreation loop
 
   // Use ref to store the latest onStatusUpdate callback to avoid dependency issues
   const onStatusUpdateRef = useRef(onStatusUpdate);
-  
+
   // Update ref when callback changes
   useEffect(() => {
     onStatusUpdateRef.current = onStatusUpdate;
@@ -130,26 +177,28 @@ export function useElectionAutoStatus(
   const startAutoCheck = useCallback(() => {
     // Clear any existing interval first
     if (intervalRef.current) {
-      console.log('[USE-ELECTION-STATUS] Clearing existing interval');
+      console.log("[USE-ELECTION-STATUS] Clearing existing interval");
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    console.log(`[USE-ELECTION-STATUS] Starting auto-check with ${interval}ms interval`);
-    
+    console.log(
+      `[USE-ELECTION-STATUS] Starting auto-check with ${interval}ms interval`
+    );
+
     // Run initial check immediately
     checkAndUpdateStatuses();
 
     // Set up interval for periodic checks
     intervalRef.current = setInterval(() => {
-      console.log('[USE-ELECTION-STATUS] Interval triggered');
+      console.log("[USE-ELECTION-STATUS] Interval triggered");
       checkAndUpdateStatuses();
     }, interval);
   }, [checkAndUpdateStatuses, interval]);
 
   const stopAutoCheck = useCallback(() => {
     if (intervalRef.current) {
-      console.log('[USE-ELECTION-STATUS] Stopping auto-check');
+      console.log("[USE-ELECTION-STATUS] Stopping auto-check");
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }

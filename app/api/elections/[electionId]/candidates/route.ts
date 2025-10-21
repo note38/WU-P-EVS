@@ -94,7 +94,7 @@ export async function GET(
         },
       },
       orderBy: {
-        name: "asc",
+        id: "asc", // Order by ID ascending to show newest at bottom
       },
       skip: skip,
       take: limit,

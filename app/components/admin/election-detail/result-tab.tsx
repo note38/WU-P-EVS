@@ -35,9 +35,12 @@ import type {
   Position,
   ResultsTabProps,
 } from "@/types/election-results";
+import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
+import { useRouter } from "next/navigation";
 
 export function ResultsTab({ electionId }: ResultsTabProps) {
   const { user } = useUser();
+  const router = useRouter();
   const [electionDetails, setElectionDetails] =
     useState<ElectionDetails | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -48,6 +51,30 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [userPosition, setUserPosition] = useState<string>("");
+
+  // Use the auto status hook to check for election status updates
+  const { manualCheck } = useElectionAutoStatus({
+    enabled: false, // We'll manually trigger checks
+    onStatusUpdate: (updates) => {
+      if (updates && updates.length > 0) {
+        // Check if our current election was updated
+        const currentElectionUpdated = updates.some(
+          (update) => update.id === electionId
+        );
+
+        if (currentElectionUpdated) {
+          toast({
+            title: "Election Status Changed",
+            description:
+              "The election status has been updated. Refreshing data...",
+          });
+
+          // Refetch the election data
+          fetchResults();
+        }
+      }
+    },
+  });
 
   // Fetch user position data
   useEffect(() => {
@@ -68,33 +95,35 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
   }, []);
 
   // Fetch election results data
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/elections/${electionId}/results`);
+  const fetchResults = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/elections/${electionId}/results`);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch results");
-        }
-
-        const data = await response.json();
-        setElectionDetails(data.election);
-        setPositions(data.positions);
-      } catch (error) {
-        console.error("Error fetching results:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load election results",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error("Failed to fetch results");
       }
-    };
 
+      const data = await response.json();
+      setElectionDetails(data.election);
+      setPositions(data.positions);
+    } catch (error) {
+      console.error("Error fetching results:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load election results",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Run initial fetch and manual status check
+  useEffect(() => {
     fetchResults();
-  }, [electionId]);
+    manualCheck();
+  }, [electionId, manualCheck]);
 
   // Handle print results
   const handlePrintResults = async () => {
@@ -411,19 +440,32 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-10 w-10">
                                     <AvatarImage
-                                      src={candidate.avatar || undefined}
+                                      src={
+                                        electionDetails.hideName
+                                          ? undefined
+                                          : candidate.avatar || undefined
+                                      }
+                                      alt={
+                                        electionDetails.hideName
+                                          ? "Anonymous"
+                                          : candidate.name
+                                      }
                                     />
                                     <AvatarFallback>
-                                      {candidate.name
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")}
+                                      {electionDetails.hideName
+                                        ? "?"
+                                        : candidate.name
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-semibold">
-                                        {candidate.name}
+                                        {electionDetails.hideName
+                                          ? "Anonymous"
+                                          : candidate.name}
                                       </h4>
                                       {isWinner && (
                                         <Badge
@@ -435,7 +477,9 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
                                       )}
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                      {candidate.partylist}
+                                      {electionDetails.hideName
+                                        ? "Hidden"
+                                        : candidate.partylist}
                                     </p>
                                   </div>
                                 </div>

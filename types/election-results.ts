@@ -12,6 +12,7 @@ export interface ElectionDetails {
   voters: number;
   castedVotes: number;
   uncastedVotes: number;
+  hideName?: boolean;
 }
 
 export interface Candidate {

@@ -23,6 +23,11 @@ const isPublicRoute = createRouteMatcher([
   "/api/voters(.*)",
   "/api/years(.*)", // Add this line to make years API public for testing
   "/test-auth",
+  "/api/backup",
+  "/api/restore",
+  "/api/test-backup",
+  "/api/test-restore",
+  "/api/test-db",
 ]);
 
 // Cron routes require special handling

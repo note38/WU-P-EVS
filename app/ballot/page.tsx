@@ -83,7 +83,10 @@ export default async function BallotPage() {
         <p className="text-center text-muted-foreground mb-8">
           Please vote for each position
         </p>
-        <BallotForm positions={positions} electionName={election.name} />
+        {/* Make the ballot form container scrollable for long ballots */}
+        <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+          <BallotForm positions={positions} electionName={election.name} />
+        </div>
       </main>
     </div>
   );

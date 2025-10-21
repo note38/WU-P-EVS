@@ -379,8 +379,8 @@ export function YearSettings() {
           <CardTitle>{editingYear ? "Edit Year" : "Add Year"}</CardTitle>
           <CardDescription>
             {editingYear
-              ? "Update an existing academic year in the system."
-              : "Create a new academic year for a department."}
+              ? "Update an existing year in the system."
+              : "Create a new year for a department."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -462,9 +462,9 @@ export function YearSettings() {
 
       <Card className="min-h-[300px]">
         <CardHeader>
-          <CardTitle>Academic Years</CardTitle>
+          <CardTitle>Year Levels</CardTitle>
           <CardDescription>
-            Manage existing academic years in the system.
+            Manage existing year levels in the system.
           </CardDescription>
         </CardHeader>
         <CardContent>

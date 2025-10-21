@@ -22,7 +22,8 @@ export function PositionSelection({
       onValueChange={onSelect}
       className="w-full"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Make the grid responsive and scrollable for many candidates */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[calc(100vh-400px)] overflow-y-auto p-1">
         {position.candidates.map((candidate) => (
           <div
             key={candidate.id}

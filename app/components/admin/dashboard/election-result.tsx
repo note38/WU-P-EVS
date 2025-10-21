@@ -22,6 +22,7 @@ import {
 import { useEffect, useState } from "react";
 import { ElectionResult } from "@/lib/data/dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 // Function to generate consistent avatar URL for candidates without avatars
 function getCandidateAvatar(candidateId: number, candidateName: string) {
@@ -45,14 +46,17 @@ export default function VoterPage() {
   const [selectedElectionId, setSelectedElectionId] = useState<string>("");
   const [electionData, setElectionData] = useState<ElectionResult[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showNames, setShowNames] = useState(true);
   const [minimizedPositions, setMinimizedPositions] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [isTogglingHideName, setIsTogglingHideName] = useState(false);
 
   const selectedElection = electionData.find(
     (e: ElectionResult) => e.id.toString() === selectedElectionId
   );
+
+  // Check if names should be hidden
+  const hideNames = selectedElection?.hideName ?? false;
 
   // Calculate total pages
   const totalPages = selectedElection
@@ -162,6 +166,39 @@ export default function VoterPage() {
     }
   };
 
+  // Toggle hide name functionality
+  const toggleHideName = async () => {
+    if (!selectedElectionId) return;
+
+    setIsTogglingHideName(true);
+    try {
+      const response = await fetch(
+        `/api/elections/${selectedElectionId}/toggle-hide-name`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        // Refresh the election data to get the updated hideName status
+        const refreshResponse = await fetch("/api/dashboard/results");
+        if (refreshResponse.ok) {
+          const results: ElectionResult[] = await refreshResponse.json();
+          setElectionData(results);
+        }
+      } else {
+        console.error("Failed to toggle hide name status");
+      }
+    } catch (error) {
+      console.error("Error toggling hide name status:", error);
+    } finally {
+      setIsTogglingHideName(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen p-1">
@@ -255,23 +292,29 @@ export default function VoterPage() {
               </SelectContent>
             </Select>
 
-            {!isFullscreen && (
+            {!isFullscreen && selectedElection && (
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={() => setShowNames(!showNames)}
+                  onClick={toggleHideName}
+                  disabled={isTogglingHideName}
                 >
-                  {showNames ? (
+                  {isTogglingHideName ? (
                     <>
-                      <EyeOff className="h-3 w-3 mr-1" />
-                      Hide Names
+                      <div className="mr-1 h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                      Updating...
                     </>
-                  ) : (
+                  ) : hideNames ? (
                     <>
                       <Eye className="h-3 w-3 mr-1" />
                       Show Names
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      Hide Names
                     </>
                   )}
                 </Button>
@@ -371,26 +414,27 @@ export default function VoterPage() {
                           >
                             <div className="mb-1 flex items-center gap-1">
                               <div className="h-6 w-6 overflow-hidden rounded-full border">
-                                <img
-                                  src={
-                                    showNames
-                                      ? candidate.avatar ||
-                                        getCandidateAvatar(
-                                          candidate.id,
-                                          candidate.name
-                                        )
-                                      : getAnonymousAvatar(candidate.id)
-                                  }
-                                  alt={
-                                    showNames
-                                      ? `Avatar for ${candidate.name}`
-                                      : "Anonymous candidate"
-                                  }
-                                  className="h-full w-full object-cover"
-                                />
+                                {!hideNames && candidate.avatar ? (
+                                  <img
+                                    src={candidate.avatar}
+                                    alt={
+                                      hideNames ? "Anonymous" : candidate.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <UserAvatarSvg
+                                    name={
+                                      hideNames ? "Anonymous" : candidate.name
+                                    }
+                                    size={24}
+                                    hideName={hideNames}
+                                    className="h-full w-full"
+                                  />
+                                )}
                               </div>
                               <div className="flex-1 overflow-hidden">
-                                {showNames && (
+                                {!hideNames && (
                                   <h3 className="truncate text-[10px] font-medium leading-tight">
                                     {candidate.name}
                                   </h3>

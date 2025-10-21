@@ -5,6 +5,67 @@
 /* Optionally, add Clerk's layer if you want to target it */
 @layer clerk;
 
+/* Add specific rule to remove shadow from factor-one page */
+@layer base {
+  .cl-signIn-factorOne {
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .cl-card.cl-signIn-factorOne {
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  /* Target any element with factor-one in the class */
+  [class*="factorOne"] {
+    box-shadow: none !important;
+  }
+
+  /* Remove shadow from any card elements */
+  .cl-card {
+    box-shadow: none !important;
+  }
+
+  /* Most specific rule to remove shadows */
+  div[class*="cl-signIn-factorOne"],
+  div[class*="cl-signIn-factorOne"] *,
+  div[class*="cl-card"][class*="cl-signIn-factorOne"],
+  div[class*="cl-card"][class*="cl-signIn-factorOne"] * {
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Centering rules for factor-one */
+  .cl-signIn-factorOne .cl-main {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .cl-rootBox {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

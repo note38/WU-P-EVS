@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
         newStatus = "ACTIVE";
       } else {
         console.log(
-          `[CRON] Skipping election "${election.name}" - no status change needed`
+          `[CRON] Skipping election "${election.name}" (ID: ${election.id}) - no status change needed`
         );
         return null; // No update needed
       }
@@ -146,12 +146,12 @@ export async function GET(request: NextRequest) {
         });
 
         console.log(
-          `[CRON] Successfully updated election "${election.name}" to ${newStatus}`
+          `[CRON] Successfully updated election "${election.name}" (ID: ${election.id}) to ${newStatus}`
         );
         return updatedElection;
       } catch (updateError) {
         console.error(
-          `[CRON] Error updating election "${election.name}":`,
+          `[CRON] Error updating election "${election.name}" (ID: ${election.id}):`,
           updateError
         );
         return null;

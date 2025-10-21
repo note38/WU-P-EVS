@@ -92,7 +92,8 @@ export default function PreviewPage() {
         Please review your selections before final submission
       </p>
 
-      <div className="max-w-3xl mx-auto space-y-6">
+      {/* Make the container scrollable for long ballots */}
+      <div className="max-w-3xl mx-auto space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] pr-2">
         {positions.map((position) => {
           const selectedCandidate = position.candidates.find(
             (c) => c.id === selections[position.id]
@@ -126,12 +127,15 @@ export default function PreviewPage() {
             </Card>
           );
         })}
+      </div>
 
-        <div className="flex justify-between pt-6">
+      {/* Fixed footer for action buttons */}
+      <div className="max-w-3xl mx-auto pt-6">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
           <Button
             variant="outline"
             onClick={handleBack}
-            className="flex items-center"
+            className="flex items-center w-full sm:w-auto"
             disabled={submitting}
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
@@ -141,7 +145,7 @@ export default function PreviewPage() {
           <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex items-center"
+            className="flex items-center w-full sm:w-auto"
           >
             <Check className="mr-2 h-4 w-4" />
             {submitting ? "Submitting..." : "Submit Ballot"}

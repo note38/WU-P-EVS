@@ -3,7 +3,6 @@
 import CustomSignIn from "@/app/components/auth/custom-sign-in";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";

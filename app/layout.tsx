@@ -49,7 +49,7 @@ export default function RootLayout({
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
         <ClerkProvider
@@ -57,8 +57,9 @@ export default function RootLayout({
             cssLayerName: "clerk",
             baseTheme: undefined, // Will use automatic dark mode detection
             elements: {
-              // Global styling for all Clerk components
-              card: "bg-white dark:bg-[#1a1f29] shadow-lg rounded-xl border border-slate-200 dark:border-slate-700",
+              // Global styling for all Clerk components - removed shadow
+              card: "bg-white dark:bg-[#1a1f29] rounded-xl border border-slate-200 dark:border-slate-700 !shadow-none flex items-center justify-center",
+              rootBox: "shadow-none flex items-center justify-center w-full",
               headerTitle: "text-slate-900 dark:text-slate-100",
               headerSubtitle: "text-slate-600 dark:text-slate-400",
               formButtonPrimary:
@@ -71,7 +72,9 @@ export default function RootLayout({
               footerAction: "text-slate-600 dark:text-slate-400",
               footerActionLink:
                 "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300",
-              // Specific styling for factor-one page
+              // Specific styling for factor-one page - removed shadow and added more specific rules
+              signInFactorOne:
+                "bg-white dark:bg-[#1a1f29] !shadow-none !border-none !p-0 flex flex-col items-center justify-center w-full",
               signInFactorOneTitle: "text-slate-900 dark:text-slate-100",
               signInFactorOneSubtitle: "text-slate-600 dark:text-slate-400",
               otpCodeFieldInput:
@@ -81,10 +84,10 @@ export default function RootLayout({
               formResendCodeLink:
                 "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300",
               formHelperText: "text-slate-600 dark:text-slate-400",
-              // Ensure factor-one page has proper background in dark mode
-              signInFactorOne: "bg-white dark:bg-[#1a1f29]",
               // Style the OTP input container
               otpCodeField: "justify-center gap-2",
+              // Ensure no shadow on any Clerk component
+              main: "flex flex-col items-center justify-center w-full",
             },
             variables: {
               colorPrimary: "#10b981",

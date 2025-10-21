@@ -118,7 +118,7 @@ export function CandidatesTab({ electionId }: CandidatesTabProps) {
   const handleCandidateAdded = useCallback(() => {
     console.log("➕ Candidate added, triggering hard reload...");
     setSearchTerm("");
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page to see the new candidate
     // Use hard reload instead of regular refetch
     hardReloadCandidates();
   }, [hardReloadCandidates]);

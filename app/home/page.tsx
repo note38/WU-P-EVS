@@ -23,6 +23,9 @@ import {
   useState,
 } from "react";
 import { useHomeResults } from "@/hooks/use-home-results";
+import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
+import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
+import { useToast } from "@/hooks/use-toast";
 
 // Critical path optimization - only load what's needed for first paint
 const Header = dynamic(
@@ -282,39 +285,24 @@ const CandidateCard = memo(function CandidateCard({
   isUpdatingPercentages: boolean;
   showNames?: boolean;
 }) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
-  // Get avatar URL based on showNames state
-  const avatarUrl = showNames
-    ? candidate.avatarUrl
-    : getAnonymousAvatar(candidate.id);
-
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
       <CardContent className="p-3 lg:p-6">
         <div className="flex items-center gap-2 lg:gap-4">
           <div className="relative h-8 w-8 lg:h-16 lg:w-16 overflow-hidden rounded-full border flex-shrink-0">
-            {!imageLoaded && !imageError && (
-              <div className="absolute inset-0 bg-gray-200 critical-skeleton"></div>
-            )}
-            <img
-              src={avatarUrl}
-              alt={showNames ? candidate.name : "Anonymous candidate"}
-              className={`h-full w-full object-cover transition-opacity duration-200 ${
-                imageLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              loading={index < 2 ? "eager" : "lazy"}
-              decoding="async"
-              width="64"
-              height="64"
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-            />
-            {imageError && (
-              <div className="absolute inset-0 bg-gray-300 flex items-center justify-center text-gray-600 text-xs lg:text-lg font-medium">
-                {showNames ? candidate.name.charAt(0) : "?"}
-              </div>
+            {showNames && candidate.avatarUrl ? (
+              <img
+                src={candidate.avatarUrl}
+                alt={showNames ? candidate.name : "Anonymous"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <UserAvatarSvg
+                name={showNames ? candidate.name : "Anonymous"}
+                size={64}
+                hideName={!showNames}
+                className="h-full w-full"
+              />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -433,10 +421,12 @@ const PositionSelector = memo(function PositionSelector({
   positions,
   electionStatus,
   isUpdatingPercentages,
+  hideNames = false,
 }: {
   positions: TransformedElection["positions"];
   electionStatus: TransformedElection["status"];
   isUpdatingPercentages: boolean;
+  hideNames?: boolean;
 }) {
   const [currentPosition, setCurrentPosition] = useState(
     () => positions[0] || null
@@ -553,7 +543,7 @@ const PositionSelector = memo(function PositionSelector({
                         candidate={candidate}
                         index={index}
                         isUpdatingPercentages={isUpdatingPercentages}
-                        showNames={true}
+                        showNames={!hideNames}
                       />
                     </Suspense>
                   )) || []}
@@ -590,6 +580,29 @@ export default function Home() {
   } = useHomeResults();
   const [showElectionSelector, setShowElectionSelector] = useState(false);
   const [isUpdatingPercentages, setIsUpdatingPercentages] = useState(false);
+  const { toast } = useToast();
+
+  // Use the auto status hook to check for election status updates
+  const { manualCheck } = useElectionAutoStatus({
+    enabled: false, // We'll manually trigger checks
+    onStatusUpdate: (updates) => {
+      if (updates && updates.length > 0) {
+        // Show a toast notification when election statuses are updated
+        toast({
+          title: "Election Status Updated",
+          description: `Updated ${updates.length} election(s) status`,
+        });
+
+        // Refetch the data to show updated results
+        refetch();
+      }
+    },
+  });
+
+  // Run a manual check when the component mounts
+  useEffect(() => {
+    manualCheck();
+  }, [manualCheck]);
 
   // Transform live data to match the expected format
   const transformedElections: TransformedElection[] = useMemo(() => {
@@ -607,9 +620,10 @@ export default function Home() {
         );
 
         const candidates = position.candidates.map((candidate) => {
+          // Calculate percentage based on total voters in the election, not just votes for this position
           const percentage =
-            totalVotes > 0
-              ? Math.round((candidate.votes / totalVotes) * 100)
+            election.totalVoters && election.totalVoters > 0
+              ? Math.round((candidate.votes / election.totalVoters) * 100)
               : 0;
           const avatarUrl =
             candidate.avatar || getOptimizedAvatar(candidate.name);
@@ -626,7 +640,7 @@ export default function Home() {
         return {
           title: position.name,
           candidates,
-          totalVotes,
+          totalVotes: election.totalVoters || 0, // Use total voters for the election
         };
       });
 
@@ -658,6 +672,17 @@ export default function Home() {
     }
     return transformedElections[0] || null;
   }, [activeElection, transformedElections]);
+
+  // Check if names should be hidden for the current election
+  const hideNames = useMemo(() => {
+    if (!currentElection || !liveElections) return false;
+
+    const liveElection = liveElections.find(
+      (e) => e.id.toString() === currentElection.id
+    );
+
+    return liveElection?.hideName ?? false;
+  }, [currentElection, liveElections]);
 
   const handleSwitchElection = useCallback(() => {
     startTransition(() => {
@@ -843,6 +868,7 @@ export default function Home() {
                       positions={currentElection.positions}
                       electionStatus={currentElection.status}
                       isUpdatingPercentages={isUpdatingPercentages}
+                      hideNames={hideNames} // Pass hideNames to PositionSelector
                     />
                   ) : (
                     <div className="space-y-6 lg:space-y-8">

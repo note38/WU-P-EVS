@@ -105,6 +105,7 @@ export default function VoterCards({
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [voterToDelete, setVoterToDelete] = useState<Voter | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedVoter, setSelectedVoter] = useState<Voter | null>(null);
@@ -531,28 +532,15 @@ export default function VoterCards({
     setEditDialogOpen(true);
   };
 
-  // Handle voter update
-  const handleVoterUpdated = () => {
-    // Close the dialog
-    setEditDialogOpen(false);
-    setSelectedVoter(null);
-
-    // Show success message
-    toast({
-      title: "Success",
-      description: "Voter updated successfully.",
-    });
-
-    // Notify parent component to refresh the voter list
-    if (onVoterUpdate) {
-      onVoterUpdate(selectedVoter as Voter);
-    }
-  };
-
   // Handle voter delete - open confirmation dialog
   const handleDeleteVoter = (voter: Voter) => {
     setVoterToDelete(voter);
     setDeleteDialogOpen(true);
+  };
+
+  // Handle bulk delete - open confirmation dialog
+  const handleBulkDeleteVoter = () => {
+    setBulkDeleteDialogOpen(true);
   };
 
   // Perform the actual deletion
@@ -598,6 +586,72 @@ export default function VoterCards({
     }
   };
 
+  // Perform bulk deletion
+  const performBulkDeleteVoters = async () => {
+    if (selectedVoters.length === 0) return;
+
+    try {
+      const response = await fetch("/api/voters/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ voterIds: selectedVoters }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${selectedVoters.length} voter(s) deleted successfully.`,
+        });
+
+        // Clear selection
+        setSelectedVoters([]);
+
+        // Notify parent component to refresh the voter list
+        if (onVoterDelete) {
+          // We can call it with any voter ID since the parent will refresh all data
+          onVoterDelete(selectedVoters[0]);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete voters.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting voters:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the voters.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkDeleteDialogOpen(false);
+    }
+  };
+
+  // Handle voter update
+  const handleVoterUpdated = () => {
+    // Close the dialog
+    setEditDialogOpen(false);
+    setSelectedVoter(null);
+
+    // Show success message
+    toast({
+      title: "Success",
+      description: "Voter updated successfully.",
+    });
+
+    // Notify parent component to refresh the voter list
+    if (onVoterUpdate) {
+      onVoterUpdate(selectedVoter as Voter);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Edit Voter Dialog */}
@@ -621,6 +675,15 @@ export default function VoterCards({
             : ""
         }
         itemType="voter"
+      />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+        onConfirm={performBulkDeleteVoters}
+        itemName={`${selectedVoters.length} selected voter${selectedVoters.length !== 1 ? "s" : ""}`}
+        itemType="voters"
       />
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
@@ -671,6 +734,14 @@ export default function VoterCards({
               <Button variant="outline" size="sm" onClick={handlePrintSelected}>
                 <PrinterIcon className="mr-2 h-4 w-4" />
                 Print Selected
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDeleteVoter}
+              >
+                <TrashIcon className="mr-2 h-4 w-4" />
+                Delete Selected
               </Button>
             </>
           )}

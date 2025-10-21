@@ -16,7 +16,13 @@
     "test:cron:prod": "node scripts/test-cron.js production",
     "test:db": "node scripts/test-db-connection.js",
     "debug:cron": "node scripts/debug-cron.js",
-    "debug:cron:advanced": "node scripts/debug-cron-advanced.js"
+    "debug:cron:advanced": "node scripts/debug-cron-advanced.js",
+    "update:election-status": "node scripts/update-election-statuses.js",
+    "debug:election-status": "node --loader ts-node/esm scripts/debug-election-status.js",
+    "debug:election-detailed": "node --loader ts-node/esm scripts/detailed-election-debug.js",
+    "trigger:cron-job": "node scripts/trigger-cron-job.js",
+    "test:db-query": "node --loader ts-node/esm scripts/test-db-query.js",
+    "force:complete-election": "node --loader ts-node/esm scripts/force-complete-election.js"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"

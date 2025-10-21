@@ -8,9 +8,9 @@ export default function YearsPage() {
     <YearsPageClient>
       <div className="container">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Academic Years</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Year Levels</h1>
           <p className="text-muted-foreground">
-            Manage academic years in the system.
+            Manage year level in the system.
           </p>
         </div>
         <YearSettings />
