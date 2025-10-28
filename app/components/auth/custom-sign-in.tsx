@@ -1,8 +1,31 @@
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
+import { useEffect } from "react";
 
 export default function CustomSignIn() {
+  // Force focus on the email input when component mounts
+  useEffect(() => {
+    const focusEmailInput = () => {
+      // Wait a bit for the component to render
+      setTimeout(() => {
+        const emailInput = document.querySelector('input[name="identifier"]');
+        if (emailInput && emailInput instanceof HTMLInputElement) {
+          emailInput.focus();
+        }
+      }, 100);
+    };
+
+    focusEmailInput();
+
+    // Also try again after a longer delay in case of slower renders
+    const fallbackFocus = setTimeout(focusEmailInput, 500);
+
+    return () => {
+      clearTimeout(fallbackFocus);
+    };
+  }, []);
+
   return (
     <>
       <style jsx global>{`
@@ -185,6 +208,46 @@ export default function CustomSignIn() {
           width: 100% !important;
           max-width: 100% !important;
         }
+
+        /* Hide the "Use another method" button */
+        .cl-signIn-factorOne .cl-alternativeMethods {
+          display: none !important;
+        }
+
+        /* Hide alternative methods title */
+        .cl-signIn-factorOne .cl-alternativeMethodsTitle {
+          display: none !important;
+        }
+
+        /* Hide alternative methods block */
+        .cl-signIn-factorOne .cl-alternativeMethodsBlock {
+          display: none !important;
+        }
+
+        /* Reorder social buttons to appear at the top */
+        .cl-signIn-start .cl-main {
+          display: flex !important;
+          flex-direction: column !important;
+        }
+
+        .cl-signIn-start .cl-socialButtons {
+          order: -1 !important;
+          margin-bottom: 1rem !important;
+        }
+
+        .cl-signIn-start .cl-socialButtonsBlockButton,
+        .cl-signIn-start .cl-formButtonPrimary,
+        .cl-signIn-start .cl-formFieldInput {
+          height: 40px !important;
+          min-height: 40px !important;
+          padding: 8px 12px !important;
+          border-radius: 0.5rem !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
       `}</style>
       <div
         className="w-full animate-fadeIn rounded-xl border bg-card text-card-foreground"
@@ -252,6 +315,12 @@ export default function CustomSignIn() {
                   "!shadow-none !border-none !p-0 flex items-center justify-center",
                 "cl-signIn-factorOne .cl-main":
                   "flex flex-col items-center justify-center w-full",
+                // Hide alternative methods
+                alternativeMethods: "hidden",
+                alternativeMethodsTitle: "hidden",
+                alternativeMethodsBlock: "hidden",
+                // Social buttons at the top
+                socialButtons: "order-first mb-4",
               },
               variables: {
                 colorPrimary: "#10b981",
@@ -267,9 +336,12 @@ export default function CustomSignIn() {
                 termsPageUrl: undefined,
                 privacyPageUrl: undefined,
                 helpPageUrl: undefined,
+                socialButtonsPlacement: "top", // Place social buttons at the top
               },
             }}
-            // Use a fresh redirect URL to ensure proper session handling
+            signUpUrl={undefined}
+            forceRedirectUrl="/api/auth/validate-session?redirect=true"
+            fallbackRedirectUrl="/api/auth/validate-session?redirect=true"
             redirectUrl="/api/auth/validate-session?redirect=true"
             afterSignInUrl="/api/auth/validate-session?redirect=true"
           />
