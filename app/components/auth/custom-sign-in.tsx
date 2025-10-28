@@ -248,6 +248,13 @@ export default function CustomSignIn() {
           margin-left: 0 !important;
           margin-right: 0 !important;
         }
+
+        /* Force hide any alternative method elements */
+        .cl-signIn-start .cl-alternativeMethods,
+        .cl-signIn-start .cl-alternativeMethodsBlockButton,
+        .cl-signIn-start .cl-alternativeMethodsBlockButtonText {
+          display: none !important;
+        }
       `}</style>
       <div
         className="w-full animate-fadeIn rounded-xl border bg-card text-card-foreground"
@@ -319,6 +326,8 @@ export default function CustomSignIn() {
                 alternativeMethods: "hidden",
                 alternativeMethodsTitle: "hidden",
                 alternativeMethodsBlock: "hidden",
+                alternativeMethodsBlockButton: "hidden",
+                alternativeMethodsBlockButtonText: "hidden",
                 // Social buttons at the top
                 socialButtons: "order-first mb-4",
               },
@@ -336,7 +345,7 @@ export default function CustomSignIn() {
                 termsPageUrl: undefined,
                 privacyPageUrl: undefined,
                 helpPageUrl: undefined,
-                socialButtonsPlacement: "top", // Place social buttons at the top
+                socialButtonsPlacement: "top",
               },
             }}
             signUpUrl={undefined}

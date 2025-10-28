@@ -17,7 +17,7 @@ export default {
   // Use custom sign-in page instead of hosted
   appearance: {
     layout: {
-      socialButtonsPlacement: "bottom",
+      socialButtonsPlacement: "top",
     },
   },
   // Custom user creation hook
