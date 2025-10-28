@@ -255,6 +255,89 @@ export default function CustomSignIn() {
         .cl-signIn-start .cl-alternativeMethodsBlockButtonText {
           display: none !important;
         }
+
+        /* Additional fix for forcing email code strategy */
+        .cl-signIn-start .cl-formFieldInput[name="identifier"],
+        .cl-signIn-factorOne .cl-formFieldInput[name="code"] {
+          text-align: center !important;
+        }
+
+        /* Force hide any alternative method elements that might appear */
+        .cl-alternativeMethods,
+        .cl-alternativeMethodsBlock,
+        .cl-alternativeMethodsBlockButton,
+        .cl-alternativeMethodsTitle,
+        .cl-alternativeMethodsBlockButtonText,
+        .cl-signIn-start .cl-alternativeMethods,
+        .cl-signIn-start .cl-alternativeMethodsBlockButton,
+        .cl-signIn-start .cl-alternativeMethodsBlockButtonText {
+          display: none !important;
+        }
+
+        /* Ensure the code input field is visible and properly styled */
+        .cl-signIn-factorOne .cl-formFieldInput[name="code"] {
+          font-size: 1.5rem !important;
+          letter-spacing: 0.5rem !important;
+          text-align: center !important;
+        }
+
+        /* Make sure resend code link is visible */
+        .cl-signIn-factorOne .cl-footerActionLink {
+          display: block !important;
+          margin-top: 1rem !important;
+          text-decoration: underline !important;
+        }
+
+        /* Hide any password-related elements */
+        .cl-signIn-start .cl-formFieldLabel[for="password"],
+        .cl-signIn-start .cl-formFieldInput[name="password"],
+        .cl-signIn-start .cl-formField[for="password"] {
+          display: none !important;
+        }
+
+        /* Additional rule to ensure button text is centered */
+        .cl-formButtonPrimary {
+          text-align: center !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+
+        /* Even more specific rules for button text alignment */
+        .cl-formButtonPrimary *,
+        .cl-formButtonPrimary span,
+        .cl-formButtonPrimary div {
+          text-align: center !important;
+          justify-content: center !important;
+        }
+
+        /* Override any default Clerk button styles */
+        .cl-button,
+        .cl-formButtonPrimary {
+          text-align: center !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+        }
+
+        /* Ensure the continue button is visible and properly styled with centered text */
+        .cl-signIn-start .cl-formButtonPrimary,
+        .cl-signIn-factorOne .cl-formButtonPrimary {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 100% !important;
+          margin-top: 1rem !important;
+          text-align: center !important;
+        }
+
+        /* Make sure the code input field is visible */
+        .cl-signIn-factorOne .cl-formFieldInput[name="code"] {
+          display: block !important;
+          width: 100% !important;
+          margin: 0.5rem 0 !important;
+        }
       `}</style>
       <div
         className="w-full animate-fadeIn rounded-xl border bg-card text-card-foreground"
@@ -292,7 +375,7 @@ export default function CustomSignIn() {
                 socialButtonsBlockButtonText: "text-center",
                 socialButtonsProviderIcon: "mx-auto",
                 formButtonPrimary:
-                  "w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50",
+                  "w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 flex items-center justify-center text-center",
                 formFieldInput:
                   "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center",
                 formFieldLabel:
