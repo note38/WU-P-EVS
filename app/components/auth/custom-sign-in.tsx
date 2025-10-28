@@ -138,6 +138,53 @@ export default function CustomSignIn() {
           text-decoration: underline !important;
           text-underline-offset: 2px !important;
         }
+
+        /* Explicit styling for social buttons to match input fields */
+        .cl-signIn-factorOne .cl-socialButtonsBlockButton,
+        .cl-signIn-factorOne .cl-formButtonPrimary,
+        .cl-signIn-factorOne .cl-formFieldInput {
+          height: 40px !important;
+          min-height: 40px !important;
+          padding: 8px 12px !important;
+          border-radius: 0.5rem !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
+
+        /* Ensure social buttons block takes full width */
+        .cl-signIn-factorOne .cl-socialButtonsBlock {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        /* Make sure the form field has consistent width */
+        .cl-signIn-factorOne .cl-formField {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        /* Ensure the main container has consistent width */
+        .cl-signIn-factorOne .cl-main {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        /* Remove any default margins or padding that might affect width */
+        .cl-signIn-factorOne .cl-formFieldRow {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Ensure the card content has full width */
+        .cl-signIn-factorOne .cl-cardBox {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
       `}</style>
       <div
         className="w-full animate-fadeIn rounded-xl border bg-card text-card-foreground"
@@ -171,17 +218,17 @@ export default function CustomSignIn() {
                 headerTitle: "hidden",
                 headerSubtitle: "hidden",
                 socialButtonsBlockButton:
-                  "w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] py-2.5 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#23272f]/80 transition-colors disabled:opacity-50 mx-auto",
+                  "w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] py-2.5 px-4 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#23272f]/80 transition-colors disabled:opacity-50",
                 socialButtonsBlockButtonText: "text-center",
                 socialButtonsProviderIcon: "mx-auto",
                 formButtonPrimary:
-                  "w-full mt-6 rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50",
+                  "w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50",
                 formFieldInput:
                   "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center",
                 formFieldLabel:
                   "text-sm font-medium text-gray-900 dark:text-gray-100 text-center",
-                formField: "text-center",
-                formFieldRow: "text-cente",
+                formField: "text-center w-full",
+                formFieldRow: "text-center w-full",
                 identityPreview: "hidden",
                 dividerLine: "bg-gray-200 dark:bg-gray-700",
                 dividerText: "text-gray-500 dark:text-gray-400",
@@ -190,7 +237,8 @@ export default function CustomSignIn() {
                   "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium",
                 footerActionText: "text-gray-600 dark:text-gray-400",
                 main: "space-y-4 text-center flex flex-col items-center justify-center w-full",
-                socialButtonsBlock: "flex flex-col items-center space-y-2",
+                socialButtonsBlock:
+                  "flex flex-col items-center space-y-2 w-full",
                 header: "hidden",
                 footer: "hidden",
                 footerPages: "hidden",
