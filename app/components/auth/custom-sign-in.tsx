@@ -83,9 +83,10 @@ export default function CustomSignIn() {
                 footerAction: "text-center text-gray-600 dark:text-gray-400",
                 footerActionLink:
                   "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium",
-                // Add the backLink styling as requested
                 backLink:
                   "text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium",
+                alternativeMethodsBlockButton:
+                  "w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 flex items-center justify-center text-center",
                 footerActionText: "text-gray-600 dark:text-gray-400",
                 main: "space-y-4 text-center flex flex-col items-center justify-center w-full",
                 socialButtonsBlock:
@@ -97,29 +98,6 @@ export default function CustomSignIn() {
                 poweredByClerk: "hidden",
                 footerText: "hidden",
                 // Specific factor-one elements - CRITICAL FIX
-                signInFactorOne:
-                  "block visible opacity-100 w-full flex flex-col items-center justify-center",
-                "cl-signIn-factorOne":
-                  "block visible opacity-100 w-full flex flex-col items-center justify-center",
-                "cl-signIn-factorOne .cl-card":
-                  "block visible opacity-100 flex items-center justify-center",
-                "cl-signIn-factorOne .cl-main":
-                  "block visible opacity-100 flex flex-col items-center justify-center w-full",
-                "cl-signIn-factorOne .cl-formField":
-                  "block visible opacity-100 w-full text-center",
-                "cl-signIn-factorOne .cl-formFieldInput":
-                  "block visible opacity-100 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center",
-                "cl-signIn-factorOne .cl-formFieldInput[name='code']":
-                  "block visible opacity-100 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center font-size-1.25rem letter-spacing-0.5rem",
-                "cl-signIn-factorOne .cl-formButtonPrimary":
-                  "block visible opacity-100 w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 flex items-center justify-center text-center",
-                "cl-signIn-factorOne .cl-footer":
-                  "block visible opacity-100 w-full text-center",
-                "cl-signIn-factorOne .cl-footerActionLink":
-                  "block visible opacity-100 text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium text-center",
-                "cl-signIn-factorOne .cl-formFieldLabel":
-                  "block visible opacity-100 text-sm font-medium text-gray-900 dark:text-gray-100 text-center",
-                // Hide alternative methods
 
                 // Social buttons at the top
                 socialButtons: "order-first mb-4",
