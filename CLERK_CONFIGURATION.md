@@ -52,6 +52,14 @@ CLERK_SECRET_KEY=your_secret_key
 
 The code changes we've made will help enforce the email code strategy, but the primary fix needs to happen in the Clerk Dashboard as described above.
 
+## Fixing Factor One Page Issues:
+
+If the email code input field is not showing on the factor one page:
+
+1. **Check CSS Visibility**: Ensure elements are not hidden by CSS
+2. **Verify Clerk Dashboard Settings**: Make sure only email code authentication is enabled
+3. **Clear Browser Cache**: Cached assets might be causing issues
+
 ## Testing:
 
 After making these changes:
@@ -69,9 +77,18 @@ If the issue persists, use the debug script at `scripts/debug-auth-flow.js`:
 3. Paste the script and press Enter
 4. Check the console output for diagnostic information
 
+For factor one page specific issues, use `scripts/debug-clerk-factor-one.js`:
+
+1. Navigate to the sign-in page and enter an email
+2. Click continue to reach the factor one page
+3. Open the developer console
+4. Paste the script and press Enter
+5. Check the console output for detailed diagnostics
+
 ## Additional Notes:
 
 - The issue is primarily caused by Clerk Dashboard configuration, not code
 - The CSS changes we made help hide UI elements but won't fix the underlying strategy selection
 - Make sure your production environment has the same Clerk keys as your development environment
 - If you're using a different Clerk instance for production, ensure it has the same configuration
+- For persistent issues, try creating a new Clerk application and migrating your settings
