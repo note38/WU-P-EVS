@@ -477,11 +477,7 @@ export default function CustomSignIn() {
                 "cl-signIn-factorOne .cl-formFieldLabel":
                   "block visible opacity-100 text-sm font-medium text-gray-900 dark:text-gray-100 text-center",
                 // Hide alternative methods
-                alternativeMethods: "hidden",
-                alternativeMethodsTitle: "hidden",
-                alternativeMethodsBlock: "hidden",
-                alternativeMethodsBlockButton: "hidden",
-                alternativeMethodsBlockButtonText: "hidden",
+
                 // Social buttons at the top
                 socialButtons: "order-first mb-4",
               },
