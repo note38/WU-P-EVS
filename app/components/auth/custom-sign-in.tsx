@@ -295,49 +295,66 @@ export default function CustomSignIn() {
           display: none !important;
         }
 
-        /* Make sure the code input field is visible */
-        .cl-signIn-factorOne .cl-formFieldInput[name="code"] {
+        /* CRITICAL FIX: Ensure all factor one elements are visible and properly displayed */
+        .cl-signIn-factorOne,
+        .cl-signIn-factorOne *,
+        .cl-signIn-factorOne .cl-formField,
+        .cl-signIn-factorOne .cl-formFieldInput,
+        .cl-signIn-factorOne .cl-formFieldInput[name="code"],
+        .cl-signIn-factorOne .cl-formButtonPrimary,
+        .cl-signIn-factorOne .cl-footer,
+        .cl-signIn-factorOne .cl-footerActionLink,
+        .cl-signIn-factorOne .cl-formFieldLabel {
           display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+        }
+
+        /* Ensure the main factor one container takes full width */
+        .cl-signIn-factorOne {
+          width: 100% !important;
+          max-width: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+
+        /* Ensure the form field and input are properly displayed */
+        .cl-signIn-factorOne .cl-formField {
+          display: block !important;
+          visibility: visible !important;
           width: 100% !important;
           margin: 0.5rem 0 !important;
         }
 
-        /* Ensure all factor one elements are visible */
-        .cl-signIn-factorOne * {
-          display: block !important;
-        }
-
-        /* Specifically ensure the form field and input are visible */
-        .cl-signIn-factorOne .cl-formField,
-        .cl-signIn-factorOne .cl-formFieldInput,
+        /* Ensure the code input field is properly displayed */
         .cl-signIn-factorOne .cl-formFieldInput[name="code"] {
           display: block !important;
           visibility: visible !important;
+          width: 100% !important;
+          padding: 0.75rem !important;
+          font-size: 1.25rem !important;
+          letter-spacing: 0.5rem !important;
+          text-align: center !important;
+          margin: 0.5rem 0 !important;
         }
 
-        /* Ensure the form button is visible */
+        /* Ensure the continue button is properly displayed */
         .cl-signIn-factorOne .cl-formButtonPrimary {
           display: block !important;
           visibility: visible !important;
+          width: 100% !important;
+          margin-top: 1rem !important;
+          text-align: center !important;
         }
 
-        /* Ensure the footer with resend link is visible */
+        /* Ensure the footer with resend link is properly displayed */
         .cl-signIn-factorOne .cl-footer {
           display: block !important;
           visibility: visible !important;
-        }
-
-        /* Make sure resend code link is visible */
-        .cl-signIn-factorOne .cl-footerActionLink {
-          display: block !important;
+          width: 100% !important;
           margin-top: 1rem !important;
-          text-decoration: underline !important;
-        }
-
-        /* Ensure the main factor one container is visible */
-        .cl-signIn-factorOne {
-          display: block !important;
-          visibility: visible !important;
         }
 
         /* Additional rule to ensure button text is centered */
@@ -436,13 +453,29 @@ export default function CustomSignIn() {
                 footer__poweredByClerk: "hidden",
                 poweredByClerk: "hidden",
                 footerText: "hidden",
-                // Specific factor-one elements
+                // Specific factor-one elements - CRITICAL FIX
                 signInFactorOne:
-                  "!shadow-none !border-none !bg-transparent !p-0 flex flex-col items-center justify-center w-full block visible",
+                  "block visible opacity-100 w-full flex flex-col items-center justify-center",
+                "cl-signIn-factorOne":
+                  "block visible opacity-100 w-full flex flex-col items-center justify-center",
                 "cl-signIn-factorOne .cl-card":
-                  "!shadow-none !border-none !p-0 flex items-center justify-center",
+                  "block visible opacity-100 flex items-center justify-center",
                 "cl-signIn-factorOne .cl-main":
-                  "flex flex-col items-center justify-center w-full",
+                  "block visible opacity-100 flex flex-col items-center justify-center w-full",
+                "cl-signIn-factorOne .cl-formField":
+                  "block visible opacity-100 w-full text-center",
+                "cl-signIn-factorOne .cl-formFieldInput":
+                  "block visible opacity-100 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center",
+                "cl-signIn-factorOne .cl-formFieldInput[name='code']":
+                  "block visible opacity-100 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#23272f] text-slate-900 dark:text-slate-100 focus:border-green-500 focus:ring-green-500 transition px-3 py-2 text-center font-size-1.25rem letter-spacing-0.5rem",
+                "cl-signIn-factorOne .cl-formButtonPrimary":
+                  "block visible opacity-100 w-full rounded-lg bg-green-500 text-white py-2 text-sm font-semibold hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 flex items-center justify-center text-center",
+                "cl-signIn-factorOne .cl-footer":
+                  "block visible opacity-100 w-full text-center",
+                "cl-signIn-factorOne .cl-footerActionLink":
+                  "block visible opacity-100 text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium text-center",
+                "cl-signIn-factorOne .cl-formFieldLabel":
+                  "block visible opacity-100 text-sm font-medium text-gray-900 dark:text-gray-100 text-center",
                 // Hide alternative methods
                 alternativeMethods: "hidden",
                 alternativeMethodsTitle: "hidden",
@@ -451,16 +484,6 @@ export default function CustomSignIn() {
                 alternativeMethodsBlockButtonText: "hidden",
                 // Social buttons at the top
                 socialButtons: "order-first mb-4",
-                // Ensure factor one elements are visible
-                "cl-signIn-factorOne": "block visible",
-                "cl-signIn-factorOne .cl-formField": "block visible",
-                "cl-signIn-factorOne .cl-formFieldInput": "block visible",
-                "cl-signIn-factorOne .cl-formFieldInput[name='code']":
-                  "block visible text-center",
-                "cl-signIn-factorOne .cl-formButtonPrimary":
-                  "block visible flex items-center justify-center",
-                "cl-signIn-factorOne .cl-footer": "block visible",
-                "cl-signIn-factorOne .cl-footerActionLink": "block visible",
               },
               variables: {
                 colorPrimary: "#10b981",
