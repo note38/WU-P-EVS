@@ -81,7 +81,7 @@ export default function DashboardLayout({
   // If the user is authenticated, render the full dashboard layout.
   if (userId) {
     return (
-      <div className="flex flex-col h-screen lg:flex-row ">
+      <div className="flex flex-col h-screen lg:flex-row overflow-hidden">
         {/* Mobile overlay for when sidebar is open */}
         {isSidebarOpen && (
           <div
@@ -91,7 +91,7 @@ export default function DashboardLayout({
           />
         )}
         <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
-        <div className="flex flex-col  flex-1">
+        <div className="flex flex-col flex-1 overflow-hidden">
           <Header onSidebarToggle={toggleSidebar} />
           <main
             className="flex-1 p-4 overflow-y-auto bg-gray-50"

@@ -152,6 +152,13 @@ body {
   * {
     @apply border-border;
   }
+
+  /* Apply overflow hidden to html and body only */
+  html,
+  body {
+    overflow: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -160,6 +167,31 @@ body {
 @layer components {
   .card-gradient {
     @apply bg-gradient-to-br from-[hsl(var(--card-gradient-from))] to-[hsl(var(--card-gradient-to))];
+  }
+
+  /* Overflow control classes */
+  .overflow-hidden-all {
+    overflow: hidden;
+  }
+
+  .overflow-x-hidden {
+    overflow-x: hidden;
+  }
+
+  .overflow-y-hidden {
+    overflow-y: hidden;
+  }
+
+  .overflow-auto {
+    overflow: auto;
+  }
+
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+
+  .overflow-y-auto {
+    overflow-y: auto;
   }
 
   /* Navigation Link Glow Effects */

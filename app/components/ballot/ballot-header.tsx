@@ -113,12 +113,6 @@ export function BallotHeader() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/user-profile">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Manage Account</span>
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}
