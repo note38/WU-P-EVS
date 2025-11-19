@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import * as bcrypt from "bcrypt";
 
 export interface ClerkUserData {
   id: string;
@@ -101,6 +102,10 @@ export async function syncAdminUser(clerkData: ClerkUserData) {
       return updatedUser;
     } else {
       // Create new user
+      // Generate a default password since it's required by the schema
+      const defaultPassword = "Admin123!";
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
       const newUser = await prisma.user.create({
         data: {
           clerkId: clerkData.id,
@@ -108,6 +113,7 @@ export async function syncAdminUser(clerkData: ClerkUserData) {
           username: clerkData.username || email.split("@")[0],
           avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
           role: "ADMIN",
+          password: hashedPassword, // Add the required password field
         },
       });
       console.log(`✅ Admin user created: ${newUser.id}`, {
@@ -209,11 +215,22 @@ export async function deleteUser(clerkId: string) {
     }
 
     // Try to delete from voters
-    const deletedVoter = await prisma.voter.deleteMany({
+    // First, find the voter to get their ID
+    const voter = await prisma.voter.findUnique({
       where: { clerkId },
     });
 
-    if (deletedVoter.count > 0) {
+    if (voter) {
+      // First delete any votes associated with this voter to avoid foreign key constraint violation
+      await prisma.vote.deleteMany({
+        where: { voterId: voter.id },
+      });
+
+      // Then delete the voter
+      await prisma.voter.delete({
+        where: { clerkId },
+      });
+
       return { type: "voter", success: true };
     }
 

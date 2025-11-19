@@ -28,6 +28,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Voter not found" }, { status: 404 });
     }
 
+    // First delete any votes associated with this voter to avoid foreign key constraint violation
+    await prisma.vote.deleteMany({
+      where: { voterId: voterId },
+    });
+
     // Delete the voter
     await prisma.voter.delete({
       where: { id: voterId },
@@ -186,6 +191,15 @@ export async function POST(
     if (validVoterIds.length !== voterIds.length) {
       return NextResponse.json({ error: "Invalid voter IDs" }, { status: 400 });
     }
+
+    // First delete any votes associated with these voters to avoid foreign key constraint violation
+    await prisma.vote.deleteMany({
+      where: {
+        voterId: {
+          in: validVoterIds,
+        },
+      },
+    });
 
     // Delete multiple voters
     await prisma.voter.deleteMany({

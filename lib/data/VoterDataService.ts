@@ -133,6 +133,11 @@ export class VoterDataService {
 
   // Delete voter
   static async deleteVoter(id: number) {
+    // First delete any votes associated with this voter to avoid foreign key constraint violation
+    await prisma.vote.deleteMany({
+      where: { voterId: id },
+    });
+
     return prisma.voter.delete({
       where: { id },
     });

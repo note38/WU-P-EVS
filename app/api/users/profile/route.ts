@@ -216,6 +216,12 @@ export async function DELETE() {
         console.log(
           `DELETE /api/users/profile: Attempting to delete voter user ${userId} from database`
         );
+
+        // First delete any votes associated with this voter to avoid foreign key constraint violation
+        await prisma.vote.deleteMany({
+          where: { voterId: userData.user.id },
+        });
+
         await prisma.voter.delete({
           where: { clerkId: userId },
         });

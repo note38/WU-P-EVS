@@ -25,6 +25,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid voter IDs" }, { status: 400 });
     }
 
+    // First delete any votes associated with these voters to avoid foreign key constraint violation
+    await prisma.vote.deleteMany({
+      where: {
+        voterId: {
+          in: validVoterIds,
+        },
+      },
+    });
+
     // Delete multiple voters
     const deleteResult = await prisma.voter.deleteMany({
       where: {
