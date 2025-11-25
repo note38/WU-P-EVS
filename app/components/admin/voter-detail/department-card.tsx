@@ -21,7 +21,7 @@ import {
   GridIcon,
   ListIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VoterCards from "./voter-card";
 import { Voter as VoterCardType } from "./voter-card";
 import VoterTable from "./voter-table";
@@ -74,6 +74,34 @@ export default function DepartmentCard({
   const [showYears, setShowYears] = useState(false);
   const [viewMode, setViewMode] = useState<"card" | "table">("card"); // New state for view mode
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if the device is mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const mobile = window.innerWidth < 768; // Mobile breakpoint
+      setIsMobile(mobile);
+    };
+
+    // Initial check
+    checkIsMobile();
+
+    // Set default view mode based on device type
+    setViewMode(window.innerWidth < 768 ? "table" : "card");
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkIsMobile);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("resize", checkIsMobile);
+    };
+  }, []);
+
+  // Update view mode when mobile status changes
+  useEffect(() => {
+    setViewMode(isMobile ? "table" : "card");
+  }, [isMobile]);
 
   const getFullName = (voter: Voter) => {
     return `${voter.firstName} ${voter.middleName} ${voter.lastName}`
@@ -280,8 +308,8 @@ export default function DepartmentCard({
 
   return (
     <div className="space-y-6">
-      {/* View Toggle Button */}
-      {selectedYear && (
+      {/* View Toggle Button - Always visible on mobile, visible on desktop when year is selected */}
+      {(selectedYear || isMobile) && (
         <div className="flex justify-end">
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <Button
@@ -448,19 +476,19 @@ export default function DepartmentCard({
             </CardHeader>
             <CardContent>
               {filteredVoters.length > 0 ? (
-                viewMode === "card" ? (
-                  <VoterCards
-                    voters={filteredVoters}
-                    info={info}
-                    onVoterUpdate={handleVoterUpdate}
-                    onVoterDelete={handleVoterUpdate}
-                  />
-                ) : (
+                isMobile || viewMode === "table" ? (
                   <VoterTable
                     voters={filteredVoters}
                     info={info}
                     onVoterDelete={handleVoterUpdate}
                     onVoterUpdate={handleVoterUpdate}
+                  />
+                ) : (
+                  <VoterCards
+                    voters={filteredVoters}
+                    info={info}
+                    onVoterUpdate={handleVoterUpdate}
+                    onVoterDelete={handleVoterUpdate}
                   />
                 )
               ) : (

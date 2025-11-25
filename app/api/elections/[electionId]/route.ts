@@ -177,19 +177,40 @@ export async function PUT(req: NextRequest, context: any) {
         // Handle partylists update if provided
         if (Array.isArray(data.partyList)) {
           try {
-            await tx.partylist.deleteMany({
+            // First, we need to handle candidates that reference these partylists
+            // Get all candidates for this election
+            const candidates = await tx.candidate.findMany({
+              where: { electionId },
+              include: { partylist: true },
+            });
+
+            // Get current partylists
+            const currentPartylists = await tx.partylist.findMany({
               where: { electionId },
             });
 
-            // Always ensure there is an "Independent" partylist and deduplicate names
+            // Create a map of partylist names to IDs
+            const partylistMap = new Map<string, number>();
+            currentPartylists.forEach((pl: any) => {
+              partylistMap.set(pl.name.toLowerCase(), pl.id);
+            });
+
+            // Find "Independent" partylist ID (if exists)
+            const independentPartylist = currentPartylists.find(
+              (pl: any) => pl.name.toLowerCase() === "independent"
+            );
+
+            // Process the new partylist names
             const initialNames: string[] = data.partyList.map((n: string) =>
               String(n).trim()
             );
 
+            // Always ensure there is an "Independent" partylist
             if (!initialNames.some((n) => n.toLowerCase() === "independent")) {
               initialNames.push("Independent");
             }
 
+            // Deduplicate names
             const uniqueNames = Array.from(
               new Set(initialNames.map((n) => n.toLowerCase()))
             ).map(
@@ -199,16 +220,60 @@ export async function PUT(req: NextRequest, context: any) {
                 ) as string
             );
 
-            const partylistsData = uniqueNames.map((name: string) => ({
-              name,
-              electionId,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }));
+            // Determine which partylists to delete
+            const partylistsToDelete = currentPartylists.filter(
+              (pl: any) =>
+                !uniqueNames.some(
+                  (name) => name.toLowerCase() === pl.name.toLowerCase()
+                )
+            );
 
-            await tx.partylist.createMany({
-              data: partylistsData,
-            });
+            // Determine which partylists to create
+            const partylistsToCreate = uniqueNames.filter(
+              (name) =>
+                !currentPartylists.some(
+                  (pl: any) => pl.name.toLowerCase() === name.toLowerCase()
+                )
+            );
+
+            // Delete candidates that reference partylists we're about to delete
+            if (partylistsToDelete.length > 0) {
+              const partylistIdsToDelete = partylistsToDelete.map(
+                (pl: any) => pl.id
+              );
+              await tx.candidate.deleteMany({
+                where: {
+                  electionId,
+                  partylistId: { in: partylistIdsToDelete },
+                },
+              });
+            }
+
+            // Delete the partylists that are no longer needed
+            if (partylistsToDelete.length > 0) {
+              const partylistIdsToDelete = partylistsToDelete.map(
+                (pl: any) => pl.id
+              );
+              await tx.partylist.deleteMany({
+                where: {
+                  id: { in: partylistIdsToDelete },
+                },
+              });
+            }
+
+            // Create new partylists
+            if (partylistsToCreate.length > 0) {
+              const partylistsData = partylistsToCreate.map((name: string) => ({
+                name,
+                electionId,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }));
+
+              await tx.partylist.createMany({
+                data: partylistsData,
+              });
+            }
           } catch (partylistError) {
             console.error("Error updating partylists:", partylistError);
             throw new Error(
@@ -277,9 +342,48 @@ export async function DELETE(req: NextRequest, context: any) {
     }
 
     try {
-      // Delete the election directly - Prisma will handle cascading deletes
-      await prisma.election.delete({
+      // First, check if the election exists
+      const existingElection = await prisma.election.findUnique({
         where: { id: electionId },
+      });
+
+      if (!existingElection) {
+        return NextResponse.json(
+          { error: "Election not found" },
+          { status: 404 }
+        );
+      }
+
+      // Delete the election and all related data in a transaction
+      await prisma.$transaction(async (tx: any) => {
+        // Delete all votes for this election first
+        await tx.vote.deleteMany({
+          where: { electionId },
+        });
+
+        // Delete all candidates for this election
+        await tx.candidate.deleteMany({
+          where: { electionId },
+        });
+
+        // Delete all positions for this election
+        await tx.position.deleteMany({
+          where: { electionId },
+        });
+
+        // Delete all partylists for this election
+        await tx.partylist.deleteMany({
+          where: { electionId },
+        });
+
+        // Delete all voters associated with this election
+        // Note: Because of onDelete: SetNull, this will set electionId to NULL rather than delete voters
+        // But we still need to handle this properly
+
+        // Finally, delete the election itself
+        await tx.election.delete({
+          where: { id: electionId },
+        });
       });
 
       return NextResponse.json({
@@ -296,10 +400,21 @@ export async function DELETE(req: NextRequest, context: any) {
             { status: 404 }
           );
         }
+        // Handle foreign key constraint violations
+        if (dbError.code === "P2003") {
+          return NextResponse.json(
+            { error: "Cannot delete election with associated data" },
+            { status: 409 }
+          );
+        }
       }
 
       return NextResponse.json(
-        { error: "Failed to delete election" },
+        {
+          error:
+            "Failed to delete election: " +
+            (dbError instanceof Error ? dbError.message : "Unknown error"),
+        },
         { status: 500 }
       );
     }

@@ -464,16 +464,35 @@ export function VotersTab({ electionId }: VotersTabProps) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    // Get the base URL for absolute paths
+    const baseUrl =
+      typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.host}`
+        : "http://localhost:3000";
+
+    // Try to get the logo as a data URL, fallback to URL if it fails
+    let logoSrc = `${baseUrl}/wup-logo.png`;
+    try {
+      logoSrc = await getImageAsDataUrl(`${baseUrl}/wup-logo.png`);
+    } catch (error) {
+      console.warn(
+        "Could not convert logo to data URL, using URL instead:",
+        error
+      );
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>All Voters - Election Report</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               color: #333;
+              line-height: 1.6;
             }
             .election-header {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -521,6 +540,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
               width: 100%; 
               border-collapse: collapse; 
               margin-bottom: 20px;
+              font-size: 0.9rem;
             }
             .voter-table th, .voter-table td { 
               border: 1px solid #ddd; 
@@ -557,20 +577,40 @@ export function VotersTab({ electionId }: VotersTabProps) {
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+            }
+            @media (max-width: 768px) {
+              body { margin: 10px; }
+              .branding { flex-direction: column; text-align: center; }
+              .university-info { text-align: center; }
+              .election-title { font-size: 1rem; padding: 6px 10px; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 6px; }
+            }
+            @media (max-width: 480px) {
+              .election-header { padding: 15px; }
+              .logo { width: 40px; height: 40px; }
+              .university-name { font-size: 1.2rem; }
+              .system-name { font-size: 0.9rem; }
+              .election-title { font-size: 0.9rem; padding: 4px 8px; }
+              .voter-table { font-size: 0.7rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
             }
           </style>
         </head>
         <body>
           <header class="election-header">
             <div class="branding">
-              <img src="../wup-logo.png" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
+              <img src="${logoSrc}" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
               <div class="university-info">
                 <h1 class="university-name">Wesleyan University-Philippines</h1>
                 <p class="system-name">Enhanced Voting System</p>
               </div>
             </div>
-            <h2 class="election-title">Election Voters Report</h2>
-            <p><strong>Total Voters:</strong> ${totalVoters}</p>
+            <h2 class="election-title">All Voters Report</h2>
+            <p><strong>Total Voters:</strong> ${voters.length}</p>
           </header>
           <table class="voter-table">
             <thead>
@@ -578,36 +618,50 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Department</th>
                 <th>Year</th>
+                <th>Department</th>
                 <th>Status</th>
                 <th>Voted At</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
               ${voters
-                .map(
-                  (voter) => `
-                <tr>
-                  <td>${voter.id}</td>
-                  <td>${`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}</td>
-                  <td>${voter.email || "N/A"}</td>
-                  <td>${voter.department?.name || "N/A"}</td>
-                  <td>${voter.year?.name || "N/A"}</td>
-                  <td>
-                    <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
-                      ${voter.votedAt ? "Voted" : "Not Voted"}
-                    </span>
-                  </td>
-                  <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
-                </tr>
-              `
-                )
+                .map((voter) => {
+                  // Try to get department name from the voter object
+                  let departmentName = "Not assigned";
+                  if (voter.department?.name) {
+                    departmentName = voter.department.name;
+                  } else if (voter.year?.name) {
+                    // Try to extract department from year name if it contains department info
+                    const parts = voter.year.name.split(" - ");
+                    if (parts.length > 1) {
+                      departmentName = parts[1];
+                    }
+                  }
+
+                  return `
+                    <tr>
+                      <td>${voter.id}</td>
+                      <td>${voter.firstName} ${voter.middleName} ${voter.lastName}</td>
+                      <td>${voter.email}</td>
+                      <td>${voter.year?.name || "Unknown"}</td>
+                      <td>${departmentName}</td>
+                      <td>
+                        <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
+                          ${voter.votedAt ? "Voted" : "Not Voted"}
+                        </span>
+                      </td>
+                      <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() : "Not yet voted"}</td>
+                      <td>${new Date().toLocaleDateString()}</td>
+                    </tr>
+                  `;
+                })
                 .join("")}
             </tbody>
           </table>
           <div class="footer">
-            <p>This report contains ${voters.length} voters from the current page.</p>
+            <p>This report contains ${voters.length} voters.</p>
             <p>Generated by: Wesleyan University Philippines - Enhanced Voting System</p>
           </div>
         </body>
@@ -637,16 +691,35 @@ export function VotersTab({ electionId }: VotersTabProps) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    // Get the base URL for absolute paths
+    const baseUrl =
+      typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.host}`
+        : "http://localhost:3000";
+
+    // Try to get the logo as a data URL, fallback to URL if it fails
+    let logoSrc = `${baseUrl}/wup-logo.png`;
+    try {
+      logoSrc = await getImageAsDataUrl(`${baseUrl}/wup-logo.png`);
+    } catch (error) {
+      console.warn(
+        "Could not convert logo to data URL, using URL instead:",
+        error
+      );
+    }
+
     const printContent = `
       <!DOCTYPE html>
       <html>
         <head>
           <title>Selected Voters - Election Report</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               color: #333;
+              line-height: 1.6;
             }
             .election-header {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -694,6 +767,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
               width: 100%; 
               border-collapse: collapse; 
               margin-bottom: 20px;
+              font-size: 0.9rem;
             }
             .voter-table th, .voter-table td { 
               border: 1px solid #ddd; 
@@ -730,13 +804,33 @@ export function VotersTab({ electionId }: VotersTabProps) {
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+            }
+            @media (max-width: 768px) {
+              body { margin: 10px; }
+              .branding { flex-direction: column; text-align: center; }
+              .university-info { text-align: center; }
+              .election-title { font-size: 1rem; padding: 6px 10px; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 6px; }
+            }
+            @media (max-width: 480px) {
+              .election-header { padding: 15px; }
+              .logo { width: 40px; height: 40px; }
+              .university-name { font-size: 1.2rem; }
+              .system-name { font-size: 0.9rem; }
+              .election-title { font-size: 0.9rem; padding: 4px 8px; }
+              .voter-table { font-size: 0.7rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
             }
           </style>
         </head>
         <body>
           <header class="election-header">
             <div class="branding">
-              <img src="../wup-logo.png" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
+              <img src="${logoSrc}" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
               <div class="university-info">
                 <h1 class="university-name">Wesleyan University-Philippines</h1>
                 <p class="system-name">Enhanced Voting System</p>
@@ -751,31 +845,45 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Department</th>
                 <th>Year</th>
+                <th>Department</th>
                 <th>Status</th>
                 <th>Voted At</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
               ${selectedVoterData
-                .map(
-                  (voter) => `
-                <tr>
-                  <td>${voter.id}</td>
-                  <td>${`${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim()}</td>
-                  <td>${voter.email || "N/A"}</td>
-                  <td>${voter.department?.name || "N/A"}</td>
-                  <td>${voter.year?.name || "N/A"}</td>
-                  <td>
-                    <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
-                      ${voter.votedAt ? "Voted" : "Not Voted"}
-                    </span>
-                  </td>
-                  <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() + " " + new Date(voter.votedAt).toLocaleTimeString() : "Not yet voted"}</td>
-                </tr>
-              `
-                )
+                .map((voter) => {
+                  // Try to get department name from the voter object
+                  let departmentName = "Not assigned";
+                  if (voter.department?.name) {
+                    departmentName = voter.department.name;
+                  } else if (voter.year?.name) {
+                    // Try to extract department from year name if it contains department info
+                    const parts = voter.year.name.split(" - ");
+                    if (parts.length > 1) {
+                      departmentName = parts[1];
+                    }
+                  }
+
+                  return `
+                    <tr>
+                      <td>${voter.id}</td>
+                      <td>${voter.firstName} ${voter.middleName} ${voter.lastName}</td>
+                      <td>${voter.email}</td>
+                      <td>${voter.year?.name || "Unknown"}</td>
+                      <td>${departmentName}</td>
+                      <td>
+                        <span class="${voter.votedAt ? "status-voted" : "status-uncast"}">
+                          ${voter.votedAt ? "Voted" : "Not Voted"}
+                        </span>
+                      </td>
+                      <td>${voter.votedAt ? new Date(voter.votedAt).toLocaleDateString() : "Not yet voted"}</td>
+                      <td>${new Date().toLocaleDateString()}</td>
+                    </tr>
+                  `;
+                })
                 .join("")}
             </tbody>
           </table>
@@ -790,8 +898,52 @@ export function VotersTab({ electionId }: VotersTabProps) {
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+
+    // Add print event handling
+    let printed = false;
+
+    const beforePrintHandler = () => {
+      printed = true;
+    };
+
+    const afterPrintHandler = () => {
+      printWindow.removeEventListener("beforeprint", beforePrintHandler);
+      printWindow.removeEventListener("afterprint", afterPrintHandler);
+      // Close window after printing
+      setTimeout(() => {
+        if (!printWindow.closed) {
+          printWindow.close();
+        }
+      }, 1000);
+    };
+
+    printWindow.addEventListener("beforeprint", beforePrintHandler);
+    printWindow.addEventListener("afterprint", afterPrintHandler);
+
+    // Handle window close without printing
+    const checkClosed = setInterval(() => {
+      if (printWindow.closed) {
+        clearInterval(checkClosed);
+        // If not printed, it was cancelled
+        if (!printed) {
+          toast({
+            title: "Print Cancelled",
+            description: "Print operation was cancelled.",
+          });
+        }
+      }
+    }, 1000);
+
+    try {
+      printWindow.print();
+    } catch (error) {
+      clearInterval(checkClosed);
+      toast({
+        title: "Print Error",
+        description: "Failed to initiate print dialog.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -799,11 +951,12 @@ export function VotersTab({ electionId }: VotersTabProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold">Election Voters</h2>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={handlePrintAll}
             disabled={voters.length === 0}
+            className="w-full sm:w-auto"
           >
             <PrinterIcon className="h-4 w-4 mr-2" />
             Print All
@@ -824,12 +977,12 @@ export function VotersTab({ electionId }: VotersTabProps) {
           placeholder="Search voters by name, email, or ID..."
           value={searchTerm}
           onChange={setSearchTerm}
-          className="max-w-md"
+          className="w-full sm:max-w-md"
         />
 
-        <div className="flex flex-wrap gap-2 ml-auto">
+        <div className="flex flex-wrap gap-2 ml-auto w-full sm:w-auto">
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by Department" />
             </SelectTrigger>
             <SelectContent>
@@ -843,12 +996,17 @@ export function VotersTab({ electionId }: VotersTabProps) {
           </Select>
 
           {selectedVoters.length > 0 && (
-            <div className="flex items-center gap-2 ml-2">
-              <span className="text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {selectedVoters.length} selected
               </span>
 
-              <Button variant="outline" size="sm" onClick={handlePrintSelected}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintSelected}
+                className="w-full sm:w-auto"
+              >
                 <PrinterIcon className="h-4 w-4 mr-2" />
                 Print Selected
               </Button>
@@ -856,7 +1014,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsBulkRemoveDialogOpen(true)}
-                className="border-red-500 text-red-500 hover:bg-red-50"
+                className="w-full sm:w-auto border-red-500 text-red-500 hover:bg-red-50"
               >
                 <TrashIcon className="h-4 w-4 mr-2" />
                 Remove Selected

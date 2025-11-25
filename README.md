@@ -1,55 +1,144 @@
-# Voting System
+# WUP Voting System
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Enhanced Electronic Voting System for Wesleyan University-Philippines
 
-## Getting Started
+## Prerequisites
 
-First, run the development server:
+Before running the application, ensure you have:
+
+- Node.js (v18 or higher)
+- PostgreSQL database
+- Clerk account for authentication
+- Resend account for email services
+
+## Environment Setup
+
+1. Copy the `.env.example` file to `.env`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Configure the following environment variables in your `.env` file:
+
+### Database Configuration
+
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/voting_system"
+```
+
+### Clerk Authentication
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your_clerk_publishable_key"
+CLERK_SECRET_KEY="your_clerk_secret_key"
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/api/auth/validate-session?redirect=true"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/api/auth/validate-session?redirect=true"
+```
+
+### Email Service (Resend)
+
+```env
+RESEND_API_KEY="your_resend_api_key"
+```
+
+### Application Configuration
+
+```env
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NODE_ENV="development"
+```
+
+## Getting Clerk Keys
+
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com/)
+2. Create a new application or select an existing one
+3. Navigate to "API Keys" section
+4. Copy the "Publishable Key" and "Secret Key"
+5. Paste them into your `.env` file
+
+## Configuring Clerk Dashboard for Email-Only Authentication
+
+To ensure consistent behavior and prevent the "Use another method" button:
+
+1. Login to your Clerk Dashboard
+2. Navigate to "User & Authentication"
+3. Under "Email" section:
+   - Enable "Email verification code"
+   - Disable "Email verification link" (optional)
+4. Under other authentication methods:
+   - Disable "Phone"
+   - Disable "Username" (if not needed)
+   - Disable "Password" (if not needed)
+   - Disable "Passkeys"
+   - Disable all "SSO connections"
+
+## Installation
+
+```bash
+npm install
+```
+
+## Database Setup
+
+1. Make sure your PostgreSQL database is running
+2. Run the database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+3. Seed the database (optional):
+   ```bash
+   npm run seed
+   ```
+
+## Running the Application
+
+### Development Mode
 
 ```bash
 npm run dev
-npm run seed
-npm prisma i
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Production Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Troubleshooting
 
-## Election Status Cron Job
+### "Failed to fetch" Error During Sign-in
 
-This project includes a GitHub Actions workflow for automatically updating election statuses.
+This error typically occurs due to:
 
-### Setup Instructions
+1. **Missing Environment Variables**: Ensure all Clerk environment variables are properly set in your `.env` file.
 
-1. Set up the following GitHub Secrets:
+2. **Network Connectivity Issues**: Check your internet connection and firewall settings.
 
-   - `CRON_SECRET`: A secure random string
-   - `DEPLOYMENT_URL`: Your Vercel application URL (e.g., `https://your-app.vercel.app`)
+3. **Incorrect Clerk Keys**: Verify that your `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` are correct.
 
-2. Set the same `CRON_SECRET` as an environment variable in Vercel.
+4. **Clerk Dashboard Configuration**: Make sure only email code authentication is enabled in your Clerk Dashboard.
 
-For detailed setup instructions, see [GitHub Actions Documentation](docs/github-actions.md).
+### Debugging Authentication Flow
 
-### Troubleshooting
+Use the built-in debug script to diagnose authentication issues:
 
-If you encounter the "Process completed with exit code 3" error, refer to the [GitHub Actions Troubleshooting Guide](docs/github-actions-troubleshooting.md).
+1. Open your browser's developer console
+2. Navigate to your sign-in page
+3. Paste the contents of `scripts/debug-auth-flow.js` and press Enter
+4. Check the console output for diagnostic information
 
-If you encounter "000 status code" errors, refer to the [GitHub Actions 000 Error Guide](docs/github-actions-000-error.md).
+## Testing
 
-## Learn More
+Run the test suite:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For deployment instructions, refer to the [Deployment Configuration](docs/deployment.md) documentation.

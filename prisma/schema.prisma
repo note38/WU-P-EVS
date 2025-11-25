@@ -83,26 +83,26 @@ model Candidate {
 
 model Voter {
   id              Int         @id @default(autoincrement())
-  email           String      @unique
-  electionId      Int?
-  status          VoterStatus @default(UNCAST)
-  credentialsSent Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  clerkId         String?     @unique // Clerk user ID for voters
   avatar          String
   firstName       String
-  hashpassword    String?
   lastName        String
   middleName      String
-  yearId          Int
+  email           String      @unique
+  hashpassword    String?     // Made optional since Clerk handles auth
   role            Role        @default(VOTER)
-  clerkId         String?     @unique
-  votes           Vote[]
-  election        Election?   @relation(fields: [electionId], references: [id], onDelete: Restrict)
+  election        Election?   @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  electionId      Int?
   year            Year        @relation(fields: [yearId], references: [id])
-
+  yearId          Int
+  status          VoterStatus @default(UNCAST)
+  votes           Vote[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
   @@index([electionId, yearId])
   @@index([clerkId])
+  @@index([email])
 }
 
 model Vote {

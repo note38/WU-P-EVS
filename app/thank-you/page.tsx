@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,8 +10,20 @@ import {
 } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useCustomSignOut } from "@/hooks/use-clerk-auth";
+import { useRouter } from "next/navigation";
 
 export default function ThankYouPage() {
+  const { handleSignOut } = useCustomSignOut();
+  const router = useRouter();
+
+  const handleReturnHome = async () => {
+    // Sign out the user
+    await handleSignOut();
+    // Redirect to home page
+    router.push("/");
+  };
+
   return (
     <div className="container mx-auto flex items-center justify-center min-h-screen py-12">
       <Card className="w-full max-w-md text-center">
@@ -26,9 +40,7 @@ export default function ThankYouPage() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Link href="/">
-            <Button>Return to Home</Button>
-          </Link>
+          <Button onClick={handleReturnHome}>Return to Home</Button>
         </CardFooter>
       </Card>
     </div>

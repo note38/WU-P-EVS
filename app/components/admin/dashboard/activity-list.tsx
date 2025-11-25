@@ -6,10 +6,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Activity } from "./moc-data";
+import { RecentActivity } from "@/lib/data/dashboard";
 
 interface ActivityListProps {
-  activities: Activity[];
+  activities: RecentActivity[];
 }
 
 export default function ActivityList({ activities }: ActivityListProps) {

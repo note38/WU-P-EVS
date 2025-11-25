@@ -111,9 +111,10 @@ export async function POST(req: NextRequest) {
               description: data.description || "",
               startDate: startDateTime,
               endDate: endDateTime,
-              createdById: userIdNum,
+              createdById: userIdNum!,
               createdAt: new Date(),
               updatedAt: new Date(),
+              hideName: true, // Set hideName to true by default for new elections
             },
           });
 

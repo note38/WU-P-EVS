@@ -11,13 +11,13 @@ export default {
   },
   // Configure sign-out behavior
   signOut: {
-    // Set default redirect URL to home page
-    redirectUrl: "/",
+    // Remove the default redirect URL to prevent it from overriding custom redirects
+    // redirectUrl: "/",  // This was causing the redirect issue
   },
   // Use custom sign-in page instead of hosted
   appearance: {
     layout: {
-      socialButtonsPlacement: "top",
+      socialButtonsPlacement: "bottom",
     },
   },
   // Custom user creation hook

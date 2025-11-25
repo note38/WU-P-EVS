@@ -1,87 +1,101 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
 
 const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
-    console.log('Restore API: Starting restore process');
-    
-    // Temporarily disable authentication for testing
-    // Comment out the authentication checks for testing purposes
-    /*
+    console.log("Restore API: Starting restore process");
+
     // Check if user is authenticated and is admin
     const { userId } = await auth();
-    console.log('Restore API: Auth check', { userId });
-    
+    console.log("Restore API: Auth check", { userId });
+
     if (!userId) {
-      console.error('Restore API: Unauthorized access attempt - no user ID');
-      return NextResponse.json({ error: 'Unauthorized: No user ID found' }, { status: 401 });
+      console.error("Restore API: Unauthorized access attempt - no user ID");
+      return NextResponse.json(
+        { error: "Unauthorized: No user ID found" },
+        { status: 401 }
+      );
     }
 
     // Check if user is admin
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
-    
-    console.log('Restore API: User lookup result', { userExists: !!user, userId });
+
+    console.log("Restore API: User lookup result", {
+      userExists: !!user,
+      userId,
+    });
 
     if (!user) {
-      console.error('Restore API: User not found in database', { userId });
-      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
+      console.error("Restore API: User not found in database", { userId });
+      return NextResponse.json(
+        { error: "User not found in database" },
+        { status: 404 }
+      );
     }
 
-    if (user.role !== 'ADMIN') {
-      console.error('Restore API: Forbidden access attempt', { userId, role: user.role });
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (user.role !== "ADMIN") {
+      console.error("Restore API: Forbidden access attempt", {
+        userId,
+        role: user.role,
+      });
+      return NextResponse.json(
+        { error: "Forbidden: Admin access required" },
+        { status: 403 }
+      );
     }
-    */
 
     // Parse the backup data from the request body
     let backupData;
     try {
       backupData = await req.json();
-      console.log('Restore API: Backup data parsed successfully', { 
+      console.log("Restore API: Backup data parsed successfully", {
         metadata: backupData.metadata,
         usersCount: backupData.users?.length,
-        electionsCount: backupData.elections?.length
+        electionsCount: backupData.elections?.length,
       });
     } catch (parseError) {
-      console.error('Restore API: Invalid JSON in request body', parseError);
+      console.error("Restore API: Invalid JSON in request body", parseError);
       return NextResponse.json(
-        { error: 'Invalid JSON in request body', details: (parseError as Error).message }, 
+        {
+          error: "Invalid JSON in request body",
+          details: (parseError as Error).message,
+        },
         { status: 400 }
       );
     }
 
     // Validate backup data structure
     if (!backupData.metadata) {
-      console.error('Restore API: Missing metadata in backup data');
+      console.error("Restore API: Missing metadata in backup data");
       return NextResponse.json(
-        { error: 'Invalid backup data structure: Missing metadata' }, 
+        { error: "Invalid backup data structure: Missing metadata" },
         { status: 400 }
       );
     }
 
     if (!backupData.users) {
-      console.error('Restore API: Missing users in backup data');
+      console.error("Restore API: Missing users in backup data");
       return NextResponse.json(
-        { error: 'Invalid backup data structure: Missing users' }, 
+        { error: "Invalid backup data structure: Missing users" },
         { status: 400 }
       );
     }
 
     if (!backupData.elections) {
-      console.error('Restore API: Missing elections in backup data');
+      console.error("Restore API: Missing elections in backup data");
       return NextResponse.json(
-        { error: 'Invalid backup data structure: Missing elections' }, 
+        { error: "Invalid backup data structure: Missing elections" },
         { status: 400 }
       );
     }
 
     // Log the structure of the backup data for debugging
-    console.log('Restore API: Backup data structure', {
+    console.log("Restore API: Backup data structure", {
       hasDepartments: !!backupData.departments,
       hasYears: !!backupData.years,
       hasPositions: !!backupData.positions,
@@ -98,59 +112,49 @@ export async function POST(req: Request) {
       partylistsCount: backupData.partylists?.length || 0,
     });
 
-    console.log('Restore API: Starting restore process');
-    // For testing, let's just simulate the restore process without actually doing it
-    console.log('Restore API: Simulating restore process');
-    
-    // Simulate some processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    console.log('Restore API: Data restored successfully');
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Data restored successfully' 
-    });
-    
-    /*
-    // Start a transaction to restore data with increased timeout
-    await prisma.$transaction(async (tx) => {
-      console.log('Restore API: Clearing existing data');
-      
-      // Clear existing data (in proper order to avoid foreign key constraints)
-      await tx.vote.deleteMany();
-      console.log('Restore API: Votes deleted');
-      
-      await tx.candidate.deleteMany();
-      console.log('Restore API: Candidates deleted');
-      
-      await tx.position.deleteMany();
-      console.log('Restore API: Positions deleted');
-      
-      await tx.partylist.deleteMany();
-      console.log('Restore API: Partylists deleted');
-      
-      await tx.voter.deleteMany();
-      console.log('Restore API: Voters deleted');
-      
-      await tx.election.deleteMany();
-      console.log('Restore API: Elections deleted');
-      
-      await tx.year.deleteMany();
-      console.log('Restore API: Years deleted');
-      
-      await tx.department.deleteMany();
-      console.log('Restore API: Departments deleted');
-      
-      // Delete only voter users, keep admin users
-      const deletedVoters = await tx.user.deleteMany({
-        where: { role: 'VOTER' }
-      });
-      console.log('Restore API: Voter users deleted', { count: deletedVoters.count });
+    console.log("Restore API: Starting restore process");
 
-      // Restore departments
-      if (backupData.departments && backupData.departments.length > 0) {
-        console.log('Restore API: Restoring departments', { count: backupData.departments.length });
-        await tx.department.createMany({
+    // Clear existing data (in proper order to avoid foreign key constraints)
+    console.log("Restore API: Clearing existing data");
+    await prisma.vote.deleteMany();
+    console.log("Restore API: Votes deleted");
+
+    await prisma.candidate.deleteMany();
+    console.log("Restore API: Candidates deleted");
+
+    await prisma.position.deleteMany();
+    console.log("Restore API: Positions deleted");
+
+    await prisma.partylist.deleteMany();
+    console.log("Restore API: Partylists deleted");
+
+    await prisma.voter.deleteMany();
+    console.log("Restore API: Voters deleted");
+
+    await prisma.election.deleteMany();
+    console.log("Restore API: Elections deleted");
+
+    await prisma.year.deleteMany();
+    console.log("Restore API: Years deleted");
+
+    await prisma.department.deleteMany();
+    console.log("Restore API: Departments deleted");
+
+    // Delete only voter users, keep admin users
+    const deletedVoters = await prisma.user.deleteMany({
+      where: { role: "VOTER" },
+    });
+    console.log("Restore API: Voter users deleted", {
+      count: deletedVoters.count,
+    });
+
+    // Restore departments
+    if (backupData.departments && backupData.departments.length > 0) {
+      console.log("Restore API: Restoring departments", {
+        count: backupData.departments.length,
+      });
+      try {
+        await prisma.department.createMany({
           data: backupData.departments.map((dept: any) => ({
             id: dept.id,
             name: dept.name,
@@ -160,12 +164,22 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Departments restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring departments", error);
+        throw new Error(
+          `Failed to restore departments: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore years
-      if (backupData.years && backupData.years.length > 0) {
-        console.log('Restore API: Restoring years', { count: backupData.years.length });
-        await tx.year.createMany({
+    // Restore years
+    if (backupData.years && backupData.years.length > 0) {
+      console.log("Restore API: Restoring years", {
+        count: backupData.years.length,
+      });
+      try {
+        await prisma.year.createMany({
           data: backupData.years.map((year: any) => ({
             id: year.id,
             name: year.name,
@@ -175,12 +189,20 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Years restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring years", error);
+        throw new Error(`Failed to restore years: ${(error as Error).message}`);
       }
+    }
 
-      // Restore elections
-      if (backupData.elections && backupData.elections.length > 0) {
-        console.log('Restore API: Restoring elections', { count: backupData.elections.length });
-        await tx.election.createMany({
+    // Restore elections
+    if (backupData.elections && backupData.elections.length > 0) {
+      console.log("Restore API: Restoring elections", {
+        count: backupData.elections.length,
+      });
+      try {
+        await prisma.election.createMany({
           data: backupData.elections.map((election: any) => ({
             id: election.id,
             name: election.name,
@@ -195,12 +217,22 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Elections restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring elections", error);
+        throw new Error(
+          `Failed to restore elections: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore partylists
-      if (backupData.partylists && backupData.partylists.length > 0) {
-        console.log('Restore API: Restoring partylists', { count: backupData.partylists.length });
-        await tx.partylist.createMany({
+    // Restore partylists
+    if (backupData.partylists && backupData.partylists.length > 0) {
+      console.log("Restore API: Restoring partylists", {
+        count: backupData.partylists.length,
+      });
+      try {
+        await prisma.partylist.createMany({
           data: backupData.partylists.map((partylist: any) => ({
             id: partylist.id,
             name: partylist.name,
@@ -210,12 +242,22 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Partylists restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring partylists", error);
+        throw new Error(
+          `Failed to restore partylists: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore positions
-      if (backupData.positions && backupData.positions.length > 0) {
-        console.log('Restore API: Restoring positions', { count: backupData.positions.length });
-        await tx.position.createMany({
+    // Restore positions
+    if (backupData.positions && backupData.positions.length > 0) {
+      console.log("Restore API: Restoring positions", {
+        count: backupData.positions.length,
+      });
+      try {
+        await prisma.position.createMany({
           data: backupData.positions.map((position: any) => ({
             id: position.id,
             name: position.name,
@@ -227,12 +269,22 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Positions restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring positions", error);
+        throw new Error(
+          `Failed to restore positions: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore candidates
-      if (backupData.candidates && backupData.candidates.length > 0) {
-        console.log('Restore API: Restoring candidates', { count: backupData.candidates.length });
-        await tx.candidate.createMany({
+    // Restore candidates
+    if (backupData.candidates && backupData.candidates.length > 0) {
+      console.log("Restore API: Restoring candidates", {
+        count: backupData.candidates.length,
+      });
+      try {
+        await prisma.candidate.createMany({
           data: backupData.candidates.map((candidate: any) => ({
             id: candidate.id,
             avatar: candidate.avatar || null,
@@ -246,16 +298,31 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Candidates restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring candidates", error);
+        throw new Error(
+          `Failed to restore candidates: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore users (only voter users, keep existing admins)
-      if (backupData.users && backupData.users.length > 0) {
-        const voterUsers = backupData.users.filter((u: any) => u.role === 'VOTER');
-        console.log('Restore API: Processing voter users', { totalUsers: backupData.users.length, voterUsers: voterUsers.length });
-        
-        if (voterUsers.length > 0) {
-          console.log('Restore API: Restoring voter users', { count: voterUsers.length });
-          await tx.user.createMany({
+    // Restore users (only voter users, keep existing admins)
+    if (backupData.users && backupData.users.length > 0) {
+      const voterUsers = backupData.users.filter(
+        (u: any) => u.role === "VOTER"
+      );
+      console.log("Restore API: Processing voter users", {
+        totalUsers: backupData.users.length,
+        voterUsers: voterUsers.length,
+      });
+
+      if (voterUsers.length > 0) {
+        console.log("Restore API: Restoring voter users", {
+          count: voterUsers.length,
+        });
+        try {
+          await prisma.user.createMany({
             data: voterUsers.map((user: any) => ({
               id: user.id,
               avatar: user.avatar || null,
@@ -270,38 +337,74 @@ export async function POST(req: Request) {
             })),
             skipDuplicates: true,
           });
+          console.log("Restore API: Voter users restored successfully");
+        } catch (error) {
+          console.error("Restore API: Error restoring voter users", error);
+          throw new Error(
+            `Failed to restore voter users: ${(error as Error).message}`
+          );
         }
       }
+    }
 
-      // Restore voters
-      if (backupData.voters && backupData.voters.length > 0) {
-        console.log('Restore API: Restoring voters', { count: backupData.voters.length });
-        await tx.voter.createMany({
-          data: backupData.voters.map((voter: any) => ({
-            id: voter.id,
-            email: voter.email,
-            electionId: voter.electionId || null,
-            status: voter.status,
-            credentialsSent: voter.credentialsSent || false,
-            createdAt: new Date(voter.createdAt),
-            updatedAt: new Date(voter.updatedAt),
-            avatar: voter.avatar,
-            firstName: voter.firstName,
-            hashpassword: voter.hashpassword || null,
-            lastName: voter.lastName,
-            middleName: voter.middleName || null,
-            yearId: voter.yearId,
-            role: voter.role,
-            clerkId: voter.clerkId || null,
-          })),
-          skipDuplicates: true,
-        });
+    // Restore voters - Handle null middleName values
+    if (backupData.voters && backupData.voters.length > 0) {
+      console.log("Restore API: Restoring voters", {
+        count: backupData.voters.length,
+      });
+      try {
+        // Process voters one by one to handle null middleName values
+        for (const voterData of backupData.voters) {
+          try {
+            await prisma.voter.create({
+              data: {
+                id: voterData.id,
+                email: voterData.email,
+                electionId: voterData.electionId || null,
+                status: voterData.status,
+                credentialsSent: voterData.credentialsSent || false,
+                createdAt: new Date(voterData.createdAt),
+                updatedAt: new Date(voterData.updatedAt),
+                avatar: voterData.avatar,
+                firstName: voterData.firstName,
+                hashpassword: voterData.hashpassword || null,
+                lastName: voterData.lastName,
+                // Handle null middleName by providing an empty string as default
+                middleName: voterData.middleName || "",
+                yearId: voterData.yearId,
+                role: voterData.role,
+                clerkId: voterData.clerkId || null,
+              },
+            });
+            console.log(
+              `Restore API: Voter ${voterData.id} restored successfully`
+            );
+          } catch (voterError) {
+            console.error(
+              `Restore API: Error restoring voter ${voterData.id}`,
+              voterError
+            );
+            throw new Error(
+              `Failed to restore voter ${voterData.id}: ${(voterError as Error).message}`
+            );
+          }
+        }
+        console.log("Restore API: All voters restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring voters", error);
+        throw new Error(
+          `Failed to restore voters: ${(error as Error).message}`
+        );
       }
+    }
 
-      // Restore votes
-      if (backupData.votes && backupData.votes.length > 0) {
-        console.log('Restore API: Restoring votes', { count: backupData.votes.length });
-        await tx.vote.createMany({
+    // Restore votes
+    if (backupData.votes && backupData.votes.length > 0) {
+      console.log("Restore API: Restoring votes", {
+        count: backupData.votes.length,
+      });
+      try {
+        await prisma.vote.createMany({
           data: backupData.votes.map((vote: any) => ({
             id: vote.id,
             voterId: vote.voterId,
@@ -312,40 +415,39 @@ export async function POST(req: Request) {
           })),
           skipDuplicates: true,
         });
+        console.log("Restore API: Votes restored successfully");
+      } catch (error) {
+        console.error("Restore API: Error restoring votes", error);
+        throw new Error(`Failed to restore votes: ${(error as Error).message}`);
       }
-    }, {
-      // Increase timeout to 60 seconds to handle large datasets
-      timeout: 60000,
-      // Set maxWait to 20 seconds
-      maxWait: 20000,
-    });
+    }
 
-    console.log('Restore API: Data restored successfully');
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Data restored successfully' 
+    console.log("Restore API: Data restored successfully");
+    return NextResponse.json({
+      success: true,
+      message: "Data restored successfully",
     });
-    */
   } catch (error: any) {
-    console.error('Restore API: Critical error during restore process', {
+    console.error("Restore API: Critical error during restore process", {
       message: error.message,
       stack: error.stack,
       name: error.name,
       code: (error as any).code,
-      meta: (error as any).meta
+      meta: (error as any).meta,
     });
-    
+
     // Return a more detailed error response
     return NextResponse.json(
-      { 
-        error: 'Failed to restore data', 
-        message: error.message || 'Unknown error occurred during restore process',
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      }, 
+      {
+        error: "Failed to restore data",
+        message:
+          error.message || "Unknown error occurred during restore process",
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
     );
   } finally {
     await prisma.$disconnect();
-    console.log('Restore API: Prisma client disconnected');
+    console.log("Restore API: Prisma client disconnected");
   }
 }

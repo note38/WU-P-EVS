@@ -489,6 +489,21 @@ export function AccountSettings() {
 
   return (
     <div className="min-h-screen w-full max-w-[1200px] mx-auto p-4 space-y-6">
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <Lock className="h-5 w-5 text-yellow-400" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-yellow-700">
+              <strong>Password Protection Enabled:</strong> This section
+              requires password verification for access. Changes to admin
+              accounts affect system security.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Card className="min-h-[300px]">
         <CardHeader>
           <CardTitle>Create Admin Account</CardTitle>

@@ -293,16 +293,35 @@ export async function printVoters(
     return { success: false, error: "Could not open print window" };
   }
 
+  // Get the base URL for absolute paths
+  const baseUrl =
+    typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.host}`
+      : "http://localhost:3000";
+
+  // Try to get the logo as a data URL, fallback to URL if it fails
+  let logoSrc = `${baseUrl}/wup-logo.png`;
+  try {
+    logoSrc = await getImageAsDataUrl(`${baseUrl}/wup-logo.png`);
+  } catch (error) {
+    console.warn(
+      "Could not convert logo to data URL, using URL instead:",
+      error
+    );
+  }
+
   const printContent = `
     <!DOCTYPE html>
     <html>
       <head>
         <title>${title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body { 
             font-family: Arial, sans-serif; 
             margin: 20px; 
             color: #333;
+            line-height: 1.6;
           }
           .election-header {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -350,6 +369,7 @@ export async function printVoters(
             width: 100%; 
             border-collapse: collapse; 
             margin-bottom: 20px;
+            font-size: 0.9rem;
           }
           .voter-table th, .voter-table td { 
             border: 1px solid #ddd; 
@@ -386,13 +406,33 @@ export async function printVoters(
           @media print {
             body { margin: 0; }
             .no-print { display: none; }
+            .voter-table { font-size: 0.8rem; }
+            .voter-table th, .voter-table td { padding: 4px; }
+          }
+          @media (max-width: 768px) {
+            body { margin: 10px; }
+            .branding { flex-direction: column; text-align: center; }
+            .university-info { text-align: center; }
+            .election-title { font-size: 1rem; padding: 6px 10px; }
+            .voter-table { font-size: 0.8rem; }
+            .voter-table th, .voter-table td { padding: 6px; }
+          }
+          @media (max-width: 480px) {
+            .election-header { padding: 15px; }
+            .logo { width: 40px; height: 40px; }
+            .university-name { font-size: 1.2rem; }
+            .system-name { font-size: 0.9rem; }
+            .election-title { font-size: 0.9rem; padding: 4px 8px; }
+            .voter-table { font-size: 0.7rem; }
+            .voter-table th, .voter-table td { padding: 4px; }
+            .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
           }
         </style>
       </head>
       <body>
         <header class="election-header">
           <div class="branding">
-            <img src="../wup-logo.png" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
+            <img src="${logoSrc}" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
             <div class="university-info">
               <h1 class="university-name">Wesleyan University-Philippines</h1>
               <p class="system-name">Enhanced Voting System</p>
@@ -462,28 +502,38 @@ export async function printVoters(
     let printed = false;
 
     // Set a flag when print is initiated
-    printWindow.addEventListener("beforeprint", () => {
+    const beforePrintHandler = () => {
       printed = true;
-    });
+    };
 
     // Handle after print or close
-    const cleanup = () => {
-      // If print was never initiated, it means user cancelled
-      if (!printed) {
-        resolve({ success: false, cancelled: true });
-      } else {
-        resolve({ success: true });
-      }
+    const afterPrintHandler = () => {
+      printWindow.removeEventListener("beforeprint", beforePrintHandler);
+      printWindow.removeEventListener("afterprint", afterPrintHandler);
+      // Close window after printing
+      setTimeout(() => {
+        if (!printWindow.closed) {
+          printWindow.close();
+        }
+      }, 1000);
+
+      resolve({ success: true });
     };
 
     // Listen for print events
-    printWindow.addEventListener("afterprint", cleanup);
+    printWindow.addEventListener("beforeprint", beforePrintHandler);
+    printWindow.addEventListener("afterprint", afterPrintHandler);
 
     // Also handle window close (in case user closes without printing)
     const checkClosed = setInterval(() => {
       if (printWindow.closed) {
         clearInterval(checkClosed);
-        cleanup();
+        // If print was never initiated, it means user cancelled
+        if (!printed) {
+          resolve({ success: false, cancelled: true });
+        } else {
+          resolve({ success: true });
+        }
       }
     }, 1000);
 
@@ -494,6 +544,30 @@ export async function printVoters(
       clearInterval(checkClosed);
       resolve({ success: false, error: "Failed to open print dialog." });
     }
+  });
+}
+
+// Utility function to convert image to data URL
+async function getImageAsDataUrl(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        reject(new Error("Could not get canvas context"));
+      }
+    };
+    img.onerror = () => {
+      reject(new Error("Could not load image"));
+    };
+    img.src = imageUrl;
   });
 }
 

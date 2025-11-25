@@ -73,10 +73,21 @@ export function ExportButtons({
         description: "An error occurred while preparing the print.",
         variant: "destructive",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleExportPDF = async () => {
+    if (voters.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No voters to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
       const exportData = prepareVoterDataForExport(voters);
@@ -109,6 +120,15 @@ export function ExportButtons({
   };
 
   const handleExportExcel = async () => {
+    if (voters.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No voters to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
       const exportData = prepareVoterDataForExport(voters);
@@ -141,13 +161,14 @@ export function ExportButtons({
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {/* Print Button */}
       <Button
         variant="outline"
         size="sm"
         onClick={handlePrint}
         disabled={disabled || voters.length === 0}
+        className="w-full sm:w-auto"
       >
         <PrinterIcon className="mr-2 h-4 w-4" />
         Print
@@ -160,6 +181,7 @@ export function ExportButtons({
             variant="outline"
             size="sm"
             disabled={disabled || voters.length === 0 || isExporting}
+            className="w-full sm:w-auto"
           >
             <DownloadIcon className="mr-2 h-4 w-4" />
             Export
@@ -222,10 +244,21 @@ export function CompactExportButtons({
         description: "An error occurred while preparing the print.",
         variant: "destructive",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleExportPDF = async () => {
+    if (voters.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No voters to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
       const exportData = prepareVoterDataForExport(voters);
@@ -258,6 +291,15 @@ export function CompactExportButtons({
   };
 
   const handleExportExcel = async () => {
+    if (voters.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No voters to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
       const exportData = prepareVoterDataForExport(voters);
@@ -290,13 +332,14 @@ export function CompactExportButtons({
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {/* Print Button */}
       <Button
         variant="outline"
         size="sm"
         onClick={handlePrint}
         disabled={disabled || voters.length === 0}
+        className="w-full sm:w-auto"
       >
         <PrinterIcon className="mr-2 h-4 w-4" />
         Print
@@ -309,6 +352,7 @@ export function CompactExportButtons({
             variant="outline"
             size="sm"
             disabled={disabled || voters.length === 0 || isExporting}
+            className="w-full sm:w-auto"
           >
             <DownloadIcon className="mr-2 h-4 w-4" />
             Export

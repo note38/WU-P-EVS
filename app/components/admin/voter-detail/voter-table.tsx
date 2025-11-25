@@ -157,7 +157,15 @@ export default function VoterTable({
 
   const handlePrintAll = async () => {
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Print Error",
+        description:
+          "Unable to open print window. Please check your popup blocker settings.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Get the base URL for absolute paths
     const baseUrl =
@@ -181,11 +189,13 @@ export default function VoterTable({
       <html>
         <head>
           <title>All Voters - Report</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               color: #333;
+              line-height: 1.6;
             }
             .election-header {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -233,6 +243,7 @@ export default function VoterTable({
               width: 100%; 
               border-collapse: collapse; 
               margin-bottom: 20px;
+              font-size: 0.9rem;
             }
             .voter-table th, .voter-table td { 
               border: 1px solid #ddd; 
@@ -269,6 +280,26 @@ export default function VoterTable({
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+            }
+            @media (max-width: 768px) {
+              body { margin: 10px; }
+              .branding { flex-direction: column; text-align: center; }
+              .university-info { text-align: center; }
+              .election-title { font-size: 1rem; padding: 6px 10px; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 6px; }
+            }
+            @media (max-width: 480px) {
+              .election-header { padding: 15px; }
+              .logo { width: 40px; height: 40px; }
+              .university-name { font-size: 1.2rem; }
+              .system-name { font-size: 0.9rem; }
+              .election-title { font-size: 0.9rem; padding: 4px 8px; }
+              .voter-table { font-size: 0.7rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
             }
           </style>
         </head>
@@ -344,13 +375,61 @@ export default function VoterTable({
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+
+    // Add print event handling
+    let printed = false;
+
+    const beforePrintHandler = () => {
+      printed = true;
+    };
+
+    const afterPrintHandler = () => {
+      printWindow.removeEventListener("beforeprint", beforePrintHandler);
+      printWindow.removeEventListener("afterprint", afterPrintHandler);
+      // Close window after printing
+      setTimeout(() => {
+        if (!printWindow.closed) {
+          printWindow.close();
+        }
+      }, 1000);
+    };
+
+    printWindow.addEventListener("beforeprint", beforePrintHandler);
+    printWindow.addEventListener("afterprint", afterPrintHandler);
+
+    // Handle window close without printing
+    const checkClosed = setInterval(() => {
+      if (printWindow.closed) {
+        clearInterval(checkClosed);
+        // If not printed, it was cancelled
+        if (!printed) {
+          toast({
+            title: "Print Cancelled",
+            description: "Print operation was cancelled.",
+          });
+        }
+      }
+    }, 1000);
+
+    try {
+      printWindow.print();
+    } catch (error) {
+      clearInterval(checkClosed);
+      toast({
+        title: "Print Error",
+        description: "Failed to initiate print dialog.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePrintSelected = async () => {
     if (selectedVoters.length === 0) {
-      alert("Please select voters to print");
+      toast({
+        title: "No Selection",
+        description: "Please select voters to print",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -358,7 +437,15 @@ export default function VoterTable({
       selectedVoters.includes(voter.id)
     );
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Print Error",
+        description:
+          "Unable to open print window. Please check your popup blocker settings.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Get the base URL for absolute paths
     const baseUrl =
@@ -382,11 +469,13 @@ export default function VoterTable({
       <html>
         <head>
           <title>Selected Voters - Report</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { 
               font-family: Arial, sans-serif; 
               margin: 20px; 
               color: #333;
+              line-height: 1.6;
             }
             .election-header {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -434,6 +523,7 @@ export default function VoterTable({
               width: 100%; 
               border-collapse: collapse; 
               margin-bottom: 20px;
+              font-size: 0.9rem;
             }
             .voter-table th, .voter-table td { 
               border: 1px solid #ddd; 
@@ -470,6 +560,26 @@ export default function VoterTable({
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+            }
+            @media (max-width: 768px) {
+              body { margin: 10px; }
+              .branding { flex-direction: column; text-align: center; }
+              .university-info { text-align: center; }
+              .election-title { font-size: 1rem; padding: 6px 10px; }
+              .voter-table { font-size: 0.8rem; }
+              .voter-table th, .voter-table td { padding: 6px; }
+            }
+            @media (max-width: 480px) {
+              .election-header { padding: 15px; }
+              .logo { width: 40px; height: 40px; }
+              .university-name { font-size: 1.2rem; }
+              .system-name { font-size: 0.9rem; }
+              .election-title { font-size: 0.9rem; padding: 4px 8px; }
+              .voter-table { font-size: 0.7rem; }
+              .voter-table th, .voter-table td { padding: 4px; }
+              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
             }
           </style>
         </head>
@@ -545,8 +655,52 @@ export default function VoterTable({
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+
+    // Add print event handling
+    let printed = false;
+
+    const beforePrintHandler = () => {
+      printed = true;
+    };
+
+    const afterPrintHandler = () => {
+      printWindow.removeEventListener("beforeprint", beforePrintHandler);
+      printWindow.removeEventListener("afterprint", afterPrintHandler);
+      // Close window after printing
+      setTimeout(() => {
+        if (!printWindow.closed) {
+          printWindow.close();
+        }
+      }, 1000);
+    };
+
+    printWindow.addEventListener("beforeprint", beforePrintHandler);
+    printWindow.addEventListener("afterprint", afterPrintHandler);
+
+    // Handle window close without printing
+    const checkClosed = setInterval(() => {
+      if (printWindow.closed) {
+        clearInterval(checkClosed);
+        // If not printed, it was cancelled
+        if (!printed) {
+          toast({
+            title: "Print Cancelled",
+            description: "Print operation was cancelled.",
+          });
+        }
+      }
+    }, 1000);
+
+    try {
+      printWindow.print();
+    } catch (error) {
+      clearInterval(checkClosed);
+      toast({
+        title: "Print Error",
+        description: "Failed to initiate print dialog.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle voter edit
@@ -743,7 +897,7 @@ export default function VoterTable({
               value={selectedYearFilter}
               onValueChange={setSelectedYearFilter}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by year" />
               </SelectTrigger>
               <SelectContent>
@@ -758,12 +912,13 @@ export default function VoterTable({
           )}
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePrintAll}
             disabled={filteredVoters.length === 0}
+            className="w-full sm:w-auto"
           >
             <PrinterIcon className="mr-2 h-4 w-4" />
             Print All
@@ -771,10 +926,15 @@ export default function VoterTable({
 
           {selectedVoters.length > 0 && (
             <>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {selectedVoters.length} selected
               </span>
-              <Button variant="outline" size="sm" onClick={handlePrintSelected}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintSelected}
+                className="w-full sm:w-auto"
+              >
                 <PrinterIcon className="mr-2 h-4 w-4" />
                 Print Selected
               </Button>
@@ -782,6 +942,7 @@ export default function VoterTable({
                 variant="destructive"
                 size="sm"
                 onClick={handleBulkDeleteVoter}
+                className="w-full sm:w-auto"
               >
                 <TrashIcon className="mr-2 h-4 w-4" />
                 Delete Selected

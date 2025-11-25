@@ -253,12 +253,13 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold">Election Results</h2>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePrintResults}
             disabled={isPrinting || loading}
+            className="w-full sm:w-auto"
           >
             {isPrinting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -272,6 +273,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             size="sm"
             onClick={handleExportResults}
             disabled={isExporting || loading}
+            className="w-full sm:w-auto"
           >
             {isExporting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

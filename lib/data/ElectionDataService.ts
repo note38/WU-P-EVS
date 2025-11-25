@@ -124,8 +124,31 @@ export class ElectionDataService {
 
   // Delete an election
   static async deleteElection(id: number) {
-    return prisma.election.delete({
-      where: { id },
+    return prisma.$transaction(async (tx: any) => {
+      // Delete all votes for this election first
+      await tx.vote.deleteMany({
+        where: { electionId: id },
+      });
+
+      // Delete all candidates for this election
+      await tx.candidate.deleteMany({
+        where: { electionId: id },
+      });
+
+      // Delete all positions for this election
+      await tx.position.deleteMany({
+        where: { electionId: id },
+      });
+
+      // Delete all partylists for this election
+      await tx.partylist.deleteMany({
+        where: { electionId: id },
+      });
+
+      // Finally, delete the election itself
+      return tx.election.delete({
+        where: { id },
+      });
     });
   }
 }

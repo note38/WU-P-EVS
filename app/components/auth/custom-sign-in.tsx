@@ -130,10 +130,10 @@ export default function CustomSignIn() {
               },
             }}
             signUpUrl={undefined}
-            forceRedirectUrl="/api/auth/validate-session?redirect=true"
-            fallbackRedirectUrl="/api/auth/validate-session?redirect=true"
-            redirectUrl="/api/auth/validate-session?redirect=true"
-            afterSignInUrl="/api/auth/validate-session?redirect=true"
+            // Removed redundant redirect URLs to prevent conflicts
+            forceRedirectUrl="/api/auth/validate-session"
+            fallbackRedirectUrl="/api/auth/validate-session"
+            afterSignInUrl="/api/auth/validate-session"
           />
         </div>
       </div>

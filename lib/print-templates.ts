@@ -78,6 +78,7 @@ export function getPrintStyles(): string {
         font-family: Arial, sans-serif; 
         margin: 20px; 
         color: #333;
+        line-height: 1.6;
       }
       .header { 
         text-align: center; 
@@ -258,8 +259,32 @@ export function getPrintStyles(): string {
         body { margin: 0; }
         .position-card { page-break-inside: avoid; }
         .proofread-section { page-break-inside: avoid; }
+        .details-grid { grid-template-columns: 1fr; }
       }
-        
+      @media (max-width: 768px) {
+        body { margin: 10px; }
+        .branding { flex-direction: column; text-align: center; }
+        .university-info { text-align: center; }
+        .election-title { font-size: 1rem; padding: 6px 10px; }
+        .details-grid { grid-template-columns: 1fr; }
+        .detail-item { flex-direction: column; gap: 5px; }
+        .candidate { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .vote-info { width: 100%; text-align: left; }
+        .signature-line { width: 100%; }
+      }
+      @media (max-width: 480px) {
+        .election-header { padding: 15px; }
+        .logo { width: 40px; height: 40px; }
+        .university-name { font-size: 1.2rem; }
+        .system-name { font-size: 0.9rem; }
+        .election-title { font-size: 0.9rem; padding: 4px 8px; }
+        .position-header { font-size: 1rem; padding: 10px; }
+        .candidate-name { font-size: 0.9rem; }
+        .candidate-party { font-size: 0.8rem; }
+        .votes { font-size: 1rem; }
+        .percentage { font-size: 0.8rem; }
+        .winner-badge { font-size: 0.7rem; padding: 1px 4px; }
+      }
     </style>
   `;
 }

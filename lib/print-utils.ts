@@ -32,8 +32,12 @@ export async function printElectionResults(
       userPosition,
     });
 
-    // Open print window
-    const printWindow = window.open("", "_blank");
+    // Open print window with responsive settings
+    const printWindow = window.open(
+      "",
+      "_blank",
+      "width=800,height=600,scrollbars=yes,resizable=yes"
+    );
 
     if (!printWindow) {
       throw new Error(
@@ -46,6 +50,12 @@ export async function printElectionResults(
     printWindow.document.close();
     printWindow.focus();
 
+    // Add responsive viewport meta tag
+    const metaViewport = printWindow.document.createElement("meta");
+    metaViewport.name = "viewport";
+    metaViewport.content = "width=device-width, initial-scale=1.0";
+    printWindow.document.head.appendChild(metaViewport);
+
     // Wait for content to load then print
     const printTimeout = setTimeout(() => {
       try {
@@ -53,7 +63,7 @@ export async function printElectionResults(
 
         // Close the window after a short delay to allow printing dialog to appear
         setTimeout(() => {
-          printWindow.close();
+          // Don't close immediately to allow user to interact with print dialog
         }, 1000);
       } catch (error) {
         console.error("Failed to initiate print:", error);
@@ -63,6 +73,20 @@ export async function printElectionResults(
     // Handle window close event
     printWindow.addEventListener("beforeunload", () => {
       clearTimeout(printTimeout);
+    });
+
+    // Handle print events for better user experience
+    printWindow.addEventListener("afterprint", () => {
+      // Optionally close the window after printing
+      setTimeout(() => {
+        try {
+          if (!printWindow.closed) {
+            printWindow.close();
+          }
+        } catch (e) {
+          console.log("Could not close print window:", e);
+        }
+      }, 1000);
     });
   } catch (error) {
     console.error("Print preparation failed:", error);

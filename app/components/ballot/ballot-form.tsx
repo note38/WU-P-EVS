@@ -11,19 +11,22 @@ import {
 } from "@/components/ui/card";
 import type { Position } from "@/types/ballot";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface BallotFormProps {
   positions: Position[];
   electionName: string;
+  editPositionId?: string;
 }
 
 export function BallotForm({
   positions: initialPositions,
   electionName,
+  editPositionId,
 }: BallotFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [positions, setPositions] = useState<Position[]>(
@@ -52,7 +55,23 @@ export function BallotForm({
       }
       fetchPositions();
     }
+
+    // Load selections from localStorage if available
+    const storedSelections = localStorage.getItem("ballotSelections");
+    if (storedSelections) {
+      setSelections(JSON.parse(storedSelections));
+    }
   }, [initialPositions]);
+
+  useEffect(() => {
+    // If we're editing a specific position, find its index and navigate to it
+    if (editPositionId && positions.length > 0) {
+      const positionIndex = positions.findIndex((p) => p.id === editPositionId);
+      if (positionIndex !== -1) {
+        setCurrentPositionIndex(positionIndex);
+      }
+    }
+  }, [editPositionId, positions]);
 
   // Safety check to ensure we have positions
   if (positions.length === 0 && !isLoading) {
@@ -113,6 +132,12 @@ export function BallotForm({
     router.push("/ballot/preview");
   };
 
+  const handleBackToReview = () => {
+    // Store current selections before navigating back
+    localStorage.setItem("ballotSelections", JSON.stringify(selections));
+    router.push("/ballot/preview");
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
@@ -165,35 +190,49 @@ export function BallotForm({
               />
             </CardContent>
             <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
-              <Button
-                variant="outline"
-                onClick={goToPreviousPosition}
-                disabled={isFirstPosition}
-                className="w-full sm:w-auto flex items-center"
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Button>
-
-              {isLastPosition ? (
+              {editPositionId ? (
+                // If editing from review page, show back to review button
                 <Button
-                  onClick={handleReview}
-                  disabled={
-                    !positions.every((position) => selections[position.id])
-                  }
+                  onClick={handleBackToReview}
                   className="w-full sm:w-auto flex items-center"
                 >
-                  Review Ballot
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back to Review
                 </Button>
               ) : (
-                <Button
-                  onClick={goToNextPosition}
-                  disabled={!selections[currentPosition.id]}
-                  className="w-full sm:w-auto flex items-center"
-                >
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                // Normal navigation buttons
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={goToPreviousPosition}
+                    disabled={isFirstPosition}
+                    className="w-full sm:w-auto flex items-center"
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  {isLastPosition ? (
+                    <Button
+                      onClick={handleReview}
+                      disabled={
+                        !positions.every((position) => selections[position.id])
+                      }
+                      className="w-full sm:w-auto flex items-center"
+                    >
+                      Review Ballot
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={goToNextPosition}
+                      disabled={!selections[currentPosition.id]}
+                      className="w-full sm:w-auto flex items-center"
+                    >
+                      Next
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>

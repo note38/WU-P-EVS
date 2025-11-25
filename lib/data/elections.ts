@@ -18,6 +18,7 @@ export async function getActiveElections() {
               partylist: true,
             },
           },
+          year: true, // Include year information for position filtering
         },
       },
     },
@@ -39,6 +40,7 @@ export async function getElectionById(id: string) {
               partylist: true,
             },
           },
+          year: true, // Include year information for position filtering
         },
       },
     },
@@ -69,10 +71,12 @@ export async function getElectionForVoter(voterId: string) {
                   partylist: true,
                 },
               },
+              year: true, // Include year information for position filtering
             },
           },
         },
       },
+      year: true, // Include voter's year information
     },
   });
 
@@ -80,7 +84,21 @@ export async function getElectionForVoter(voterId: string) {
     return null;
   }
 
-  return mapToElectionType(voter.election);
+  // Filter positions based on voter's year
+  const filteredPositions = voter.election.positions.filter((position) => {
+    // If position has no year restriction (yearId is null), it's available to all voters
+    if (!position.yearId) return true;
+    // If position has a year restriction, only show it to voters in that year
+    return position.yearId === voter.yearId;
+  });
+
+  // Create a copy of the election with filtered positions
+  const electionWithFilteredPositions = {
+    ...voter.election,
+    positions: filteredPositions,
+  };
+
+  return mapToElectionType(electionWithFilteredPositions);
 }
 
 export async function getElectionForVoterByEmail(email: string) {
@@ -101,10 +119,12 @@ export async function getElectionForVoterByEmail(email: string) {
                   partylist: true,
                 },
               },
+              year: true, // Include year information for position filtering
             },
           },
         },
       },
+      year: true, // Include voter's year information
     },
   });
 
@@ -112,7 +132,21 @@ export async function getElectionForVoterByEmail(email: string) {
     return null;
   }
 
-  return mapToElectionType(voter.election);
+  // Filter positions based on voter's year
+  const filteredPositions = voter.election.positions.filter((position) => {
+    // If position has no year restriction (yearId is null), it's available to all voters
+    if (!position.yearId) return true;
+    // If position has a year restriction, only show it to voters in that year
+    return position.yearId === voter.yearId;
+  });
+
+  // Create a copy of the election with filtered positions
+  const electionWithFilteredPositions = {
+    ...voter.election,
+    positions: filteredPositions,
+  };
+
+  return mapToElectionType(electionWithFilteredPositions);
 }
 
 function mapToElectionType(election: any): Election {

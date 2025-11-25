@@ -3,11 +3,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Position } from "@/types/ballot";
-import { ChevronLeft, Check } from "lucide-react";
+import { ChevronLeft, Check, Edit } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useClerk } from "@clerk/nextjs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -16,6 +26,7 @@ export default function PreviewPage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
     // Get selections and positions from localStorage
@@ -73,8 +84,21 @@ export default function PreviewPage() {
     }
   };
 
+  const handleConfirmSubmit = () => {
+    setShowConfirmation(true);
+  };
+
   const handleBack = () => {
     router.push("/ballot");
+  };
+
+  const handleEditSelection = (positionId: string) => {
+    // Save current selections to localStorage
+    localStorage.setItem("ballotSelections", JSON.stringify(selections));
+    localStorage.setItem("ballotPositions", JSON.stringify(positions));
+
+    // Navigate back to the ballot page with a parameter to indicate which position to edit
+    router.push(`/ballot?editPosition=${positionId}`);
   };
 
   if (loading) {
@@ -107,21 +131,32 @@ export default function PreviewPage() {
                 <CardTitle>{position.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-4">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-full border">
-                    <Image
-                      src={selectedCandidate.avatar || "/placeholder.svg"}
-                      alt={selectedCandidate.name}
-                      fill
-                      className="object-cover"
-                    />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative h-16 w-16 overflow-hidden rounded-full border">
+                      <Image
+                        src={selectedCandidate.avatar || "/placeholder.svg"}
+                        alt={selectedCandidate.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">{selectedCandidate.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedCandidate.party}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium">{selectedCandidate.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedCandidate.party}
-                    </p>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditSelection(position.id)}
+                    className="flex items-center"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -143,7 +178,7 @@ export default function PreviewPage() {
           </Button>
 
           <Button
-            onClick={handleSubmit}
+            onClick={handleConfirmSubmit}
             disabled={submitting}
             className="flex items-center w-full sm:w-auto"
           >
@@ -152,6 +187,25 @@ export default function PreviewPage() {
           </Button>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Ballot Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to submit your ballot? Once submitted, you
+              cannot change your selections. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit}>
+              Confirm Submission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
