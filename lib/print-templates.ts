@@ -52,8 +52,8 @@ export function formatDateTime(dateString: string): DateTimeFormatted {
   const date = new Date(dateString);
   return {
     date: date.toLocaleDateString("en-GB"),
-    time: date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
+    time: date.toLocaleTimeString([], {
+      hour: "numeric",
       minute: "2-digit",
       hour12: true,
     }),

@@ -97,8 +97,6 @@ export default async function Page({ params }: PageProps) {
       description: election.description,
       startDate: election.startDate.toISOString(),
       endDate: election.endDate.toISOString(),
-      startTime: election.startDate.toLocaleTimeString(),
-      endTime: election.endDate.toLocaleTimeString(),
       fullStartDate: election.startDate.toISOString(),
       fullEndDate: election.endDate.toISOString(),
       status,

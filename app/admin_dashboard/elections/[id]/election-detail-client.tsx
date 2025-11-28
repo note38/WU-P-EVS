@@ -31,9 +31,7 @@ type Election = {
   name: string;
   description: string | null;
   startDate: string;
-  startTime: string;
   endDate: string;
-  endTime: string;
   fullStartDate: string;
   fullEndDate: string;
   status: "INACTIVE" | "ACTIVE" | "COMPLETED";
@@ -106,6 +104,16 @@ export default function ElectionDetailClient({
     return new Date(dateStr).toLocaleDateString();
   };
 
+  // Format time for display using client's timezone
+  const formatTime = (dateStr: string) => {
+    // Create a Date object and format it using the client's timezone
+    return new Date(dateStr).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
@@ -140,7 +148,8 @@ export default function ElectionDetailClient({
             <div>
               <h3 className="text-sm font-medium text-gray-500">Time</h3>
               <p className="mt-1">
-                {election.startTime} - {election.endTime}
+                {formatTime(election.startDate)} -{" "}
+                {formatTime(election.endDate)}
               </p>
             </div>
             <div>
