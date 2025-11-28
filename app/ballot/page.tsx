@@ -1,139 +1,79 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useClerkAuth } from "@/hooks/use-clerk-auth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { BallotForm } from "@/app/components/ballot/ballot-form";
+import { BallotHeader } from "@/app/components/ballot/ballot-header";
 import { BallotClientWrapper } from "@/app/components/ballot/ballot-client-wrapper";
+import { getElectionForVoterByEmail } from "@/lib/data/elections";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { type Election, type Position } from "@/types/ballot";
 
-export default function BallotPage() {
-  const router = useRouter();
-  const { user, isLoaded, isLoading, isVoter, error } = useClerkAuth();
-  const [positions, setPositions] = useState([]);
-  const [electionName, setElectionName] = useState("");
-  const [loadingData, setLoadingData] = useState(true);
+export default async function BallotPage() {
+  // Get the current user from Clerk
+  const user = await currentUser();
 
-  useEffect(() => {
-    if (isLoaded && !isLoading && isVoter) {
-      // Redirect if voter has already cast their vote
-      if (user?.status === "CAST") {
-        router.push("/thank-you");
-        return;
-      }
-
-      // Fetch ballot data
-      fetchBallotData();
-    }
-  }, [isLoaded, isLoading, isVoter, user, router]);
-
-  const fetchBallotData = async () => {
-    try {
-      setLoadingData(true);
-      const response = await fetch("/api/elections/active");
-      const data = await response.json();
-      
-      if (data.election && data.positions) {
-        setElectionName(data.election.name);
-        setPositions(data.positions);
-      }
-    } catch (error) {
-      console.error("Failed to fetch ballot data:", error);
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  // Remove the redirect for non-voters since useClerkAuth now handles that
-
-  if (!isLoaded || isLoading || loadingData) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-green-500" />
-          <p className="text-sm text-gray-500">Loading your ballot...</p>
-        </div>
-      </div>
-    );
+  // Redirect if not logged in
+  if (!user) {
+    redirect("/sign-in?redirect_url=" + encodeURIComponent("/ballot"));
   }
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-red-500">
-              Authentication Error
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-            <div className="mt-4 flex justify-center">
-              <Button onClick={() => router.push("/sign-in")}>
-                Back to Sign In
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  // Get the voter's election using their email address
+  const userEmail = user.emailAddresses[0]?.emailAddress;
+  if (!userEmail) {
+    redirect("/sign-in?redirect_url=" + encodeURIComponent("/ballot"));
   }
 
-  if (!isVoter) {
+  console.log("Looking up election for voter email:", userEmail);
+  const election = await getElectionForVoterByEmail(userEmail);
+
+  // If no election found, show a proper error instead of redirecting to sign-in
+  if (!election) {
+    console.log("No election found for voter:", userEmail);
+    // Instead of redirecting to sign-in, show an error message with header
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-red-500">
+      <div className="min-h-screen bg-background">
+        <BallotHeader />
+        <main className="container mx-auto py-8 px-4">
+          <div className="max-w-md mx-auto text-center">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">
               Access Denied
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Unauthorized</AlertTitle>
-              <AlertDescription>
-                You do not have permission to access the ballot. Only registered
-                voters can access this page.
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 flex justify-center">
-              <Button onClick={() => router.push("/sign-in")}>Back to Sign In</Button>
-            </div>
-          </CardContent>
-        </Card>
+            </h1>
+            <p className="text-gray-600 mb-4">
+              No active election found for your account ({userEmail}).
+            </p>
+            <p className="text-sm text-gray-500">
+              Please contact your administrator if you believe this is an error.
+            </p>
+          </div>
+        </main>
       </div>
     );
   }
 
-  if (user?.status === "CAST") {
-    // This should have been caught by the useEffect, but just in case
-    router.push("/thank-you");
-    return null;
-  }
+  // Transform positions to the format expected by BallotForm
+  const positions = election.positions.map((position) => ({
+    id: position.id,
+    title: position.title,
+    description: position.description || "",
+    candidates: position.candidates.map((candidate) => ({
+      id: candidate.id,
+      name: candidate.name,
+      party: candidate.party,
+      avatar: candidate.avatar || "/placeholder.svg",
+    })),
+  }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-teal-50 p-4">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
-            Ballot
-          </h1>
-          <p className="text-sm text-gray-600">
-            Cast your vote for the {electionName || "current election"}
-          </p>
-        </div>
-
-        <div className="rounded-lg bg-white p-4 shadow-sm">
-          <BallotClientWrapper positions={positions} electionName={electionName} />
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <BallotHeader />
+      <main className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold text-center mb-2">{election.name}</h1>
+        <p className="text-center text-muted-foreground mb-8">
+          Please vote for each position
+        </p>
+        <BallotClientWrapper
+          positions={positions}
+          electionName={election.name}
+        />
+      </main>
     </div>
   );
 }

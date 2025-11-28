@@ -28,14 +28,16 @@ export async function validateAdminAccess() {
     // If user not found, try to create them as admin
     if (!adminUser) {
       try {
-        console.log('🔄 User not found in database, attempting to create admin user...');
-        
+        console.log(
+          "🔄 User not found in database, attempting to create admin user..."
+        );
+
         // Get user from Clerk
         const { clerkClient } = await import("@clerk/nextjs/server");
         const clerk = await clerkClient();
         const clerkUser = await clerk.users.getUser(userId);
         const email = clerkUser.emailAddresses[0]?.emailAddress;
-        
+
         if (email) {
           // Create admin user directly
           adminUser = await prisma.user.create({
@@ -44,17 +46,17 @@ export async function validateAdminAccess() {
               email: email,
               username: clerkUser.username || email.split("@")[0],
               avatar: clerkUser.imageUrl || "",
-              role: "ADMIN"
+              role: "ADMIN",
             },
             include: {
               elections: true,
             },
           });
-          
-          console.log('✅ Admin user created successfully:', adminUser.email);
+
+          console.log("✅ Admin user created successfully:", adminUser.email);
         }
       } catch (syncError) {
-        console.error('❌ Failed to create admin user:', syncError);
+        console.error("❌ Failed to create admin user:", syncError);
       }
     }
 
@@ -103,6 +105,9 @@ export async function validateVoterAccess() {
   try {
     const { userId } = await auth();
 
+    // Log for debugging
+    console.log("Clerk user ID from auth:", userId);
+
     if (!userId) {
       return {
         success: false,
@@ -118,6 +123,9 @@ export async function validateVoterAccess() {
         year: true,
       },
     });
+
+    // Log for debugging
+    console.log("Voter found in database:", voter);
 
     if (!voter) {
       return {

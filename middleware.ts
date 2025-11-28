@@ -22,6 +22,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/get-user",
   "/api/voters(.*)",
   "/api/years(.*)", // Add this line to make years API public for testing
+  "/ballot/thank-you",
   "/test-auth",
   "/api/backup",
   "/api/restore",
