@@ -33,6 +33,7 @@ export function PositionSelection({
                 : "hover:bg-muted"
             }`}
             onClick={() => onSelect(candidate.id)}
+            onTouchStart={() => onSelect(candidate.id)} // Better touch support for mobile
           >
             <RadioGroupItem
               value={candidate.id}

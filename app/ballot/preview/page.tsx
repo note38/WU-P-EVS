@@ -311,9 +311,9 @@ export default function PreviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <BallotHeader />
-      <main className="container mx-auto py-8 px-4">
+      <main className="flex-grow container mx-auto py-8 px-4 overflow-y-auto pb-32">
         <h1 className="text-3xl font-bold text-center mb-2">
           Review Your Ballot
         </h1>
@@ -321,8 +321,22 @@ export default function PreviewPage() {
           Please review your selections before final submission
         </p>
 
-        {/* Make the container scrollable for long ballots */}
-        <div className="max-w-3xl mx-auto space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] pr-2">
+        {/* Instructions card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Review Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Please carefully review all your selections below. If you need to make changes, 
+              click the "Edit" button next to each position. When you're satisfied with your 
+              selections, scroll to the bottom and click "Submit Ballot".
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Make the container scrollable for long ballots with fixed footer */}
+        <div className="max-w-3xl mx-auto space-y-6">
           {positions
             .filter((position) => selections[position.id])
             .map((position) => {
@@ -361,7 +375,7 @@ export default function PreviewPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditSelection(position.id)}
-                        className="flex items-center"
+                        className="flex items-center whitespace-nowrap"
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
@@ -371,51 +385,78 @@ export default function PreviewPage() {
                 </Card>
               );
             })}
+          
+          {/* Additional information card to demonstrate scrolling */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Important Notice</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-2">
+                Once you submit your ballot, you will be automatically signed out for security purposes.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Your vote is anonymous and cannot be traced back to you. The system only records that you have voted.
+              </p>
+            </CardContent>
+          </Card>
+          
+          {/* More content to ensure scrolling is necessary */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Election Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                This ballot is for the official student council election. All votes are final and cannot be changed after submission.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-
-        {/* Fixed footer for action buttons */}
-        <div className="max-w-3xl mx-auto pt-6">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <Button
-              variant="outline"
-              onClick={handleBack}
-              className="flex items-center w-full sm:w-auto"
-              disabled={submitting}
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Ballot
-            </Button>
-
-            <Button
-              onClick={handleConfirmSubmit}
-              disabled={submitting}
-              className="flex items-center w-full sm:w-auto"
-            >
-              <Check className="mr-2 h-4 w-4" />
-              {submitting ? "Submitting..." : "Submit Ballot"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Confirmation Dialog */}
-        <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Ballot Submission</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to submit your ballot? Once submitted, you
-                cannot change your selections. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleSubmit}>
-                Confirm Submission
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </main>
+
+      {/* Fixed footer for action buttons to ensure visibility on mobile */}
+      <div className="max-w-3xl mx-auto pt-6 fixed bottom-0 left-0 right-0 bg-background p-4 border-t z-10">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            className="flex items-center w-full sm:w-auto"
+            disabled={submitting}
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Ballot
+          </Button>
+
+          <Button
+            onClick={handleConfirmSubmit}
+            disabled={submitting}
+            className="flex items-center w-full sm:w-auto"
+          >
+            <Check className="mr-2 h-4 w-4" />
+            {submitting ? "Submitting..." : "Submit Ballot"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Ballot Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to submit your ballot? Once submitted, you
+              cannot change your selections. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmit}>
+              Confirm Submission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

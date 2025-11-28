@@ -154,10 +154,10 @@ body {
   }
 
   /* Apply overflow hidden to html and body only */
-  html,
+  /* html,
   body {
     overflow: hidden;
-  }
+  } */
 
   body {
     @apply bg-background text-foreground;
@@ -170,29 +170,6 @@ body {
   }
 
   /* Overflow control classes */
-  .overflow-hidden-all {
-    overflow: hidden;
-  }
-
-  .overflow-x-hidden {
-    overflow-x: hidden;
-  }
-
-  .overflow-y-hidden {
-    overflow-y: hidden;
-  }
-
-  .overflow-auto {
-    overflow: auto;
-  }
-
-  .overflow-x-auto {
-    overflow-x: auto;
-  }
-
-  .overflow-y-auto {
-    overflow-y: auto;
-  }
 
   /* Navigation Link Glow Effects */
   .nav-link {

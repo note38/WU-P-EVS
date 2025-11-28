@@ -92,6 +92,17 @@ export function BallotForm({
       ...prev,
       [positionId]: candidateId,
     }));
+
+    // Enable the Next button immediately when a selection is made
+    // This ensures the button becomes active right away on mobile
+    setTimeout(() => {
+      const nextButton = document.querySelector(
+        "button.flex.items-center.ml-2"
+      );
+      if (nextButton) {
+        nextButton.removeAttribute("disabled");
+      }
+    }, 100);
   };
 
   const goToNextPosition = () => {
@@ -189,7 +200,8 @@ export function BallotForm({
                 }
               />
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
+            {/* Fixed footer for action buttons to ensure visibility on mobile/Safari */}
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 sticky bottom-0 bg-card pt-4 border-t">
               {editPositionId ? (
                 // If editing from review page, show back to review button
                 <Button
@@ -218,7 +230,7 @@ export function BallotForm({
                       disabled={
                         !positions.every((position) => selections[position.id])
                       }
-                      className="w-full sm:w-auto flex items-center"
+                      className="w-full sm:w-auto flex items-center justify-center"
                     >
                       Review Ballot
                     </Button>
@@ -226,7 +238,7 @@ export function BallotForm({
                     <Button
                       onClick={goToNextPosition}
                       disabled={!selections[currentPosition.id]}
-                      className="w-full sm:w-auto flex items-center"
+                      className="w-full sm:w-auto flex items-center justify-center"
                     >
                       Next
                       <ChevronRight className="ml-2 h-4 w-4" />

@@ -79,14 +79,31 @@ export function EditCandidateDialog({
   useEffect(() => {
     if (candidate) {
       setEditForm({
-        name: candidate.name,
-        positionId: candidate.positionId.toString(),
-        partylistId: candidate.partylistId.toString(),
+        name: candidate.name || "", // Ensure name is always a string
+        positionId: candidate.positionId?.toString() || "", // Ensure positionId is always a string
+        partylistId: candidate.partylistId?.toString() || "", // Ensure partylistId is always a string
       });
-      setAvatarPreview(candidate.avatar);
+      setAvatarPreview(candidate.avatar || "/placeholder.svg"); // Ensure avatar preview has a value
+      setAvatarFile(null);
+    } else {
+      // Reset form when no candidate is provided
+      setEditForm({
+        name: "",
+        positionId: "",
+        partylistId: "",
+      });
+      setAvatarPreview("/placeholder.svg");
       setAvatarFile(null);
     }
   }, [candidate]);
+
+  // Handle input changes with proper typing
+  const handleInputChange = (field: keyof typeof editForm, value: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -301,9 +318,7 @@ export function EditCandidateDialog({
               <Input
                 id="edit-name"
                 value={editForm.name}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, name: e.target.value })
-                }
+                onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter candidate name"
               />
             </div>
@@ -314,7 +329,7 @@ export function EditCandidateDialog({
               <Select
                 value={editForm.positionId}
                 onValueChange={(value) =>
-                  setEditForm({ ...editForm, positionId: value })
+                  handleInputChange("positionId", value)
                 }
               >
                 <SelectTrigger>
@@ -339,7 +354,7 @@ export function EditCandidateDialog({
               <Select
                 value={editForm.partylistId}
                 onValueChange={(value) =>
-                  setEditForm({ ...editForm, partylistId: value })
+                  handleInputChange("partylistId", value)
                 }
               >
                 <SelectTrigger>
