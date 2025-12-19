@@ -126,7 +126,10 @@ export async function logoutVoter() {
 }
 
 export async function checkUserRole(userId: string | null) {
+  console.log(`🔍 checkUserRole called with userId: ${userId}`);
+
   if (!userId) {
+    console.log("❌ No user ID provided to checkUserRole");
     return {
       success: false,
       userType: null,
@@ -138,6 +141,8 @@ export async function checkUserRole(userId: string | null) {
     const { getUserByClerkId } = await import("@/lib/clerk-auth");
     const userData = await getUserByClerkId(userId);
 
+    console.log(`📊 getUserByClerkId result for ${userId}:`, userData);
+
     if (userData) {
       return {
         success: true,
@@ -145,6 +150,7 @@ export async function checkUserRole(userId: string | null) {
         user: userData.user,
       };
     } else {
+      console.log(`⚠️ User ${userId} not found in database`);
       return {
         success: false,
         userType: null,

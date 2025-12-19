@@ -49,30 +49,70 @@ export function useElectionAutoStatus(
         method: "GET",
         headers: {
           "Cache-Control": "no-cache",
+          Accept: "application/json",
         },
       });
 
-      if (!checkResponse.ok) {
-        // Handle 404 specifically
-        if (checkResponse.status === 404) {
-          console.warn(
-            "[USE-ELECTION-STATUS] API endpoint not found, skipping check"
-          );
-          return;
-        }
+      // Handle 404 specifically
+      if (checkResponse.status === 404) {
+        console.warn(
+          "[USE-ELECTION-STATUS] API endpoint not found, skipping check"
+        );
+        return;
+      }
 
-        const errorText = await checkResponse.text();
+      // Check if response is OK
+      if (!checkResponse.ok) {
+        const errorText = await checkResponse.clone().text();
         console.error(
           "[USE-ELECTION-STATUS] Check failed:",
           checkResponse.status,
           errorText
         );
+
+        // Check if response is HTML (error page)
+        if (
+          errorText.startsWith("<!DOCTYPE") ||
+          errorText.startsWith("<html")
+        ) {
+          console.error(
+            "[USE-ELECTION-STATUS] API returned HTML instead of JSON - likely an error page"
+          );
+          throw new Error(
+            `API returned HTML instead of JSON: ${checkResponse.status} ${checkResponse.statusText}`
+          );
+        }
+
         throw new Error(
           `Failed to check election statuses: ${checkResponse.status} ${checkResponse.statusText}`
         );
       }
 
-      const checkData = await checkResponse.json();
+      // Try to parse JSON, but catch parsing errors
+      let checkData;
+      try {
+        checkData = await checkResponse.json();
+      } catch (parseError) {
+        const responseText = await checkResponse.clone().text();
+        console.error(
+          "[USE-ELECTION-STATUS] Failed to parse JSON response:",
+          parseError,
+          "Response text:",
+          responseText.substring(0, 200) +
+            (responseText.length > 200 ? "..." : "")
+        );
+
+        // Check if response is HTML (error page)
+        if (
+          responseText.startsWith("<!DOCTYPE") ||
+          responseText.startsWith("<html")
+        ) {
+          throw new Error("API returned HTML instead of JSON");
+        }
+
+        throw new Error("Failed to parse API response as JSON");
+      }
+
       console.log(
         "[USE-ELECTION-STATUS] Check completed, elections needing update:",
         checkData.electionsNeedingUpdate?.length || 0
@@ -90,19 +130,21 @@ export function useElectionAutoStatus(
             method: "POST",
             headers: {
               "Cache-Control": "no-cache",
+              Accept: "application/json",
             },
           }
         );
 
-        if (!updateResponse.ok) {
-          // Handle 404 specifically
-          if (updateResponse.status === 404) {
-            console.warn(
-              "[USE-ELECTION-STATUS] API endpoint not found, skipping update"
-            );
-            return;
-          }
+        // Handle 404 specifically
+        if (updateResponse.status === 404) {
+          console.warn(
+            "[USE-ELECTION-STATUS] API endpoint not found, skipping update"
+          );
+          return;
+        }
 
+        // Check if response is OK
+        if (!updateResponse.ok) {
           console.error(
             "[USE-ELECTION-STATUS] Update failed:",
             updateResponse.status
@@ -110,7 +152,31 @@ export function useElectionAutoStatus(
           throw new Error("Failed to update election statuses");
         }
 
-        const updateData = await updateResponse.json();
+        // Try to parse JSON, but catch parsing errors
+        let updateData;
+        try {
+          updateData = await updateResponse.json();
+        } catch (parseError) {
+          const responseText = await updateResponse.clone().text();
+          console.error(
+            "[USE-ELECTION-STATUS] Failed to parse JSON response:",
+            parseError,
+            "Response text:",
+            responseText.substring(0, 200) +
+              (responseText.length > 200 ? "..." : "")
+          );
+
+          // Check if response is HTML (error page)
+          if (
+            responseText.startsWith("<!DOCTYPE") ||
+            responseText.startsWith("<html")
+          ) {
+            throw new Error("API returned HTML instead of JSON");
+          }
+
+          throw new Error("Failed to parse API response as JSON");
+        }
+
         console.log(
           "[USE-ELECTION-STATUS] Updates completed:",
           updateData.updatedElections?.length || 0,

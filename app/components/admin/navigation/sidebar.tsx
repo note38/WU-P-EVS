@@ -57,7 +57,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link href="/" className="flex items-center gap-2">
             <img src="/wup-logo.png" className="h-14 w-auto" />
             <span className="text-xl font-bold tracking-tight text-foreground">
-              WUP EVS
+              WUP DVS
             </span>
           </Link>
           <Button

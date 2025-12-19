@@ -2,9 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Fix the workspace root warning
   outputFileTracingRoot: process.cwd(),
   // Disable type checking during build for deployment
@@ -57,6 +54,8 @@ const nextConfig: NextConfig = {
       "date-fns",
     ],
   },
+  // Add empty turbopack config to silence the error
+  turbopack: {},
   // Bundle analyzer and optimization
   webpack: (config, { isServer, dev }) => {
     if (!isServer && !dev) {

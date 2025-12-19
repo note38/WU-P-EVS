@@ -2,8 +2,11 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function CustomSignIn() {
+  const searchParams = useSearchParams();
+
   // Force focus on the email input when component mounts
   useEffect(() => {
     const focusEmailInput = () => {
@@ -25,6 +28,48 @@ export default function CustomSignIn() {
       clearTimeout(fallbackFocus);
     };
   }, []);
+
+  // Determine redirect URL based on environment and query parameters
+  const getRedirectUrl = () => {
+    // First check if there's a redirect_url parameter
+    const redirectParam = searchParams.get("redirect_url");
+    if (redirectParam) {
+      try {
+        // Handle relative URLs directly
+        if (redirectParam.startsWith("/")) {
+          console.log(
+            "🔧 Using relative redirect URL from parameter:",
+            redirectParam
+          );
+          return redirectParam;
+        }
+
+        // Handle absolute URLs by checking if they're on the same origin
+        const url = new URL(
+          decodeURIComponent(redirectParam),
+          typeof window !== "undefined"
+            ? window.location.origin
+            : "http://localhost:3000"
+        );
+        if (
+          typeof window !== "undefined" &&
+          url.origin === window.location.origin
+        ) {
+          console.log("🔧 Using redirect URL from parameter:", url.pathname);
+          return url.pathname;
+        }
+        // If it's pointing to a different domain, we should ignore it for security
+        console.log("⚠️ Ignoring external redirect URL:", redirectParam);
+      } catch (e) {
+        console.error("Error parsing redirect URL parameter:", e);
+      }
+    }
+
+    // Fallback to default redirect
+    return "/dashboard-redirect";
+  };
+
+  const redirectUrl = getRedirectUrl();
 
   return (
     <>
@@ -49,12 +94,12 @@ export default function CustomSignIn() {
             </div>
           </div>
           <div className="font-semibold leading-none tracking-tight text-2xl text-center">
-            WU-P EVS
+            WU-P DVS
           </div>
           <div className="text-sm text-muted-foreground text-center">
             Wesleyan University-Philippines
             <br />
-            Enhanced Voting System
+            Develop Voting System
           </div>
         </div>
         <div className="px-6 pb-6">
@@ -129,11 +174,10 @@ export default function CustomSignIn() {
                 socialButtonsPlacement: "top",
               },
             }}
-            signUpUrl={undefined}
-            // Removed redundant redirect URLs to prevent conflicts
-            forceRedirectUrl="/api/auth/validate-session"
-            fallbackRedirectUrl="/api/auth/validate-session"
-            afterSignInUrl="/api/auth/validate-session"
+            signUpUrl="/sign-up"
+            // Use the newer Clerk redirect props instead of deprecated ones
+            fallbackRedirectUrl="/dashboard-redirect"
+            forceRedirectUrl="/dashboard-redirect"
           />
         </div>
       </div>

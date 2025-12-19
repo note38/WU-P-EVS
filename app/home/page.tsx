@@ -26,9 +26,6 @@ import { useHomeResults } from "@/hooks/use-home-results";
 import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 import { useElectionAutoStatus } from "@/hooks/use-election-auto-status";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { checkUserRole } from "@/action/auth";
 
 // Critical path optimization - only load what's needed for first paint
 const Header = dynamic(
@@ -573,8 +570,6 @@ const PositionSelector = memo(function PositionSelector({
 });
 
 export default function Home() {
-  const { isLoaded, userId } = useAuth();
-  const router = useRouter();
   const {
     elections: liveElections,
     activeElection,
@@ -586,9 +581,6 @@ export default function Home() {
   const [showElectionSelector, setShowElectionSelector] = useState(false);
   const [isUpdatingPercentages, setIsUpdatingPercentages] = useState(false);
   const { toast } = useToast();
-
-  // Remove the redirect logic for authenticated users to prevent loops
-  // Let Clerk handle redirects via forceRedirectUrl
 
   // Use the auto status hook to check for election status updates
   const { manualCheck } = useElectionAutoStatus({
@@ -720,17 +712,14 @@ export default function Home() {
     [currentElection]
   );
 
-  // Remove the redirect logic for authenticated users to prevent loops
-  // The home page should be accessible to everyone
-
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="critical-layout">
       <Suspense fallback={null}>
         <Header onSwitchElection={handleSwitchElection} />
       </Suspense>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="space-y-6 lg:space-y-8 max-w-6xl mx-auto">
+      <main className="critical-main">
+        <div className="space-y-6 lg:space-y-8">
           {/* Live Results Header */}
           {!loading && (
             <div className="flex items-center justify-between py-6">

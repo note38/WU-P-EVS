@@ -606,7 +606,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
               <img src="${logoSrc}" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
               <div class="university-info">
                 <h1 class="university-name">Wesleyan University-Philippines</h1>
-                <p class="system-name">Enhanced Voting System</p>
+                <p class="system-name">Develop Voting System</p>
               </div>
             </div>
             <h2 class="election-title">All Voters Report</h2>
@@ -833,7 +833,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
               <img src="${logoSrc}" alt="Wesleyan University Philippines Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
               <div class="university-info">
                 <h1 class="university-name">Wesleyan University-Philippines</h1>
-                <p class="system-name">Enhanced Voting System</p>
+                <p class="system-name">Develop Voting System</p>
               </div>
             </div>
             <h2 class="election-title">Selected Voters Report</h2>

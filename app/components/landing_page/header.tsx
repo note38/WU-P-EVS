@@ -27,7 +27,7 @@ export const Header = memo(function Header({ onSwitchElection }: HeaderProps) {
             decoding="sync"
           />
           <h1 className="text-xl font-bold hidden sm:block">
-            AWUP Voting System
+            WUP Voting System
           </h1>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">

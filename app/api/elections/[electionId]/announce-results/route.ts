@@ -175,7 +175,7 @@
 //           </div>
 
 //           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-//             This is an official announcement from the Wesleyan University Philippines Enhanced Voting System.
+//             This is an official announcement from the Wesleyan University Philippines Develop Voting System.
 //             If you have any questions about these results, please contact the election administrator.
 //           </p>
 //         </div>

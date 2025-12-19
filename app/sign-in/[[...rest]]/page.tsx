@@ -1,6 +1,5 @@
 import CustomSignIn from "@/app/components/auth/custom-sign-in";
 import BackgroundPaths from "@/components/ui/backgound-paths";
-import { Suspense } from "react";
 import SignInErrorHandler from "./sign-in-error-handler";
 
 export default function SignInPage() {
@@ -10,9 +9,7 @@ export default function SignInPage() {
         <BackgroundPaths />
       </div>
       <div className="container max-w-md px-4 z-10 flex items-center justify-center">
-        <Suspense fallback={<CustomSignIn />}>
-          <SignInErrorHandler />
-        </Suspense>
+        <SignInErrorHandler />
       </div>
     </div>
   );

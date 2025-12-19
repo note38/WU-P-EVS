@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 interface Developer {
@@ -21,25 +20,25 @@ const developers: Developer[] = [
     id: 1,
     name: "Chardie Gotis",
     title: "Developer",
-    avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Alex",
+    avatar: "/developer_avatar/chardie.png",
   },
   {
     id: 2,
     name: "Hanes Talania",
     title: "Developer",
-    avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Sam",
+    avatar: "/developer_avatar/hanes.jpg",
   },
   {
     id: 3,
     name: "Lloyd Ramos",
     title: "Developer",
-    avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Taylor",
+    avatar: "/developer_avatar/llyod.jpg",
   },
   {
     id: 4,
     name: "Charvin Austria",
     title: "Developer",
-    avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Jordan",
+    avatar: "/developer_avatar/charvin.jpg",
   },
 ];
 
@@ -64,16 +63,19 @@ export function DevelopersDialog({
               key={developer.id}
               className="flex flex-col items-center rounded-lg border p-4 text-center hover:bg-accent transition-colors"
             >
-              <div className="relative h-16 w-16 overflow-hidden rounded-full border mb-3">
+              <div className="relative flex items-center justify-center mb-3">
                 {developer.avatar ? (
-                  <Avatar className="h-full w-full">
-                    <AvatarImage src={developer.avatar} alt={developer.name} />
-                    <AvatarFallback>
-                      <UserAvatarSvg name={developer.name} size={64} />
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="rounded-full overflow-hidden border">
+                    <img
+                      src={developer.avatar}
+                      alt={developer.name}
+                      className="object-contain max-h-16 max-w-16"
+                    />
+                  </div>
                 ) : (
-                  <UserAvatarSvg name={developer.name} size={64} />
+                  <div className="h-16 w-16 rounded-full border flex items-center justify-center">
+                    <UserAvatarSvg name={developer.name} size={64} />
+                  </div>
                 )}
               </div>
               <h3 className="font-semibold">{developer.name}</h3>

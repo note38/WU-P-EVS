@@ -104,7 +104,10 @@ export async function GET(req: NextRequest) {
         // Sign out the user from Clerk first to clear the session
         const signOutUrl = new URL("/sign-in", req.url);
         signOutUrl.searchParams.set("error", "email_not_registered");
-        signOutUrl.searchParams.set("message", "This email is not registered in our system. Please try with a different email.");
+        signOutUrl.searchParams.set(
+          "message",
+          "This email is not registered in our system. Please try with a different email."
+        );
         return NextResponse.redirect(signOutUrl);
       }
 
@@ -139,7 +142,33 @@ export async function GET(req: NextRequest) {
     const isRedirect = url.searchParams.get("redirect") !== "false";
 
     if (isRedirect) {
-      // Redirect based on user type
+      // Check if there's an intended redirect URL in the referrer
+      const referer = req.headers.get("referer");
+      if (referer) {
+        try {
+          const refererUrl = new URL(referer);
+          // Check if referer has a redirect_url parameter
+          const redirectParam = refererUrl.searchParams.get("redirect_url");
+          if (redirectParam) {
+            // Decode and validate the redirect URL
+            const decodedRedirectUrl = decodeURIComponent(redirectParam);
+            const redirectUrl = new URL(decodedRedirectUrl, req.url);
+
+            // Only redirect to URLs on the same origin
+            if (redirectUrl.origin === new URL(req.url).origin) {
+              console.log(
+                "🔀 Redirecting to intended URL:",
+                redirectUrl.pathname
+              );
+              return NextResponse.redirect(redirectUrl);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing referer redirect URL:", e);
+        }
+      }
+
+      // Default redirects based on user type
       if (userData.type === "admin") {
         return NextResponse.redirect(new URL("/admin_dashboard", req.url));
       } else if (userData.type === "voter") {

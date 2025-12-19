@@ -125,12 +125,19 @@ async function updateElectionStatus(req: NextRequest, context: any) {
     }
 
     // Update the election status
+    // If status is being set to COMPLETED, also set hideName to false
+    const updateData: any = {
+      status: data.status,
+      updatedAt: new Date(),
+    };
+
+    if (data.status === "COMPLETED") {
+      updateData.hideName = false;
+    }
+
     const updatedElection = await prisma.election.update({
       where: { id: electionId },
-      data: {
-        status: data.status,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     return NextResponse.json({

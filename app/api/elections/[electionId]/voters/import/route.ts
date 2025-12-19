@@ -2,7 +2,6 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 // Add runtime configuration
-export const runtime = "nodejs";
 
 export async function POST(
   request: NextRequest,

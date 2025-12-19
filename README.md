@@ -1,6 +1,6 @@
-# WUP Voting System
+# WUP Develop Voting System
 
-Enhanced Electronic Voting System for Wesleyan University-Philippines
+Develop Electronic Voting System for Wesleyan University-Philippines
 
 ## Prerequisites
 

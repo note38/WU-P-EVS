@@ -137,12 +137,20 @@ export async function GET(request: NextRequest) {
       );
 
       try {
+        // Prepare update data
+        const updateData: any = {
+          status: newStatus,
+          updatedAt: now,
+        };
+
+        // If setting to COMPLETED, also set hideName to false
+        if (newStatus === "COMPLETED") {
+          updateData.hideName = false;
+        }
+
         const updatedElection = await prisma.election.update({
           where: { id: election.id },
-          data: {
-            status: newStatus,
-            updatedAt: now,
-          },
+          data: updateData,
         });
 
         console.log(

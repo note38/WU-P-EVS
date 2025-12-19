@@ -29,6 +29,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/test-backup",
   "/api/test-restore",
   "/api/test-db",
+  "/dashboard-redirect", // Add this line to make dashboard redirect public
+  "/api/elections/auto-status-update", // Add this line to make auto-status-update API public
 ]);
 
 // Cron routes require special handling
@@ -75,6 +77,17 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Handle regular routes
   if (!isPublicRoute(req)) {
+    // Check if user is authenticated
+    const { userId } = await auth();
+
+    if (!userId) {
+      // User is not authenticated, redirect to sign-in with redirect URL
+      const signInUrl = new URL("/sign-in", req.url);
+      signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
+      return NextResponse.redirect(signInUrl);
+    }
+
+    // User is authenticated, protect the route
     await auth.protect();
   }
 });

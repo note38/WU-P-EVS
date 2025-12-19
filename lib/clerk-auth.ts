@@ -35,6 +35,8 @@ export async function checkUserExists(
   email: string
 ): Promise<"admin" | "voter" | null> {
   try {
+    console.log(`🔍 Checking if user exists with email: ${email}`);
+
     // Check if email exists in admin users
     const adminUser = await prisma.user.findUnique({
       where: { email },
@@ -42,6 +44,7 @@ export async function checkUserExists(
     });
 
     if (adminUser) {
+      console.log(`✅ Admin user found with email: ${email}`);
       return "admin";
     }
 
@@ -52,9 +55,11 @@ export async function checkUserExists(
     });
 
     if (voter) {
+      console.log(`✅ Voter found with email: ${email}`);
       return "voter";
     }
 
+    console.log(`❌ No user found with email: ${email}`);
     return null;
   } catch (error) {
     console.error("Error checking user existence:", error);
@@ -168,31 +173,67 @@ export async function syncVoter(clerkData: ClerkUserData) {
       });
       return updatedVoter;
     } else {
-      // Find the voter by email to get existing data
+      // Try to find the voter by email to get existing data
       const existingVoterByEmail = await prisma.voter.findUnique({
         where: { email },
       });
 
-      if (!existingVoterByEmail) {
-        throw new Error("Voter not found in database");
-      }
+      if (existingVoterByEmail) {
+        // Update the existing voter with Clerk ID
+        const updatedVoter = await prisma.voter.update({
+          where: { email },
+          data: {
+            clerkId: clerkData.id,
+            firstName: clerkData.first_name || existingVoterByEmail.firstName,
+            lastName: clerkData.last_name || existingVoterByEmail.lastName,
+            avatar: clerkData.image_url || existingVoterByEmail.avatar || "", // Ensure we're storing the avatar URL
+            updatedAt: new Date(),
+          },
+        });
+        console.log(`✅ Voter linked with Clerk ID: ${updatedVoter.id}`, {
+          avatar: updatedVoter.avatar,
+          clerkId: updatedVoter.clerkId,
+        });
+        return updatedVoter;
+      } else {
+        // FOR DEVELOPMENT: Create a new voter if not found
+        // In production, you might want to throw an error instead
+        console.log(
+          `⚠️ Voter not found by email, creating new voter for ${email}`
+        );
 
-      // Update the existing voter with Clerk ID
-      const updatedVoter = await prisma.voter.update({
-        where: { email },
-        data: {
-          clerkId: clerkData.id,
-          firstName: clerkData.first_name || existingVoterByEmail.firstName,
-          lastName: clerkData.last_name || existingVoterByEmail.lastName,
-          avatar: clerkData.image_url || existingVoterByEmail.avatar || "", // Ensure we're storing the avatar URL
-          updatedAt: new Date(),
-        },
-      });
-      console.log(`✅ Voter linked with Clerk ID: ${updatedVoter.id}`, {
-        avatar: updatedVoter.avatar,
-        clerkId: updatedVoter.clerkId,
-      });
-      return updatedVoter;
+        // Generate a default password
+        const defaultPassword = "voter123";
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+        // Get a default election and year for the voter
+        const defaultElection = await prisma.election.findFirst();
+        const defaultYear = await prisma.year.findFirst();
+
+        if (!defaultElection || !defaultYear) {
+          throw new Error("No election or year found to assign voter to");
+        }
+
+        const newVoter = await prisma.voter.create({
+          data: {
+            clerkId: clerkData.id,
+            email,
+            firstName: clerkData.first_name || email.split("@")[0],
+            lastName: clerkData.last_name || "",
+            middleName: "", // Required field
+            avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
+            hashpassword: hashedPassword,
+            electionId: defaultElection.id,
+            yearId: defaultYear.id,
+            status: "UNCAST", // Use the correct enum value
+          },
+        });
+        console.log(`✅ New voter created: ${newVoter.id}`, {
+          avatar: newVoter.avatar,
+          clerkId: newVoter.clerkId,
+        });
+        return newVoter;
+      }
     }
   } catch (error) {
     console.error("Error syncing voter:", error);
@@ -246,6 +287,8 @@ export async function deleteUser(clerkId: string) {
  */
 export async function getUserByClerkId(clerkId: string) {
   try {
+    console.log(`🔍 Looking up user by Clerk ID: ${clerkId}`);
+
     // Try to find admin user
     const adminUser = await prisma.user.findUnique({
       where: { clerkId },
@@ -255,6 +298,7 @@ export async function getUserByClerkId(clerkId: string) {
     });
 
     if (adminUser) {
+      console.log(`✅ Admin user found by Clerk ID: ${clerkId}`);
       return { type: "admin", user: adminUser };
     }
 
@@ -268,9 +312,11 @@ export async function getUserByClerkId(clerkId: string) {
     });
 
     if (voter) {
+      console.log(`✅ Voter found by Clerk ID: ${clerkId}`);
       return { type: "voter", user: voter };
     }
 
+    console.log(`❌ No user found by Clerk ID: ${clerkId}`);
     return null;
   } catch (error) {
     console.error("Error getting user by Clerk ID:", error);

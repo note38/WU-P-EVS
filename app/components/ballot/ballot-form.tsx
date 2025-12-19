@@ -158,7 +158,7 @@ export function BallotForm({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4">
+    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 py-8 font-sans">
       <h2 className="text-xl font-bold mb-4 text-center">{electionName}</h2>
 
       {/* Progress indicator */}
