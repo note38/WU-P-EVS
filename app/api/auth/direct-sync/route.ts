@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
         where: { id: existingUser.id },
         data: {
           clerkId: userId,
-          updatedAt: new Date(),
         },
       });
     } else {
@@ -72,7 +71,6 @@ export async function POST(req: NextRequest) {
         where: { id: existingUser.id },
         data: {
           clerkId: userId,
-          updatedAt: new Date(),
         },
       });
     }

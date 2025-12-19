@@ -18,24 +18,37 @@ export async function GET(req: NextRequest) {
     let userData = await getUserByClerkId(userId);
 
     // If not found by Clerk ID, try to get user data from Clerk and check by email
+    console.log(
+      `🔍 Checking if we should perform email lookup. userData is:`,
+      userData
+    );
     if (!userData) {
       console.log(
         `⚠️ User ${userId} not found by Clerk ID, trying email lookup...`
       );
 
       try {
+        console.log(`🔍 Entering email lookup try block`);
         // Get user data from Clerk
+        console.log(`🔍 Attempting to get Clerk user data for: ${userId}`);
         const { clerkClient } = await import("@clerk/nextjs/server");
         const clerk = await clerkClient();
         const clerkUser = await clerk.users.getUser(userId);
+        console.log(
+          `📊 Clerk user data retrieved:`,
+          clerkUser?.emailAddresses?.[0]?.emailAddress
+        );
 
         const email = clerkUser.emailAddresses[0]?.emailAddress;
+        console.log(`📧 Email extracted from Clerk user: ${email}`);
         if (email) {
           console.log(`📧 Checking user existence for email: ${email}`);
 
           // Check if user exists in database by email
           const userType = await checkUserExists(email);
+          console.log(`📊 Email lookup result for ${email}:`, userType);
 
+          console.log(`📧 User type found: ${userType}`);
           if (userType) {
             console.log(
               `✅ User found by email as ${userType}, linking Clerk ID...`
@@ -50,11 +63,16 @@ export async function GET(req: NextRequest) {
                 },
               });
 
+              console.log(`📧 Checking if admin user exists:`, adminUser);
               if (adminUser) {
+                console.log(
+                  `🔗 Linking Clerk ID ${userId} to admin user ${adminUser.id}`
+                );
                 await prisma.user.update({
                   where: { id: adminUser.id },
                   data: { clerkId: userId },
                 });
+                console.log(`✅ Successfully linked Clerk ID to admin user`);
 
                 userData = {
                   type: "admin",
@@ -70,11 +88,16 @@ export async function GET(req: NextRequest) {
                 },
               });
 
+              console.log(`📧 Checking if voter exists:`, voter);
               if (voter) {
+                console.log(
+                  `🔗 Linking Clerk ID ${userId} to voter ${voter.id}`
+                );
                 await prisma.voter.update({
                   where: { id: voter.id },
                   data: { clerkId: userId },
                 });
+                console.log(`✅ Successfully linked Clerk ID to voter`);
 
                 userData = {
                   type: "voter",
@@ -86,6 +109,8 @@ export async function GET(req: NextRequest) {
         }
       } catch (clerkError) {
         console.error("❌ Error getting Clerk user data:", clerkError);
+        // Re-throw the error so it can be handled properly
+        throw clerkError;
       }
     }
 
@@ -180,7 +205,10 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("❌ Session validation error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

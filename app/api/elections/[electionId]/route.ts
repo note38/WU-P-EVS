@@ -170,7 +170,6 @@ export async function PUT(req: NextRequest, context: any) {
             description: data.description || "",
             startDate: startDateTime,
             endDate: endDateTime,
-            updatedAt: new Date(),
           },
         });
 
@@ -266,8 +265,6 @@ export async function PUT(req: NextRequest, context: any) {
               const partylistsData = partylistsToCreate.map((name: string) => ({
                 name,
                 electionId,
-                createdAt: new Date(),
-                updatedAt: new Date(),
               }));
 
               await tx.partylist.createMany({
@@ -355,36 +352,65 @@ export async function DELETE(req: NextRequest, context: any) {
       }
 
       // Delete the election and all related data in a transaction
+      // We need to delete in the correct order due to foreign key constraints
+      // Let's first check what data is associated with this election
+      const [
+        voteCount,
+        voterCount,
+        candidateCount,
+        positionCount,
+        partylistCount,
+      ] = await Promise.all([
+        prisma.vote.count({ where: { electionId } }),
+        prisma.voter.count({ where: { electionId } }),
+        prisma.candidate.count({ where: { electionId } }),
+        prisma.position.count({ where: { electionId } }),
+        prisma.partylist.count({ where: { electionId } }),
+      ]);
+
+      console.log(
+        `Election ${electionId} has: ${voteCount} votes, ${voterCount} voters, ${candidateCount} candidates, ${positionCount} positions, ${partylistCount} partylists`
+      );
+
+      // Delete all related data in the correct order
+      // We need to be very careful about the order due to foreign key constraints
       await prisma.$transaction(async (tx: any) => {
-        // Delete all votes for this election first
+        // Delete all votes for this election first (depends on election, candidate, position, voter)
         await tx.vote.deleteMany({
           where: { electionId },
         });
 
-        // Delete all candidates for this election
+        // Delete all candidates for this election (depends on election, position, partylist)
         await tx.candidate.deleteMany({
           where: { electionId },
         });
 
-        // Delete all positions for this election
+        // Delete all positions for this election (depends on election)
         await tx.position.deleteMany({
           where: { electionId },
         });
 
-        // Delete all partylists for this election
+        // Delete all partylists for this election (depends on election)
         await tx.partylist.deleteMany({
           where: { electionId },
         });
 
-        // Delete all voters associated with this election
-        // Note: Because of onDelete: SetNull, this will set electionId to NULL rather than delete voters
-        // But we still need to handle this properly
+        // Delete all voters for this election (depends on election, year)
+        // This should set their electionId to null due to onDelete: SetNull in the schema
+        await tx.voter.updateMany({
+          where: { electionId },
+          data: { electionId: null },
+        });
 
         // Finally, delete the election itself
         await tx.election.delete({
           where: { id: electionId },
         });
       });
+
+      console.log(
+        `Successfully deleted election ${electionId} and all associated data`
+      );
 
       return NextResponse.json({
         message: "Election deleted successfully",

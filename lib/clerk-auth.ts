@@ -42,6 +42,7 @@ export async function checkUserExists(
       where: { email },
       select: { id: true, role: true },
     });
+    console.log(`📊 Admin user lookup result for ${email}:`, adminUser);
 
     if (adminUser) {
       console.log(`✅ Admin user found with email: ${email}`);
@@ -53,6 +54,7 @@ export async function checkUserExists(
       where: { email },
       select: { id: true, role: true },
     });
+    console.log(`📊 Voter lookup result for ${email}:`, voter);
 
     if (voter) {
       console.log(`✅ Voter found with email: ${email}`);
@@ -97,7 +99,6 @@ export async function syncAdminUser(clerkData: ClerkUserData) {
           email,
           username: clerkData.username || email.split("@")[0],
           avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
-          updatedAt: new Date(),
         },
       });
       console.log(`✅ Admin user updated: ${updatedUser.id}`, {
@@ -164,7 +165,6 @@ export async function syncVoter(clerkData: ClerkUserData) {
           firstName: clerkData.first_name || "",
           lastName: clerkData.last_name || "",
           avatar: clerkData.image_url || "", // Ensure we're storing the avatar URL
-          updatedAt: new Date(),
         },
       });
       console.log(`✅ Voter updated: ${updatedVoter.id}`, {
@@ -187,7 +187,6 @@ export async function syncVoter(clerkData: ClerkUserData) {
             firstName: clerkData.first_name || existingVoterByEmail.firstName,
             lastName: clerkData.last_name || existingVoterByEmail.lastName,
             avatar: clerkData.image_url || existingVoterByEmail.avatar || "", // Ensure we're storing the avatar URL
-            updatedAt: new Date(),
           },
         });
         console.log(`✅ Voter linked with Clerk ID: ${updatedVoter.id}`, {

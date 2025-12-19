@@ -128,7 +128,6 @@ async function updateElectionStatus(req: NextRequest, context: any) {
     // If status is being set to COMPLETED, also set hideName to false
     const updateData: any = {
       status: data.status,
-      updatedAt: new Date(),
     };
 
     if (data.status === "COMPLETED") {

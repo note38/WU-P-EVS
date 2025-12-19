@@ -138,10 +138,102 @@ export async function checkUserRole(userId: string | null) {
   }
 
   try {
-    const { getUserByClerkId } = await import("@/lib/clerk-auth");
-    const userData = await getUserByClerkId(userId);
+    const { getUserByClerkId, checkUserExists } = await import(
+      "@/lib/clerk-auth"
+    );
+    let userData = await getUserByClerkId(userId);
 
     console.log(`📊 getUserByClerkId result for ${userId}:`, userData);
+
+    // If not found by Clerk ID, try to get user data from Clerk and check by email
+    if (!userData) {
+      console.log(
+        `⚠️ User ${userId} not found by Clerk ID, trying email lookup...`
+      );
+
+      try {
+        // Get user data from Clerk
+        console.log(`🔍 Attempting to get Clerk user data for: ${userId}`);
+        const { clerkClient } = await import("@clerk/nextjs/server");
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(userId);
+        console.log(
+          `📊 Clerk user data retrieved:`,
+          clerkUser?.emailAddresses?.[0]?.emailAddress
+        );
+
+        const email = clerkUser.emailAddresses[0]?.emailAddress;
+        if (email) {
+          console.log(`📧 Checking user existence for email: ${email}`);
+
+          // Check if user exists in database by email
+          const userType = await checkUserExists(email);
+          console.log(`📊 Email lookup result for ${email}:`, userType);
+
+          if (userType) {
+            console.log(
+              `✅ User found by email as ${userType}, linking Clerk ID...`
+            );
+
+            const { prisma } = await import("@/lib/db");
+
+            // Link the Clerk ID to the existing user
+            if (userType === "admin") {
+              const adminUser = await prisma.user.findUnique({
+                where: { email },
+                include: {
+                  elections: true,
+                },
+              });
+              console.log(`📧 Checking if admin user exists:`, adminUser);
+
+              if (adminUser) {
+                console.log(
+                  `🔗 Linking Clerk ID ${userId} to admin user ${adminUser.id}`
+                );
+                await prisma.user.update({
+                  where: { id: adminUser.id },
+                  data: { clerkId: userId },
+                });
+                console.log(`✅ Successfully linked Clerk ID to admin user`);
+
+                userData = {
+                  type: "admin",
+                  user: { ...adminUser, clerkId: userId },
+                };
+              }
+            } else if (userType === "voter") {
+              const voter = await prisma.voter.findUnique({
+                where: { email },
+                include: {
+                  election: true,
+                  year: true,
+                },
+              });
+              console.log(`📧 Checking if voter exists:`, voter);
+
+              if (voter) {
+                console.log(
+                  `🔗 Linking Clerk ID ${userId} to voter ${voter.id}`
+                );
+                await prisma.voter.update({
+                  where: { id: voter.id },
+                  data: { clerkId: userId },
+                });
+                console.log(`✅ Successfully linked Clerk ID to voter`);
+
+                userData = {
+                  type: "voter",
+                  user: { ...voter, clerkId: userId },
+                };
+              }
+            }
+          }
+        }
+      } catch (clerkError) {
+        console.error("❌ Error getting Clerk user data:", clerkError);
+      }
+    }
 
     if (userData) {
       return {

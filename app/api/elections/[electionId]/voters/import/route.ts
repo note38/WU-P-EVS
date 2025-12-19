@@ -5,10 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { electionId: string } }
+  { params }: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    const electionId = parseInt(params.electionId);
+    // Await params before accessing properties (Next.js 15 requirement)
+    const { electionId: electionIdStr } = await params;
+    const electionId = parseInt(electionIdStr);
     const body = await request.json();
     const { yearId, departmentId, allDepartments } = body;
 
@@ -142,10 +144,11 @@ export async function POST(
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
+
+    // Log error without params if we couldn't extract them
     console.error("Error details:", {
       message: errorMessage,
       stack: errorStack,
-      params: { electionId: params.electionId },
     });
 
     return NextResponse.json(

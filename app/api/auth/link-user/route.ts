@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
           where: { id: adminUser.id },
           data: {
             clerkId: userId,
-            updatedAt: new Date(),
           },
         });
         console.log("✅ Admin user linked with Clerk ID");
@@ -83,7 +82,6 @@ export async function POST(req: NextRequest) {
             where: { id: voter.id },
             data: {
               clerkId: userId,
-              updatedAt: new Date(),
             },
           });
           console.log("✅ Voter linked with Clerk ID");

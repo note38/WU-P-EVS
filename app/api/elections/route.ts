@@ -112,8 +112,6 @@ export async function POST(req: NextRequest) {
               startDate: startDateTime,
               endDate: endDateTime,
               createdById: userIdNum!,
-              createdAt: new Date(),
-              updatedAt: new Date(),
               hideName: true, // Set hideName to true by default for new elections
             },
           });
@@ -138,8 +136,6 @@ export async function POST(req: NextRequest) {
           const partylistsData = uniqueNames.map((name: string) => ({
             name,
             electionId: newElection.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           }));
 
           await tx.partylist.createMany({
