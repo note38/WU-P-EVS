@@ -3,7 +3,6 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build:deploy",
   "framework": "nextjs",
-  "nodeVersion": "20.x",
   "crons": [
     {
       "path": "/api/cron/election-status",
