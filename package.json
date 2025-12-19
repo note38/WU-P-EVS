@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:fast": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate && next build",
-    "build:deploy": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate && next build",
+    "build:fast": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate --no-engine && next build",
+    "build:deploy": "cross-env SKIP_ENV_VALIDATION=1 TYPESCRIPT_DISABLE_TYPE_CHECKING=1 npx prisma generate --no-engine && next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "node --loader ts-node/esm prisma/seed.ts",
