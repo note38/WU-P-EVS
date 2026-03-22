@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"; 
 import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
 
 interface Developer {

@@ -21,7 +21,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/link-user",
   "/api/auth/get-user",
   "/api/voters(.*)",
-  "/api/years(.*)", // Add this line to make years API public for testing
+  "/api/years(.*)", 
   "/ballot/thank-you",
   "/test-auth",
   "/api/backup",
@@ -29,8 +29,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/test-backup",
   "/api/test-restore",
   "/api/test-db",
-  "/dashboard-redirect", // Add this line to make dashboard redirect public
-  "/api/elections/auto-status-update", // Add this line to make auto-status-update API public
+  "/dashboard-redirect", 
+  "/api/elections/auto-status-update", 
 ]);
 
 // Cron routes require special handling
