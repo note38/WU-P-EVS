@@ -111,6 +111,22 @@ export function BallotForm({
     }
   };
 
+  const handlePreferNotToVote = () => {
+    // Mark current position as skipped
+    if (currentPosition) {
+      setSelections((prev) => ({
+        ...prev,
+        [currentPosition.id]: "prefer_not_to_vote",
+      }));
+    }
+    // Move to next or review
+    if (isLastPosition) {
+      handleReview();
+    } else {
+      goToNextPosition();
+    }
+  };
+
   const goToPreviousPosition = () => {
     if (currentPositionIndex > 0) {
       setCurrentPositionIndex(currentPositionIndex - 1);
@@ -222,6 +238,15 @@ export function BallotForm({
                   >
                     <ChevronLeft className="mr-2 h-4 w-4" />
                     Previous
+                  </Button>
+
+                  {/* Prefer not to vote button */}
+                  <Button
+                    variant="secondary"
+                    onClick={handlePreferNotToVote}
+                    className="w-full sm:w-auto flex items-center justify-center"
+                  >
+                    Prefer not to vote
                   </Button>
 
                   {isLastPosition ? (
