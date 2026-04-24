@@ -88,18 +88,16 @@ export default function CustomSignIn() {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <img
                 src="/wup-logo.png"
-                alt="WUP Logo"
+                alt="DWU-P-AEVS Logo"
                 className="w-16 h-16 text-primary"
               />
             </div>
           </div>
           <div className="font-semibold leading-none tracking-tight text-2xl text-center">
-            WU-P DVS
+            DWU-P-AEVS
           </div>
           <div className="text-sm text-muted-foreground text-center">
-            Wesleyan University-Philippines
-            <br />
-            Develop Voting System
+            Development of WU-P Aurora Enhanced Voting System
           </div>
         </div>
         <div className="px-6 pb-6">

@@ -111,10 +111,10 @@
 //           </div>
 //         </div>
 //         <CardTitle className="text-2xl font-bold text-center">
-//           WU-P EVS
+//           DWU-P-AEVS
 //         </CardTitle>
 //         <CardDescription className="text-center">
-//           Wesleyan University Philippines - Enhanced Voting System
+//           Development of WU-P Aurora Enhanced Voting System (DWU-P-AEVS)
 //         </CardDescription>
 //       </CardHeader>
 //       <CardContent>

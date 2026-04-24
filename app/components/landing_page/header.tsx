@@ -22,12 +22,12 @@ export const Header = memo(function Header({ onSwitchElection }: HeaderProps) {
           <img
             src="/wup-logo.png"
             className="h-14 w-auto"
-            alt="AWUP Logo"
+            alt="DWU-P-AEVS Logo"
             loading="eager"
             decoding="sync"
           />
           <h1 className="text-xl font-bold hidden sm:block">
-            WUP Voting System
+            DWU-P-AEVS
           </h1>
         </div>
         <div className="flex items-center gap-1 sm:gap-2">

@@ -21,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WUP Voting System",
-  description: "Electronic voting system for AWUP",
+  title: "DWU-P-AEVS",
+  description: "Development of WU-P Aurora Enhanced Voting System",
   icons: {
     icon: "/wup-logo.png",
   },

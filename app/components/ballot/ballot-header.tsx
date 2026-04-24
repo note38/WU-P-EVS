@@ -48,12 +48,12 @@ export function BallotHeader() {
             <img
               src="/wup-logo.png"
               className="h-10 w-auto sm:h-14"
-              alt="AWUP Logo"
+              alt="DWU-P-AEVS Logo"
               loading="eager"
               decoding="sync"
             />
             <h1 className="text-lg font-bold hidden sm:block">
-              AWUP Voting System
+              DWU-P-AEVS
             </h1>
           </div>
           <div className="flex items-center gap-1">
@@ -71,12 +71,12 @@ export function BallotHeader() {
           <img
             src="/wup-logo.png"
             className="h-10 w-auto sm:h-14"
-            alt="AWUP Logo"
+            alt="DWU-P-AEVS Logo"
             loading="eager"
             decoding="sync"
           />
           <h1 className="text-lg font-bold hidden sm:block">
-            AWUP Voting System
+            DWU-P-AEVS
           </h1>
         </div>
 

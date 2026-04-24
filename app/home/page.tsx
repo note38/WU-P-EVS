@@ -728,7 +728,7 @@ export default function Home() {
                   <h1 className="text-2xl lg:text-4xl font-bold tracking-tight">
                     {currentElection?.name || (
                       <>
-                        Wesleyan University Philippines <br /> Election Results
+                        Development of WU-P Aurora <br /> Enhanced Voting System
                       </>
                     )}
                   </h1>

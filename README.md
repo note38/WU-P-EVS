@@ -1,6 +1,6 @@
-# WUP Develop Voting System
+# DWU-P-AEVS
 
-Develop Electronic Voting System for Wesleyan University-Philippines
+Development of WU-P Aurora Enhanced Voting System
 
 ## Prerequisites
 

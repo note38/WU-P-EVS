@@ -22,7 +22,7 @@ export function Footer() {
                 >
                   {currentYear}
                 </span>{" "}
-                WUP EVS. All rights reserved.
+                DWU-P-AEVS. All rights reserved.
                 <br className="hidden lg:inline" /> {/* Break on desktop */}
                 <span className="lg:ml-2">
                   Built with transparency and integrity.
