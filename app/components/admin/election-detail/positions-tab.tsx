@@ -195,7 +195,19 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
 
   const handleUpdatePosition = async () => {
     if (!currentPosition) return;
+    if (isSubmitting) return;
 
+    // Defensive check: ensure IDs are valid before sending
+    if (!electionId || !currentPosition.id) {
+      toast({
+        title: "Error",
+        description: "Invalid election or position ID. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const response = await fetch(
         `/api/elections/${electionId}/positions/${currentPosition.id}`,
@@ -236,6 +248,8 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
             : "Failed to update position. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

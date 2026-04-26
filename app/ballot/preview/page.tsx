@@ -340,11 +340,15 @@ export default function PreviewPage() {
           {positions
             .filter((position) => selections[position.id])
             .map((position) => {
-              const selectedCandidate = position.candidates.find(
-                (c) => c.id === selections[position.id]
-              );
+              const isAbstained = selections[position.id] === "skip";
+              const selectedCandidate = isAbstained
+                ? null
+                : position.candidates.find(
+                    (c) => c.id === selections[position.id]
+                  );
 
-              if (!selectedCandidate) return null;
+              // Skip if no valid selection and not abstained
+              if (!selectedCandidate && !isAbstained) return null;
 
               return (
                 <Card key={position.id}>
@@ -353,24 +357,36 @@ export default function PreviewPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="relative h-16 w-16 overflow-hidden rounded-full border">
-                          <Image
-                            src={selectedCandidate.avatar || "/placeholder.svg"}
-                            alt={selectedCandidate.name}
-                            fill
-                            className="object-cover"
-                          />
+                      {isAbstained ? (
+                        <div className="flex items-center space-x-4">
+                          <div className="relative h-16 w-16 overflow-hidden rounded-full border bg-muted flex items-center justify-center">
+                            <span className="text-muted-foreground text-xs text-center leading-tight px-1">No Vote</span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-muted-foreground italic">Preferred Not to Vote</h3>
+                            <p className="text-sm text-muted-foreground">Abstained</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium">
-                            {selectedCandidate.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedCandidate.party}
-                          </p>
+                      ) : (
+                        <div className="flex items-center space-x-4">
+                          <div className="relative h-16 w-16 overflow-hidden rounded-full border">
+                            <Image
+                              src={selectedCandidate!.avatar || "/placeholder.svg"}
+                              alt={selectedCandidate!.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              {selectedCandidate!.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedCandidate!.party}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

@@ -116,7 +116,7 @@ export function BallotForm({
     if (currentPosition) {
       setSelections((prev) => ({
         ...prev,
-        [currentPosition.id]: "prefer_not_to_vote",
+        [currentPosition.id]: "skip",
       }));
     }
     // Move to next or review
@@ -242,7 +242,7 @@ export function BallotForm({
 
                   {/* Prefer not to vote button */}
                   <Button
-                    variant="secondary"
+                    variant="outline"
                     onClick={handlePreferNotToVote}
                     className="w-full sm:w-auto flex items-center justify-center"
                   >

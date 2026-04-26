@@ -12,11 +12,13 @@ export async function GET(req: NextRequest, context: any) {
       return authResult.response;
     }
 
+    const params = await context.params;
+
     // Safely extract and parse the electionId and positionId from context params
     if (
-      !context.params ||
-      !context.params.electionId ||
-      !context.params.positionId
+      !params ||
+      !params.electionId ||
+      !params.positionId
     ) {
       return NextResponse.json(
         { error: "Missing required parameters" },
@@ -24,8 +26,8 @@ export async function GET(req: NextRequest, context: any) {
       );
     }
 
-    const electionId = parseInt(context.params.electionId);
-    const positionId = parseInt(context.params.positionId);
+    const electionId = parseInt(params.electionId);
+    const positionId = parseInt(params.positionId);
 
     if (isNaN(electionId) || isNaN(positionId)) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
@@ -78,11 +80,13 @@ export async function PUT(req: NextRequest, context: any) {
       return authResult.response;
     }
 
+    const params = await context.params;
+
     // Safely extract and parse the electionId and positionId from context params
     if (
-      !context.params ||
-      !context.params.electionId ||
-      !context.params.positionId
+      !params ||
+      !params.electionId ||
+      !params.positionId
     ) {
       return NextResponse.json(
         { error: "Missing required parameters" },
@@ -90,8 +94,8 @@ export async function PUT(req: NextRequest, context: any) {
       );
     }
 
-    const electionId = parseInt(context.params.electionId);
-    const positionId = parseInt(context.params.positionId);
+    const electionId = parseInt(params.electionId);
+    const positionId = parseInt(params.positionId);
 
     if (isNaN(electionId) || isNaN(positionId)) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
@@ -160,11 +164,13 @@ export async function DELETE(req: NextRequest, context: any) {
       return authResult.response;
     }
 
+    const params = await context.params;
+
     // Safely extract and parse the electionId and positionId from context params
     if (
-      !context.params ||
-      !context.params.electionId ||
-      !context.params.positionId
+      !params ||
+      !params.electionId ||
+      !params.positionId
     ) {
       return NextResponse.json(
         { error: "Missing required parameters" },
@@ -172,8 +178,8 @@ export async function DELETE(req: NextRequest, context: any) {
       );
     }
 
-    const electionId = parseInt(context.params.electionId);
-    const positionId = parseInt(context.params.positionId);
+    const electionId = parseInt(params.electionId);
+    const positionId = parseInt(params.positionId);
 
     if (isNaN(electionId) || isNaN(positionId)) {
       return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });

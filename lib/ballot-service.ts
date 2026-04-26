@@ -110,6 +110,11 @@ export async function submitBallot(submission: BallotSubmission) {
       for (const [positionId, candidateId] of Object.entries(
         submission.selections
       )) {
+        if (candidateId === "skip") {
+          console.log(`Skipping validation for position ${positionId} because voter preferred not to vote`);
+          continue;
+        }
+
         const posId = Number(positionId);
         const candId = Number(candidateId);
 
@@ -187,8 +192,13 @@ export async function submitBallot(submission: BallotSubmission) {
       }
 
       // Create all votes within the transaction
+      // Filter out 'skip' (abstain) entries before inserting — they have no candidateId
+      const votableSelections = Object.entries(submission.selections).filter(
+        ([, candidateId]) => candidateId !== "skip"
+      );
+
       await Promise.all(
-        Object.entries(submission.selections).map(([positionId, candidateId]) =>
+        votableSelections.map(([positionId, candidateId]) =>
           tx.vote.create({
             data: {
               voterId,
