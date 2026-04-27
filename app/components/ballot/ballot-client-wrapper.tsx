@@ -27,7 +27,7 @@ export function BallotClientWrapper({
   return (
     <>
       {showGuide && <VotingGuide onContinue={() => setShowGuide(false)} />}
-      <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="max-h-[calc(100vh-200px)]">
         <BallotForm
           positions={positions}
           electionName={electionName}

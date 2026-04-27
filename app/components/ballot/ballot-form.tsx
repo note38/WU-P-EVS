@@ -114,16 +114,19 @@ export function BallotForm({
   const handlePreferNotToVote = () => {
     // Mark current position as skipped
     if (currentPosition) {
-      setSelections((prev) => ({
-        ...prev,
+      const updatedSelections = {
+        ...selections,
         [currentPosition.id]: "skip",
-      }));
-    }
-    // Move to next or review
-    if (isLastPosition) {
-      handleReview();
-    } else {
-      goToNextPosition();
+      };
+      
+      setSelections(updatedSelections);
+
+      // Move to next or review
+      if (isLastPosition) {
+        handleReview(updatedSelections);
+      } else {
+        goToNextPosition();
+      }
     }
   };
 
@@ -133,14 +136,16 @@ export function BallotForm({
     }
   };
 
-  const handleReview = () => {
+  const handleReview = (overrideSelections?: Record<string, string>) => {
+    const currentSelections = overrideSelections || selections;
+    
     // Check if all positions have selections
-    const allSelected = positions.every((position) => selections[position.id]);
+    const allSelected = positions.every((position) => currentSelections[position.id]);
 
     if (!allSelected) {
       // Find the first position without a selection
       const firstMissingIndex = positions.findIndex(
-        (position) => !selections[position.id]
+        (position) => !currentSelections[position.id]
       );
       if (firstMissingIndex >= 0) {
         setCurrentPositionIndex(firstMissingIndex);
@@ -152,7 +157,7 @@ export function BallotForm({
     }
 
     // Store selections and positions in localStorage
-    localStorage.setItem("ballotSelections", JSON.stringify(selections));
+    localStorage.setItem("ballotSelections", JSON.stringify(currentSelections));
     localStorage.setItem("ballotPositions", JSON.stringify(positions));
 
     // Redirect to preview page
@@ -198,8 +203,8 @@ export function BallotForm({
         </div>
       </div>
 
-      {/* Make the card container scrollable for long content */}
-      <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+      {/* Make the card container natural size */}
+      <div className="w-full">
         {currentPosition && (
           <Card className="mb-6 w-full">
             <CardHeader className="pb-4">
@@ -251,7 +256,7 @@ export function BallotForm({
 
                   {isLastPosition ? (
                     <Button
-                      onClick={handleReview}
+                      onClick={() => handleReview()}
                       disabled={
                         !positions.every((position) => selections[position.id])
                       }
