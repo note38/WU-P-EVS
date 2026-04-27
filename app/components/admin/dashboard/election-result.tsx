@@ -404,7 +404,7 @@ export default function VoterPage() {
                       {position.candidates.map((candidate) => {
                         const votePercentage = calculateVotePercentage(
                           candidate.votes,
-                          totalVotes
+                          selectedElection.totalVoters || 0
                         );
 
                         return (

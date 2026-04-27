@@ -227,6 +227,11 @@ export class DashboardDataService {
             },
           },
         },
+        _count: {
+          select: {
+            voters: true,
+          },
+        },
       },
       orderBy: { startDate: "desc" },
     });
@@ -273,6 +278,7 @@ export class DashboardDataService {
         name: election.name,
         status: election.status,
         hideName: election.hideName, // Include hideName field
+        totalVoters: election._count.voters, // Include total voters count
         positions,
       });
     }
