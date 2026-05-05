@@ -16,41 +16,48 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    // Check if request comes from Vercel cron
-    const isVercelCron =
-      userAgent.includes("vercel-cron") || userAgent.includes("vercel");
+    // Check if request comes from Vercel cron or GitHub Actions
+    const isVercelCron = userAgent.includes("vercel-cron") || userAgent.includes("vercel");
+    const isGitHubAction = userAgent.includes("github-actions");
 
     // Check if has valid secret token
     const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-    // Allow if either Vercel cron OR valid secret (for manual testing)
+    // Allow if either Vercel cron OR valid secret
     if (!isVercelCron && !hasValidSecret) {
       console.log("[CRON] Unauthorized request:", {
         userAgent,
-        expectedSecret: cronSecret ? "[REDACTED]" : "NOT_SET",
-        providedAuth: authHeader ? "[REDACTED]" : "NONE",
         isVercelCron,
+        isGitHubAction,
         hasValidSecret,
       });
+
+      let errorMessage = "This endpoint requires a valid secret token";
+      if (isGitHubAction) {
+        errorMessage = "GitHub Action authentication failed. Please check CRON_SECRET in GitHub Secrets.";
+      } else if (isVercelCron) {
+        // This case shouldn't really happen if isVercelCron is true and it's handled by the OR, 
+        // but adding for clarity in logic
+        errorMessage = "Vercel Cron authentication failed.";
+      }
 
       return NextResponse.json(
         {
           error: "Unauthorized",
-          message:
-            "This endpoint requires Vercel cron user-agent or valid secret token",
+          message: errorMessage,
           timestamp: new Date().toISOString(),
         },
         { status: 401 }
       );
     }
 
-    // Check if CRON_SECRET is configured
+    // Check if CRON_SECRET is configured on the server
     if (!cronSecret) {
-      console.error("[CRON] CRON_SECRET environment variable is not set");
+      console.error("[CRON] CRON_SECRET environment variable is not set on Vercel");
       return NextResponse.json(
         {
           error: "Server Configuration Error",
-          message: "CRON_SECRET environment variable is not configured",
+          message: "CRON_SECRET is not configured in environment variables.",
           timestamp: new Date().toISOString(),
         },
         { status: 500 }
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(
-      "[CRON] Authentication successful, proceeding with status update"
+      `[CRON] Authentication successful (Source: ${isVercelCron ? "Vercel" : isGitHubAction ? "GitHub Action" : "Manual/Other"}), proceeding with status update`
     );
 
     const now = new Date();

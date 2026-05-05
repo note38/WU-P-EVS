@@ -56,7 +56,7 @@ export function useElectionAutoStatus(
       // Handle 404 specifically
       if (checkResponse.status === 404) {
         console.warn(
-          "[USE-ELECTION-STATUS] API endpoint not found, skipping check"
+          "[USE-ELECTION-STATUS] API endpoint /api/elections/auto-status-update not found. If you are using GitHub Actions, this is expected for the client hook."
         );
         return;
       }
@@ -65,56 +65,28 @@ export function useElectionAutoStatus(
       if (!checkResponse.ok) {
         const errorText = await checkResponse.clone().text();
         console.error(
-          "[USE-ELECTION-STATUS] Check failed:",
+          "[USE-ELECTION-STATUS] Status check failed:",
           checkResponse.status,
-          errorText
+          checkResponse.statusText,
+          errorText.substring(0, 100)
         );
 
-        // Check if response is HTML (error page)
-        if (
-          errorText.startsWith("<!DOCTYPE") ||
-          errorText.startsWith("<html")
-        ) {
-          console.error(
-            "[USE-ELECTION-STATUS] API returned HTML instead of JSON - likely an error page"
-          );
-          throw new Error(
-            `API returned HTML instead of JSON: ${checkResponse.status} ${checkResponse.statusText}`
-          );
-        }
-
         throw new Error(
-          `Failed to check election statuses: ${checkResponse.status} ${checkResponse.statusText}`
+          `Status check failed (${checkResponse.status}). See console for details.`
         );
       }
 
-      // Try to parse JSON, but catch parsing errors
+      // Try to parse JSON
       let checkData;
       try {
         checkData = await checkResponse.json();
       } catch (parseError) {
-        const responseText = await checkResponse.clone().text();
-        console.error(
-          "[USE-ELECTION-STATUS] Failed to parse JSON response:",
-          parseError,
-          "Response text:",
-          responseText.substring(0, 200) +
-            (responseText.length > 200 ? "..." : "")
-        );
-
-        // Check if response is HTML (error page)
-        if (
-          responseText.startsWith("<!DOCTYPE") ||
-          responseText.startsWith("<html")
-        ) {
-          throw new Error("API returned HTML instead of JSON");
-        }
-
-        throw new Error("Failed to parse API response as JSON");
+        console.error("[USE-ELECTION-STATUS] Failed to parse JSON response:", parseError);
+        throw new Error("Invalid response from status check API");
       }
 
       console.log(
-        "[USE-ELECTION-STATUS] Check completed, elections needing update:",
+        "[USE-ELECTION-STATUS] Check completed. Elections needing update:",
         checkData.electionsNeedingUpdate?.length || 0
       );
 
@@ -123,7 +95,6 @@ export function useElectionAutoStatus(
         checkData.electionsNeedingUpdate.length > 0
       ) {
         console.log("[USE-ELECTION-STATUS] Performing status updates...");
-        // If there are elections that need updates, perform the updates
         const updateResponse = await fetch(
           "/api/elections/auto-status-update",
           {
@@ -135,52 +106,16 @@ export function useElectionAutoStatus(
           }
         );
 
-        // Handle 404 specifically
-        if (updateResponse.status === 404) {
-          console.warn(
-            "[USE-ELECTION-STATUS] API endpoint not found, skipping update"
-          );
-          return;
-        }
-
-        // Check if response is OK
         if (!updateResponse.ok) {
-          console.error(
-            "[USE-ELECTION-STATUS] Update failed:",
-            updateResponse.status
-          );
-          throw new Error("Failed to update election statuses");
+          console.error("[USE-ELECTION-STATUS] Update failed:", updateResponse.status);
+          throw new Error(`Status update failed (${updateResponse.status})`);
         }
 
-        // Try to parse JSON, but catch parsing errors
-        let updateData;
-        try {
-          updateData = await updateResponse.json();
-        } catch (parseError) {
-          const responseText = await updateResponse.clone().text();
-          console.error(
-            "[USE-ELECTION-STATUS] Failed to parse JSON response:",
-            parseError,
-            "Response text:",
-            responseText.substring(0, 200) +
-              (responseText.length > 200 ? "..." : "")
-          );
-
-          // Check if response is HTML (error page)
-          if (
-            responseText.startsWith("<!DOCTYPE") ||
-            responseText.startsWith("<html")
-          ) {
-            throw new Error("API returned HTML instead of JSON");
-          }
-
-          throw new Error("Failed to parse API response as JSON");
-        }
-
+        const updateData = await updateResponse.json();
         console.log(
           "[USE-ELECTION-STATUS] Updates completed:",
           updateData.updatedElections?.length || 0,
-          "elections"
+          "elections updated"
         );
 
         // Notify about the updates
@@ -204,26 +139,24 @@ export function useElectionAutoStatus(
           }
         }
       } else {
-        // Call the callback even when no updates are needed (to notify that check completed)
         if (onStatusUpdateRef.current) {
           onStatusUpdateRef.current();
         }
       }
 
       const endTime = new Date().toISOString();
-      console.log("[USE-ELECTION-STATUS] Status check completed at", endTime);
+      console.log("[USE-ELECTION-STATUS] Status check finished at", endTime);
     } catch (error) {
       console.error(
         "[USE-ELECTION-STATUS] Error in automatic status update:",
         error
       );
-      // Don't show toast for errors to avoid spam, just log them
-      // Only show toast for significant errors, not for 404s
+      
+      // Only show toast for non-404 errors to avoid spamming the UI
       if (error instanceof Error && !error.message.includes("404")) {
         toast({
-          title: "Auto Status Update Error",
-          description:
-            "Failed to automatically update election statuses. Please check the console for details.",
+          title: "Status Sync Warning",
+          description: "Could not sync election statuses. Check console for details.",
           variant: "destructive",
         });
       }
