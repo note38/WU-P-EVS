@@ -525,8 +525,8 @@ export function YearSettings() {
                 {years.map((year) => (
                   <TableRow key={year.id}>
                     <TableCell className="font-medium">{year.name}</TableCell>
-                     <TableCell>{year.program.name}</TableCell>
-                     <TableCell>{year.program.department.name}</TableCell>
+                     <TableCell>{year.program?.name || "Not assigned"}</TableCell>
+                     <TableCell>{year.program?.department?.name || "Not assigned"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

@@ -97,6 +97,7 @@ export async function POST(req: Request) {
     // Log the structure of the backup data for debugging
     console.log("Restore API: Backup data structure", {
       hasDepartments: !!backupData.departments,
+      hasPrograms: !!backupData.programs,
       hasYears: !!backupData.years,
       hasPositions: !!backupData.positions,
       hasCandidates: !!backupData.candidates,
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
       hasVotes: !!backupData.votes,
       hasPartylists: !!backupData.partylists,
       departmentsCount: backupData.departments?.length || 0,
+      programsCount: backupData.programs?.length || 0,
       yearsCount: backupData.years?.length || 0,
       positionsCount: backupData.positions?.length || 0,
       candidatesCount: backupData.candidates?.length || 0,
@@ -137,6 +139,9 @@ export async function POST(req: Request) {
     await prisma.year.deleteMany();
     console.log("Restore API: Years deleted");
 
+    await prisma.program.deleteMany();
+    console.log("Restore API: Programs deleted");
+
     await prisma.department.deleteMany();
     console.log("Restore API: Departments deleted");
 
@@ -166,7 +171,23 @@ export async function POST(req: Request) {
       console.log("Restore API: Departments restored successfully");
     }
 
-    // Restore years
+    // Restore programs (must come after departments since programs reference departments)
+    if (backupData.programs && backupData.programs.length > 0) {
+      console.log("Restore API: Restoring programs", {
+        count: backupData.programs.length,
+      });
+      await prisma.program.createMany({
+        data: backupData.programs.map((program: any) => ({
+          id: program.id,
+          name: program.name,
+          departmentId: program.departmentId,
+        })),
+        skipDuplicates: true,
+      });
+      console.log("Restore API: Programs restored successfully");
+    }
+
+    // Restore years (must come after programs since years reference programs)
     if (backupData.years && backupData.years.length > 0) {
       console.log("Restore API: Restoring years", {
         count: backupData.years.length,
@@ -175,7 +196,7 @@ export async function POST(req: Request) {
         data: backupData.years.map((year: any) => ({
           id: year.id,
           name: year.name,
-          departmentId: year.departmentId,
+          programId: year.programId || null,
           createdAt: new Date(year.createdAt),
           updatedAt: new Date(year.updatedAt),
         })),
@@ -272,6 +293,7 @@ export async function POST(req: Request) {
           createdAt: new Date(position.createdAt),
           updatedAt: new Date(position.updatedAt),
           yearId: position.yearId || null,
+          programId: position.programId || null,
         })),
         skipDuplicates: true,
       });

@@ -26,6 +26,7 @@ interface BackupData {
   users: any[];
   elections: any[];
   departments: any[];
+  programs: any[];
   years: any[];
   positions: any[];
   candidates: any[];
