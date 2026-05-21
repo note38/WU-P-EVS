@@ -37,20 +37,37 @@ interface Position {
   maxCandidates: number;
   candidates: number;
   yearId: number | null;
+  programId: number | null;
 }
 
 interface Year {
   id: number;
   name: string;
-  departmentId: number;
-  department: {
+  programId: number | null;
+  program?: {
     id: number;
     name: string;
-  };
+    departmentId: number;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
+}
+
+interface Program {
+  id: number;
+  name: string;
+  departmentId: number;
+  department?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 interface PositionFormsProps {
   years: Year[];
+  programs: Program[];
   isAddDialogOpen: boolean;
   setIsAddDialogOpen: (open: boolean) => void;
   isEditDialogOpen: boolean;
@@ -61,11 +78,13 @@ interface PositionFormsProps {
     name: string;
     maxCandidates: number;
     yearId: number | null;
+    programId: number | null;
   };
   setNewPosition: (position: {
     name: string;
     maxCandidates: number;
     yearId: number | null;
+    programId: number | null;
   }) => void;
   currentPosition: Position | null;
   setCurrentPosition: (position: Position | null) => void;
@@ -79,6 +98,7 @@ interface PositionFormsProps {
 
 export function PositionForms({
   years,
+  programs,
   isAddDialogOpen,
   setIsAddDialogOpen,
   isEditDialogOpen,
@@ -96,9 +116,26 @@ export function PositionForms({
   onDeletePosition,
   isSubmitting,
 }: PositionFormsProps) {
-  // Sort years by department name and then year name
+  // Sort years by department name, then program name, and then year name
   const sortedYears = [...years].sort((a, b) => {
-    const deptCompare = a.department.name.localeCompare(b.department.name);
+    const aDept = a.program?.department?.name || "";
+    const bDept = b.program?.department?.name || "";
+    const deptCompare = aDept.localeCompare(bDept);
+    if (deptCompare !== 0) return deptCompare;
+    
+    const aProg = a.program?.name || "";
+    const bProg = b.program?.name || "";
+    const progCompare = aProg.localeCompare(bProg);
+    if (progCompare !== 0) return progCompare;
+    
+    return a.name.localeCompare(b.name);
+  });
+
+  // Sort programs by department name and then program name
+  const sortedPrograms = [...programs].sort((a, b) => {
+    const aDept = a.department?.name || "";
+    const bDept = b.department?.name || "";
+    const deptCompare = aDept.localeCompare(bDept);
     if (deptCompare !== 0) return deptCompare;
     return a.name.localeCompare(b.name);
   });
@@ -158,30 +195,77 @@ export function PositionForms({
                 }
               />
             </div>
+            
+            {programs.length > 0 && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="program-select" className="col-span-4">
+                  Program Restriction (Optional)
+                </Label>
+                <Select
+                  value={newPosition.programId?.toString() || "null"}
+                  onValueChange={(value) => {
+                    const programId = value === "null" ? null : parseInt(value);
+                    setNewPosition({
+                      ...newPosition,
+                      programId,
+                      yearId: null, // Reset year restriction when program changes
+                    });
+                  }}
+                >
+                  <SelectTrigger className="col-span-4">
+                    <SelectValue placeholder="Select a program" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="null">All Programs</SelectItem>
+                    {sortedPrograms.map((program) => (
+                      <SelectItem key={program.id} value={program.id.toString()}>
+                        {program.department ? `${program.department.name} - ${program.name}` : program.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {years.length > 0 && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="year-select" className="col-span-4">
-                  Year Level (Optional)
+                  Year Level Restriction (Optional)
                 </Label>
                 <Select
                   value={newPosition.yearId?.toString() || "null"}
-                  onValueChange={(value) =>
-                    setNewPosition({
-                      ...newPosition,
-                      yearId: value === "null" ? null : parseInt(value),
-                    })
-                  }
+                  onValueChange={(value) => {
+                    const yearId = value === "null" ? null : parseInt(value);
+                    if (yearId !== null) {
+                      setNewPosition({
+                        ...newPosition,
+                        yearId,
+                        programId: null, // Keep programId null to prioritize yearLevel
+                      });
+                    } else {
+                      setNewPosition({
+                        ...newPosition,
+                        yearId: null,
+                      });
+                    }
+                  }}
                 >
                   <SelectTrigger className="col-span-4">
                     <SelectValue placeholder="Select a year" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="null">All Levels</SelectItem>
-                    {sortedYears.map((year) => (
-                      <SelectItem key={year.id} value={year.id.toString()}>
-                        {`${year.department.name} - ${year.name}`}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="null">All Year Levels</SelectItem>
+                    {sortedYears
+                      .filter((year) => !newPosition.programId || year.programId === newPosition.programId)
+                      .map((year) => {
+                        const deptName = year.program?.department?.name || "Unassigned";
+                        const progName = year.program?.name || "";
+                        return (
+                          <SelectItem key={year.id} value={year.id.toString()}>
+                            {`${deptName} - ${progName} ${year.name}`}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -249,30 +333,77 @@ export function PositionForms({
                   }
                 />
               </div>
+              
+              {programs.length > 0 && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-program-select" className="col-span-4">
+                    Program Restriction (Optional)
+                  </Label>
+                  <Select
+                    value={currentPosition.programId?.toString() || "null"}
+                    onValueChange={(value) => {
+                      const programId = value === "null" ? null : parseInt(value);
+                      setCurrentPosition({
+                        ...currentPosition,
+                        programId,
+                        yearId: null, // Reset year restriction when program changes
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="col-span-4">
+                      <SelectValue placeholder="Select a program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">All Programs</SelectItem>
+                      {sortedPrograms.map((program) => (
+                        <SelectItem key={program.id} value={program.id.toString()}>
+                          {program.department ? `${program.department.name} - ${program.name}` : program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {years.length > 0 && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-year-select" className="col-span-4">
-                    Year Level (Optional)
+                    Year Level Restriction (Optional)
                   </Label>
                   <Select
                     value={currentPosition.yearId?.toString() || "null"}
-                    onValueChange={(value) =>
-                      setCurrentPosition({
-                        ...currentPosition,
-                        yearId: value === "null" ? null : parseInt(value),
-                      })
-                    }
+                    onValueChange={(value) => {
+                      const yearId = value === "null" ? null : parseInt(value);
+                      if (yearId !== null) {
+                        setCurrentPosition({
+                          ...currentPosition,
+                          yearId,
+                          programId: null, // Keep programId null to prioritize yearLevel
+                        });
+                      } else {
+                        setCurrentPosition({
+                          ...currentPosition,
+                          yearId: null,
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger className="col-span-4">
                       <SelectValue placeholder="Select a year" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="null">All Levels</SelectItem>
-                      {sortedYears.map((year) => (
-                        <SelectItem key={year.id} value={year.id.toString()}>
-                          {`${year.department.name} - ${year.name}`}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="null">All Year Levels</SelectItem>
+                      {sortedYears
+                        .filter((year) => !currentPosition.programId || year.programId === currentPosition.programId)
+                        .map((year) => {
+                          const deptName = year.program?.department?.name || "Unassigned";
+                          const progName = year.program?.name || "";
+                          return (
+                            <SelectItem key={year.id} value={year.id.toString()}>
+                              {`${deptName} - ${progName} ${year.name}`}
+                            </SelectItem>
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>

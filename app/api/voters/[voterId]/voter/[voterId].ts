@@ -19,7 +19,11 @@ export async function GET() {
       include: {
         year: {
           include: {
-            department: true,
+            program: {
+              include: {
+                department: true,
+              },
+            },
           },
         },
         election: {
@@ -115,7 +119,11 @@ export async function POST(request: Request) {
         include: {
           year: {
             include: {
-              department: true,
+              program: {
+                include: {
+                  department: true,
+                },
+              },
             },
           },
           election: {

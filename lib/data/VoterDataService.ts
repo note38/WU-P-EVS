@@ -53,11 +53,17 @@ export class VoterDataService {
           select: {
             name: true,
             id: true,
-            department: {
+            program: {
               select: {
                 id: true,
                 name: true,
-                image: true,
+                department: {
+                  select: {
+                    id: true,
+                    name: true,
+                    image: true,
+                  },
+                },
               },
             },
           },
@@ -66,8 +72,34 @@ export class VoterDataService {
       orderBy: { createdAt: "desc" },
     });
 
+    // Map to preserve the legacy { year: { department } } structure for UI compatibility
+    const mappedResult: VoterData[] = result.map((voter) => ({
+      id: voter.id,
+      firstName: voter.firstName,
+      lastName: voter.lastName,
+      middleName: voter.middleName,
+      email: voter.email,
+      status: voter.status,
+      avatar: voter.avatar,
+      createdAt: voter.createdAt,
+      election: voter.election,
+      year: voter.year
+        ? {
+            id: voter.year.id,
+            name: voter.year.name,
+            department: voter.year.program
+              ? {
+                  id: voter.year.program.department.id,
+                  name: voter.year.program.department.name,
+                  image: voter.year.program.department.image,
+                }
+              : { id: 0, name: "Unassigned", image: null },
+          }
+        : null,
+    }));
+
     return {
-      data: result,
+      data: mappedResult,
       info: null, // Accelerate info is available on the prisma client level
     };
   }

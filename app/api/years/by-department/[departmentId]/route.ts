@@ -16,15 +16,21 @@ export async function GET(
       );
     }
 
-    const years = await prisma.year.findMany({
+        const years = await prisma.year.findMany({
       where: {
-        departmentId: departmentId,
+        program: {
+          departmentId: departmentId,
+        },
       },
       include: {
-        department: {
-          select: {
-            id: true,
-            name: true,
+        program: {
+          include: {
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -33,7 +39,16 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(years);
+    const mappedYears = years.map((year) => ({
+      id: year.id,
+      name: year.name,
+      programId: year.programId,
+      departmentId: year.program.departmentId,
+      program: year.program,
+      department: year.program.department,
+    }));
+
+    return NextResponse.json(mappedYears);
   } catch (error) {
     console.error("Error fetching years by department:", error);
     return NextResponse.json(

@@ -89,7 +89,11 @@ export async function GET(
         partylist: true,
         year: {
           include: {
-            department: true,
+            program: {
+              include: {
+                department: true,
+              },
+            },
           },
         },
       },

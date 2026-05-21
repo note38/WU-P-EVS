@@ -84,12 +84,22 @@ export async function getElectionForVoter(voterId: string) {
     return null;
   }
 
-  // Filter positions based on voter's year
+  // Filter positions based on voter's year and program restrictions
   const filteredPositions = voter.election.positions.filter((position) => {
-    // If position has no year restriction (yearId is null), it's available to all voters
-    if (!position.yearId) return true;
+    // If position has no year or program restriction, it's available to all voters
+    if (!position.yearId && !position.programId) return true;
+    
     // If position has a year restriction, only show it to voters in that year
-    return position.yearId === voter.yearId;
+    if (position.yearId) {
+      return position.yearId === voter.yearId;
+    }
+    
+    // If position has a program restriction, only show it to voters in that program
+    if (position.programId) {
+      return position.programId === voter.year.programId;
+    }
+    
+    return false;
   });
 
   // Create a copy of the election with filtered positions
@@ -132,12 +142,22 @@ export async function getElectionForVoterByEmail(email: string) {
     return null;
   }
 
-  // Filter positions based on voter's year
+  // Filter positions based on voter's year and program restrictions
   const filteredPositions = voter.election.positions.filter((position) => {
-    // If position has no year restriction (yearId is null), it's available to all voters
-    if (!position.yearId) return true;
+    // If position has no year or program restriction, it's available to all voters
+    if (!position.yearId && !position.programId) return true;
+    
     // If position has a year restriction, only show it to voters in that year
-    return position.yearId === voter.yearId;
+    if (position.yearId) {
+      return position.yearId === voter.yearId;
+    }
+    
+    // If position has a program restriction, only show it to voters in that program
+    if (position.programId) {
+      return position.programId === voter.year.programId;
+    }
+    
+    return false;
   });
 
   // Create a copy of the election with filtered positions

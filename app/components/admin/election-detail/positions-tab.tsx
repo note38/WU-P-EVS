@@ -6,6 +6,17 @@ import { useEffect, useState } from "react";
 import { PositionForms } from "./position-forms";
 import { PositionsTable } from "./positions-table";
 
+// Define program type
+interface Program {
+  id: number;
+  name: string;
+  departmentId: number;
+  department?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
 // Define position type
 interface Position {
   id: number;
@@ -13,7 +24,16 @@ interface Position {
   maxCandidates: number;
   candidates: number;
   yearId: number | null;
+  programId: number | null;
   year: {
+    id: number;
+    name: string;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
+  program: {
     id: number;
     name: string;
     department: {
@@ -27,11 +47,16 @@ interface Position {
 interface Year {
   id: number;
   name: string;
-  departmentId: number;
-  department: {
+  programId: number | null;
+  program?: {
     id: number;
     name: string;
-  };
+    departmentId: number;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
 }
 
 interface PositionsTabProps {
@@ -41,8 +66,10 @@ interface PositionsTabProps {
 export function PositionsTab({ electionId }: PositionsTabProps) {
   const [positions, setPositions] = useState<Position[]>([]);
   const [years, setYears] = useState<Year[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingYears, setIsLoadingYears] = useState(true);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -54,6 +81,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
     name: "",
     maxCandidates: 1,
     yearId: null as number | null,
+    programId: null as number | null,
   });
   const [currentPosition, setCurrentPosition] = useState<Position | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,9 +137,29 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
     }
   };
 
-  // Call fetchYears when component mounts
+  const fetchPrograms = async () => {
+    setIsLoadingPrograms(true);
+    try {
+      const response = await fetch("/api/programs");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch programs");
+      }
+
+      const data = await response.json();
+      setPrograms(data);
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+      setPrograms([]);
+    } finally {
+      setIsLoadingPrograms(false);
+    }
+  };
+
+  // Call fetchYears and fetchPrograms when component mounts
   useEffect(() => {
     fetchYears();
+    fetchPrograms();
   }, []);
 
   const filteredPositions = positions.filter((position) =>
@@ -159,6 +207,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
         name: "",
         maxCandidates: 1,
         yearId: null,
+        programId: null,
       });
     } catch (error) {
       console.error("Error adding position:", error);
@@ -176,20 +225,22 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
   };
 
   const handleEditClick = (position: Position) => {
-    const positionWithYear = {
+    const positionWithYearAndProgram = {
       ...position,
       year: position.year || null,
+      program: position.program || null,
     };
-    setCurrentPosition(positionWithYear);
+    setCurrentPosition(positionWithYearAndProgram);
     setIsEditDialogOpen(true);
   };
 
   const handleDeleteClick = (position: Position) => {
-    const positionWithYear = {
+    const positionWithYearAndProgram = {
       ...position,
       year: position.year || null,
+      program: position.program || null,
     };
-    setPositionToDelete(positionWithYear);
+    setPositionToDelete(positionWithYearAndProgram);
     setIsDeleteDialogOpen(true);
   };
 
@@ -220,6 +271,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
             name: currentPosition.name,
             maxCandidates: currentPosition.maxCandidates,
             yearId: currentPosition.yearId,
+            programId: currentPosition.programId,
           }),
         }
       );
@@ -300,6 +352,7 @@ export function PositionsTab({ electionId }: PositionsTabProps) {
 
         <PositionForms
           years={years}
+          programs={programs}
           isAddDialogOpen={isAddDialogOpen}
           setIsAddDialogOpen={setIsAddDialogOpen}
           isEditDialogOpen={isEditDialogOpen}

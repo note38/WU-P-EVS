@@ -57,13 +57,21 @@ type Department = {
   name: string;
 };
 
-type Year = {
+type Program = {
   id: number;
   name: string;
   departmentId: number;
-  department: {
+  department: Department;
+};
+
+type Year = {
+  id: number;
+  name: string;
+  programId: number;
+  program: {
     id: number;
     name: string;
+    department: Department;
   };
 };
 
@@ -72,8 +80,8 @@ const yearFormSchema = z.object({
   name: z.string().min(2, {
     message: "Year name must be at least 2 characters.",
   }),
-  departmentId: z.string({
-    required_error: "Please select a department.",
+  programId: z.string({
+    required_error: "Please select a program.",
   }),
 });
 
@@ -156,6 +164,7 @@ function YearSkeleton() {
 export function YearSettings() {
   const [years, setYears] = useState<Year[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingYear, setEditingYear] = useState<Year | null>(null);
@@ -173,6 +182,7 @@ export function YearSettings() {
   // Fetch data on component mount
   useEffect(() => {
     fetchDepartments();
+    fetchPrograms();
     fetchYears();
   }, []);
 
@@ -180,11 +190,11 @@ export function YearSettings() {
   useEffect(() => {
     if (editingYear) {
       form.setValue("name", editingYear.name);
-      form.setValue("departmentId", editingYear.departmentId.toString());
+      form.setValue("programId", editingYear.programId.toString());
     } else {
       form.reset({
         name: "",
-        departmentId: "",
+        programId: "",
       });
     }
   }, [editingYear, form]);
@@ -209,6 +219,31 @@ export function YearSettings() {
       toast({
         title: "Error",
         description: "Failed to load departments. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function fetchPrograms() {
+    try {
+      const response = await fetch("/api/programs", {
+        method: "GET",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch programs");
+      }
+
+      const data = await response.json();
+      setPrograms(data);
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load programs. Please try again.",
         variant: "destructive",
       });
     }
@@ -253,7 +288,7 @@ export function YearSettings() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: data.name,
-            departmentId: parseInt(data.departmentId), // Convert string to number for API
+            programId: parseInt(data.programId), // Convert string to number for API
           }),
         });
 
@@ -278,7 +313,7 @@ export function YearSettings() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: data.name,
-            departmentId: parseInt(data.departmentId), // Convert string to number for API
+            programId: parseInt(data.programId), // Convert string to number for API
           }),
         });
 
@@ -298,7 +333,7 @@ export function YearSettings() {
 
       form.reset({
         name: "",
-        departmentId: "",
+        programId: "",
       });
     } catch (error) {
       console.error("Error saving year:", error);
@@ -323,7 +358,7 @@ export function YearSettings() {
     setEditingYear(null);
     form.reset({
       name: "",
-      departmentId: "",
+      programId: "",
     });
   }
 
@@ -401,32 +436,32 @@ export function YearSettings() {
               />
 
               <FormField
-                control={form.control}
-                name="departmentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments.map((department) => (
-                          <SelectItem
-                            key={department.id}
-                            value={department.id.toString()}
-                          >
-                            {department.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  control={form.control}
+                  name="programId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Program</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a program" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {programs.map((program) => (
+                            <SelectItem
+                              key={program.id}
+                              value={program.id.toString()}
+                            >
+                              {program.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               <div className="flex gap-2">
                 <Button
@@ -481,17 +516,17 @@ export function YearSettings() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Year</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead className="w-[150px] text-right">
-                    Actions
-                  </TableHead>
+                   <TableHead>Program</TableHead>
+                   <TableHead>Department</TableHead>
+                   <TableHead className="w-[150px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {years.map((year) => (
                   <TableRow key={year.id}>
                     <TableCell className="font-medium">{year.name}</TableCell>
-                    <TableCell>{year.department.name}</TableCell>
+                     <TableCell>{year.program.name}</TableCell>
+                     <TableCell>{year.program.department.name}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

@@ -131,7 +131,11 @@ export async function PUT(
       include: {
         year: {
           include: {
-            department: true,
+            program: {
+              include: {
+                department: true,
+              },
+            },
           },
         },
         election: {

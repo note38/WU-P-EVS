@@ -24,7 +24,7 @@ import { useEffect, useState } from "react";
 interface Year {
   id: number;
   name: string;
-  departmentId?: number; // Made optional since API might not return this
+  programId?: number;
 }
 
 interface Department {
@@ -32,9 +32,9 @@ interface Department {
   name: string;
 }
 
-// New interface for year-department relationship
-interface YearDepartmentRelation {
-  yearId: number;
+interface Program {
+  id: number;
+  name: string;
   departmentId: number;
 }
 
@@ -48,8 +48,10 @@ export function ImportVotersDialog({
   onImportSuccess,
 }: ImportVotersDialogProps) {
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [years, setYears] = useState<Year[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -61,20 +63,35 @@ export function ImportVotersDialog({
     } else {
       // Reset selections when dialog closes
       setSelectedDepartment("");
+      setSelectedProgram("");
       setSelectedYear("");
+      setPrograms([]);
       setYears([]);
     }
   }, [open]);
 
-  // Fetch years when department changes
+  // Fetch programs when department changes
   useEffect(() => {
     if (selectedDepartment) {
-      fetchYearsByDepartment(parseInt(selectedDepartment));
-      setSelectedYear(""); // Reset year selection when department changes
+      fetchProgramsByDepartment(parseInt(selectedDepartment));
+      setSelectedProgram(""); // Reset program selection
+      setSelectedYear(""); // Reset year selection
+      setYears([]);
     } else {
+      setPrograms([]);
       setYears([]);
     }
   }, [selectedDepartment]);
+
+  // Fetch years when program changes
+  useEffect(() => {
+    if (selectedProgram) {
+      fetchYearsByProgram(parseInt(selectedProgram));
+      setSelectedYear(""); // Reset year selection when program changes
+    } else {
+      setYears([]);
+    }
+  }, [selectedProgram]);
 
   const fetchDepartments = async () => {
     try {
@@ -93,9 +110,28 @@ export function ImportVotersDialog({
     }
   };
 
-  const fetchYearsByDepartment = async (departmentId: number) => {
+  const fetchProgramsByDepartment = async (departmentId: number) => {
     try {
-      const response = await fetch(`/api/years/by-department/${departmentId}`);
+      const response = await fetch(
+        `/api/programs/by-department/${departmentId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data);
+      }
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load programs",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchYearsByProgram = async (programId: number) => {
+    try {
+      const response = await fetch(`/api/years/by-program/${programId}`);
       if (response.ok) {
         const data = await response.json();
         setYears(data);
@@ -111,10 +147,10 @@ export function ImportVotersDialog({
   };
 
   const handleImport = async () => {
-    if (!selectedDepartment || !selectedYear) {
+    if (!selectedDepartment || !selectedProgram || !selectedYear) {
       toast({
         title: "Error",
-        description: "Please select both department and year",
+        description: "Please select department, program, and year",
         variant: "destructive",
       });
       return;
@@ -132,6 +168,7 @@ export function ImportVotersDialog({
           body: JSON.stringify({
             yearId: parseInt(selectedYear),
             departmentId: parseInt(selectedDepartment),
+            programId: parseInt(selectedProgram),
             allDepartments: false,
           }),
         }
@@ -174,7 +211,7 @@ export function ImportVotersDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Import Voters by Department and Year</DialogTitle>
+          <DialogTitle>Import Voters by Department, Program and Year</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           {/* Department Selection */}
@@ -200,18 +237,51 @@ export function ImportVotersDialog({
             </Select>
           </div>
 
-          {/* Year Selection - Only enabled after selecting department */}
+          {/* Program Selection - Only enabled after selecting department */}
+          <div className="grid gap-2">
+            <Label htmlFor="program">Program</Label>
+            <Select
+              value={selectedProgram}
+              onValueChange={setSelectedProgram}
+              disabled={!selectedDepartment}
+            >
+              <SelectTrigger id="program">
+                <SelectValue
+                  placeholder={
+                    programs.length === 0 && selectedDepartment
+                      ? "No programs available"
+                      : "Select program"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {programs.length > 0 ? (
+                  programs.map((program) => (
+                    <SelectItem key={program.id} value={program.id.toString()}>
+                      {program.name}
+                    </SelectItem>
+                  ))
+                ) : selectedDepartment ? (
+                  <SelectItem value="none" disabled>
+                    No programs available for this department
+                  </SelectItem>
+                ) : null}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Year Selection - Only enabled after selecting program */}
           <div className="grid gap-2">
             <Label htmlFor="year">Year</Label>
             <Select
               value={selectedYear}
               onValueChange={setSelectedYear}
-              disabled={!selectedDepartment}
+              disabled={!selectedProgram}
             >
               <SelectTrigger id="year">
                 <SelectValue
                   placeholder={
-                    years.length === 0 && selectedDepartment
+                    years.length === 0 && selectedProgram
                       ? "No years available"
                       : "Select year"
                   }
@@ -224,9 +294,9 @@ export function ImportVotersDialog({
                       {year.name}
                     </SelectItem>
                   ))
-                ) : selectedDepartment ? (
+                ) : selectedProgram ? (
                   <SelectItem value="none" disabled>
-                    No years available for this department
+                    No years available for this program
                   </SelectItem>
                 ) : null}
               </SelectContent>
@@ -237,7 +307,12 @@ export function ImportVotersDialog({
             type="submit"
             className="mt-2"
             onClick={handleImport}
-            disabled={loading || !selectedDepartment || !selectedYear}
+            disabled={
+              loading ||
+              !selectedDepartment ||
+              !selectedProgram ||
+              !selectedYear
+            }
           >
             {loading ? "Importing..." : "Import Selected Voters"}
           </Button>

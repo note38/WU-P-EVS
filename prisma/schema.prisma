@@ -53,12 +53,15 @@ model Position {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   yearId        Int?
+  programId     Int?
   candidates    Candidate[]
   election      Election    @relation(fields: [electionId], references: [id])
+  program       Program?    @relation(fields: [programId], references: [id])
   year          Year?       @relation(fields: [yearId], references: [id])
   votes         Vote[]
 
   @@index([electionId, yearId])
+  @@index([electionId, programId])
 }
 
 model Candidate {
@@ -82,24 +85,24 @@ model Candidate {
 }
 
 model Voter {
-  id              Int         @id @default(autoincrement())
-  clerkId         String?     @unique // Clerk user ID for voters
-  avatar          String
-  firstName       String
-  lastName        String
-  middleName      String
-  email           String      @unique
-  hashpassword    String?     // Made optional since Clerk handles auth
-  role            Role        @default(VOTER)
-  election        Election?   @relation(fields: [electionId], references: [id], onDelete: SetNull)
-  electionId      Int?
-  year            Year        @relation(fields: [yearId], references: [id])
-  yearId          Int
-  status          VoterStatus @default(UNCAST)
-  votes           Vote[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+  id           Int         @id @default(autoincrement())
+  email        String      @unique
+  electionId   Int?
+  status       VoterStatus @default(UNCAST)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  avatar       String
+  firstName    String
+  hashpassword String?
+  lastName     String
+  middleName   String
+  yearId       Int
+  role         Role        @default(VOTER)
+  clerkId      String?     @unique
+  votes        Vote[]
+  election     Election?   @relation(fields: [electionId], references: [id])
+  year         Year        @relation(fields: [yearId], references: [id])
+
   @@index([electionId, yearId])
   @@index([clerkId])
   @@index([email])
@@ -131,24 +134,33 @@ model Partylist {
 }
 
 model Department {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   image     String?
-  years     Year[]
+  programs  Program[]
 }
 
 model Year {
-  id           Int         @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  programId  Int?
+  candidates Candidate[]
+  positions  Position[]
+  voters     Voter[]
+  program    Program?    @relation(fields: [programId], references: [id], onDelete: Cascade)
+}
+
+model Program {
+  id           Int        @id @default(autoincrement())
   name         String
   departmentId Int
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  candidates   Candidate[]
   positions    Position[]
-  voters       Voter[]
-  department   Department  @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  years        Year[]
 }
 
 enum Role {

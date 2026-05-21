@@ -19,7 +19,11 @@ export async function GET() {
       include: {
         year: {
           include: {
-            department: true,
+            program: {
+              include: {
+                department: true,
+              },
+            },
           },
         },
         election: {
@@ -34,10 +38,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: voters,
-    });
+    return NextResponse.json(voters);
   } catch (error) {
     console.error("Error fetching voters:", error);
     return NextResponse.json(
@@ -125,7 +126,11 @@ export async function POST(request: Request) {
         include: {
           year: {
             include: {
-              department: true,
+              program: {
+                include: {
+                  department: true,
+                },
+              },
             },
           },
           election: {

@@ -1,0 +1,10 @@
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\types\election-results.ts
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\README.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\.github\workflows\election-status-cron-configurable.yml
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\.github\workflows\election-status-cron.yml
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\.github\workflows\README.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\docs\cron-troubleshooting.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\docs\database-troubleshooting.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\docs\github-actions-000-error.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\docs\github-actions-troubleshooting.md
+C:\Users\Chardie Gotis\Desktop\Thesis\voting_system\docs\github-actions.md

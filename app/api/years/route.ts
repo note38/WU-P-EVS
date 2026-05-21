@@ -5,17 +5,15 @@ export async function GET() {
   try {
     const years = await prisma.year.findMany({
       include: {
-        department: true,
-      },
-      orderBy: [
-        {
-          department: {
-            name: "asc",
+        program: {
+          include: {
+            department: true,
           },
         },
-        {
-          name: "asc",
-        },
+      },
+      orderBy: [
+        { program: { department: { name: "asc" } } },
+        { name: "asc" },
       ],
     });
 
@@ -35,10 +33,12 @@ export async function POST(request: Request) {
     const year = await prisma.year.create({
       data: {
         name: body.name,
-        departmentId: parseInt(body.departmentId),
+        programId: parseInt(body.programId),
       },
       include: {
-        department: true,
+        program: {
+          include: { department: true },
+        },
       },
     });
 

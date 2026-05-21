@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     console.log(`🔍 Checking if user exists in Clerk: ${email}`);
 
     // Check if user exists in Clerk
-    const users = await clerkClient.users.getUserList({
+    const client = await clerkClient();
+    const users = await client.users.getUserList({
       emailAddress: [email],
     });
 

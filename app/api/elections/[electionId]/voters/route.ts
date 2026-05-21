@@ -78,10 +78,12 @@ export async function GET(
     if (departmentFilter && departmentFilter !== "all") {
       andFilters.push({
         year: {
-          department: {
-            name: {
-              equals: departmentFilter,
-              mode: "insensitive" as const,
+          program: {
+            department: {
+              name: {
+                equals: departmentFilter,
+                mode: "insensitive" as const,
+              },
             },
           },
         },
@@ -102,7 +104,11 @@ export async function GET(
       include: {
         year: {
           include: {
-            department: true,
+            program: {
+              include: {
+                department: true,
+              },
+            },
           },
         },
         votes: {
@@ -133,8 +139,14 @@ export async function GET(
       middleName: voter.middleName,
       email: voter.email,
       avatar: voter.avatar,
-      year: voter.year,
-      department: voter.year?.department || null,
+      year: voter.year
+        ? {
+            id: voter.year.id,
+            name: voter.year.name,
+            programId: voter.year.programId,
+          }
+        : null,
+      department: voter.year?.program?.department || null,
       status: voter.status,
       votedAt:
         voter.votes.length > 0 ? voter.votes[0].votedAt.toISOString() : null,
@@ -201,7 +213,11 @@ export async function POST(
 
     // If not "all departments" and a specific department was selected
     if (!allDepartments && departmentId) {
-      query.where.departmentId = parseInt(departmentId);
+      query.where.year = {
+        program: {
+          departmentId: parseInt(departmentId),
+        },
+      };
     }
 
     // Find voters matching the criteria

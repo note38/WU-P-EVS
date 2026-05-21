@@ -12,12 +12,13 @@ export async function POST(
     const { electionId: electionIdStr } = await params;
     const electionId = parseInt(electionIdStr);
     const body = await request.json();
-    const { yearId, departmentId, allDepartments } = body;
+    const { yearId, departmentId, programId, allDepartments } = body;
 
     console.log("Import request params:", {
       electionId,
       yearId,
       departmentId,
+      programId,
       allDepartments,
     });
 
@@ -40,6 +41,13 @@ export async function POST(
       );
     }
 
+    if (programId && isNaN(parseInt(programId))) {
+      return NextResponse.json(
+        { error: "Invalid program ID" },
+        { status: 400 }
+      );
+    }
+
     // Validate that the election exists
     const election = await prisma.election.findUnique({
       where: { id: electionId },
@@ -52,17 +60,26 @@ export async function POST(
       );
     }
 
-    // Build the query to find all voters based on year and department criteria
-    const query = {
-      where: {
-        yearId: parseInt(yearId),
-        ...(!allDepartments &&
+    // Build the where clause for finding voters
+    // Year -> Program -> Department (correct relationship chain)
+    const whereClause: Record<string, unknown> = {
+      yearId: parseInt(yearId),
+    };
+
+    if (!allDepartments && (programId || departmentId)) {
+      whereClause.year = {
+        ...(programId && { programId: parseInt(programId) }),
+        ...(!programId &&
           departmentId && {
-            year: {
+            program: {
               departmentId: parseInt(departmentId),
             },
           }),
-      },
+      };
+    }
+
+    const query = {
+      where: whereClause,
       select: {
         id: true,
         firstName: true,

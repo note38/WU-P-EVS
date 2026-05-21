@@ -18,6 +18,7 @@ import {
 import { CreateVoterForm } from "@/app/components/admin/voter-detail/create-voter-form";
 import DepartmentCard from "@/app/components/admin/voter-detail/department-card";
 import { ExportButtons } from "@/app/components/admin/voter-detail/export-buttons";
+import { ImportVotersExcelDialog } from "@/app/components/admin/voter-detail/import-voters-excel-dialog";
 
 type Department = {
   id: number;
@@ -44,6 +45,7 @@ function PageHeader({
       <h1 className="text-2xl sm:text-3xl font-bold">Voters Management</h1>
       <div className="flex flex-col sm:flex-row gap-2">
         <ExportButtons voters={voters} title="All Voters Report" />
+        <ImportVotersExcelDialog onImportSuccess={onVoterCreated} />
         <div className="hidden md:block">
           <CreateVoterForm onVoterCreated={onVoterCreated} />
         </div>
@@ -107,38 +109,31 @@ export default function VotersPage() {
           const voters = await votersResponse.json();
           const depts = await departmentsResponse.json();
 
-          setVotersData(voters.data || []);
+          // API now returns a plain array of voters
+          setVotersData(voters || []);
           setDepartments(depts);
         } else {
           // Handle errors properly
           let votersError = "Unknown error";
           let departmentsError = "Unknown error";
 
-          try {
-            if (!votersResponse.ok) {
-              const votersErrorData = await votersResponse.json();
-              votersError =
-                votersErrorData.error ||
-                votersErrorData.message ||
-                `HTTP ${votersResponse.status}`;
+          // Extract error messages safely – API may return plain error objects
+          if (!votersResponse.ok) {
+            try {
+              const err = await votersResponse.json();
+              votersError = err.error || err.message || `HTTP ${votersResponse.status}`;
+            } catch {
+              votersError = (await votersResponse.text()) || `HTTP ${votersResponse.status}`;
             }
-          } catch {
-            votersError =
-              (await votersResponse.text()) || `HTTP ${votersResponse.status}`;
           }
 
-          try {
-            if (!departmentsResponse.ok) {
-              const departmentsErrorData = await departmentsResponse.json();
-              departmentsError =
-                departmentsErrorData.error ||
-                departmentsErrorData.message ||
-                `HTTP ${departmentsResponse.status}`;
+          if (!departmentsResponse.ok) {
+            try {
+              const err = await departmentsResponse.json();
+              departmentsError = err.error || err.message || `HTTP ${departmentsResponse.status}`;
+            } catch {
+              departmentsError = (await departmentsResponse.text()) || `HTTP ${departmentsResponse.status}`;
             }
-          } catch {
-            departmentsError =
-              (await departmentsResponse.text()) ||
-              `HTTP ${departmentsResponse.status}`;
           }
 
           console.error("Voters error:", votersError);

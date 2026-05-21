@@ -142,7 +142,7 @@ export async function restoreBackup(backupData: any) {
           data: backupData.years.map((year: any) => ({
             id: year.id,
             name: year.name,
-            departmentId: year.departmentId,
+            programId: year.programId,
             createdAt: new Date(year.createdAt),
             updatedAt: new Date(year.updatedAt),
           })),

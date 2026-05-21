@@ -24,11 +24,12 @@ const sidebarItems = [
   { name: "Voters", icon: User, href: "/admin_dashboard/voters" },
   { name: "Departments", icon: Building, href: "/admin_dashboard/departments" },
   { name: "Year Levels", icon: Calendar, href: "/admin_dashboard/years" },
+  { name: "Programs", icon: Settings, href: "/admin_dashboard/programs" },
   {
     name: "System Settings",
     icon: Settings,
     href: "/admin_dashboard/settings",
-  },
+  }
 ];
 
 interface SidebarProps {

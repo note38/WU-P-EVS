@@ -10,10 +10,10 @@ export async function PATCH(request: Request, context: any) {
       where: { id: parseInt(params.id) },
       data: {
         name: body.name,
-        departmentId: parseInt(body.departmentId),
+        programId: parseInt(body.programId),
       },
       include: {
-        department: true,
+        program: { include: { department: true } },
       },
     });
 
@@ -21,8 +21,7 @@ export async function PATCH(request: Request, context: any) {
     const transformedYear = {
       id: year.id.toString(),
       name: year.name,
-      departmentId: year.departmentId.toString(),
-      departmentName: year.department.name,
+      departmentName: year.program?.department?.name || "Unassigned",
     };
 
     return NextResponse.json(transformedYear);

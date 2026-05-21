@@ -37,9 +37,13 @@ interface Candidate {
   year?: {
     id: number;
     name: string;
-    department?: {
+    program?: {
       id: number;
       name: string;
+      department?: {
+        id: number;
+        name: string;
+      };
     };
   };
 }

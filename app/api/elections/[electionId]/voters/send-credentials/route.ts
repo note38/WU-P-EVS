@@ -113,7 +113,7 @@
 //           email: voter.email,
 //           password: password,
 //           electionName: election.name,
-//           departmentName: voter.year?.department?.name || "",
+//           departmentName: voter.year?.program?.department?.name || "",
 //           yearName: voter.year?.name || "",
 //           loginLink: process.env.NEXT_PUBLIC_BASE_URL
 //             ? `${process.env.NEXT_PUBLIC_BASE_URL}/login`

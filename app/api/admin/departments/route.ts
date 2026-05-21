@@ -18,17 +18,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get departments and years
+    // Get departments with programs and years
     const departments = await prisma.department.findMany({
       include: {
-        years: true,
+        programs: {
+          include: {
+            years: true,
+          },
+        },
       },
       orderBy: {
         name: "asc",
       },
     });
 
-    return NextResponse.json(departments);
+    // Map to preserve the legacy { years: Year[] } structure for frontend compatibility
+    const mappedDepartments = departments.map((dept) => ({
+      id: dept.id,
+      name: dept.name,
+      image: dept.image,
+      years: dept.programs.flatMap((prog) =>
+        prog.years.map((y) => ({
+          id: y.id,
+          name: `${prog.name} - ${y.name}`,
+        }))
+      ),
+    }));
+
+    return NextResponse.json(mappedDepartments);
   } catch (error) {
     console.error("❌ Error fetching departments:", error);
     

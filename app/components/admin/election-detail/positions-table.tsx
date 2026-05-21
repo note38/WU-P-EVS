@@ -18,7 +18,16 @@ interface Position {
   maxCandidates: number;
   candidates: number;
   yearId: number | null;
+  programId: number | null;
   year: {
+    id: number;
+    name: string;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
+  program: {
     id: number;
     name: string;
     department: {
@@ -31,11 +40,16 @@ interface Position {
 interface Year {
   id: number;
   name: string;
-  departmentId: number;
-  department: {
+  programId: number | null;
+  program?: {
     id: number;
     name: string;
-  };
+    departmentId: number;
+    department: {
+      id: number;
+      name: string;
+    };
+  } | null;
 }
 
 interface PositionsTableProps {
@@ -57,18 +71,24 @@ export function PositionsTable({
 }: PositionsTableProps) {
   // Sort years by department name and then year name
   const sortedYears = [...years].sort((a, b) => {
-    const deptCompare = a.department.name.localeCompare(b.department.name);
+    const aDept = a.program?.department?.name || "";
+    const bDept = b.program?.department?.name || "";
+    const deptCompare = aDept.localeCompare(bDept);
     if (deptCompare !== 0) return deptCompare;
     return a.name.localeCompare(b.name);
   });
 
-  // Function to get year info
-  const getYearInfo = (position: Position) => {
-    // Use the year relation directly from the position
-    if (position.year && position.year.department) {
-      return `${position.year.department.name} - ${position.year.name}`;
+  // Function to get scope/restriction info
+  const getScopeInfo = (position: Position) => {
+    if (position.year) {
+      const deptName = position.year.department?.name || "Unassigned";
+      return `${deptName} - ${position.year.name}`;
     }
-    return "All Levels";
+    if (position.program) {
+      const deptName = position.program.department?.name || "Unassigned";
+      return `${deptName} - ${position.program.name} (All Years)`;
+    }
+    return "All Levels / Programs";
   };
 
   return (
@@ -85,7 +105,7 @@ export function PositionsTable({
                 <TableHead>Position</TableHead>
                 <TableHead>Max Candidates</TableHead>
                 <TableHead>Current Candidates</TableHead>
-                <TableHead>Year Level</TableHead>
+                <TableHead>Scope / Restriction</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -105,7 +125,17 @@ export function PositionsTable({
                     </TableCell>
                     <TableCell>{position.maxCandidates}</TableCell>
                     <TableCell>{position.candidates}</TableCell>
-                    <TableCell>{getYearInfo(position)}</TableCell>
+                    <TableCell>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        position.year
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                          : position.program
+                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                      }`}>
+                        {getScopeInfo(position)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

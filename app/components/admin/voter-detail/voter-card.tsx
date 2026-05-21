@@ -63,6 +63,8 @@ export enum VoterStatus {
   CAST = "CAST",
 }
 
+// FIX: Updated Voter type to reflect the real schema chain:
+// Voter → Year → Program → Department
 export type Voter = {
   id: number;
   firstName: string;
@@ -79,10 +81,14 @@ export type Voter = {
   year?: {
     name: string;
     id: number;
-    department?: {
+    program?: {
       id: number;
       name: string;
-      image: string | null;
+      department?: {
+        id: number;
+        name: string;
+        image: string | null;
+      };
     };
   };
   info?: any;
@@ -116,22 +122,25 @@ export default function VoterCards({
       .replace(/\s+/g, " ");
   };
 
+  // Helper to get department name using the correct nested path
+  const getDepartmentName = (voter: Voter): string => {
+    return voter.year?.program?.department?.name || "Not assigned";
+  };
+
   // Get unique year names for filtering
   const yearNames = Array.from(
-    new Set(voters.map((voter) => voter.year?.name || "Unknown"))
+    new Set(voters.map((voter) => voter.year?.name || "Unknown")),
   );
 
   const filteredVoters = voters.filter((voter) => {
     const fullName = getFullName(voter);
     const searchLower = searchTerm.toLowerCase();
 
-    // Search match
     const matchesSearch =
       fullName.toLowerCase().includes(searchLower) ||
       voter.email.toLowerCase().includes(searchLower) ||
       voter.id.toString().includes(searchLower);
 
-    // Year filter match
     const matchesYearFilter =
       selectedYearFilter === "all" || voter.year?.name === selectedYearFilter;
 
@@ -142,7 +151,7 @@ export default function VoterCards({
     setSelectedVoters((prev) =>
       prev.includes(voterId)
         ? prev.filter((id) => id !== voterId)
-        : [...prev, voterId]
+        : [...prev, voterId],
     );
   };
 
@@ -150,7 +159,7 @@ export default function VoterCards({
     setSelectedVoters(
       selectedVoters.length === filteredVoters.length
         ? []
-        : filteredVoters.map((voter) => voter.id)
+        : filteredVoters.map((voter) => voter.id),
     );
   };
 
@@ -166,260 +175,29 @@ export default function VoterCards({
       return;
     }
 
-    // Get the base URL for absolute paths
     const baseUrl =
       typeof window !== "undefined"
         ? `${window.location.protocol}//${window.location.host}`
         : "http://localhost:3000";
 
-    // Try to get the logo as a data URL, fallback to URL if it fails
     let logoSrc = `${baseUrl}/wup-logo.png`;
     try {
       logoSrc = await getImageAsDataUrl(`${baseUrl}/wup-logo.png`);
     } catch (error) {
       console.warn(
         "Could not convert logo to data URL, using URL instead:",
-        error
+        error,
       );
     }
 
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>All Voters - Report</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              color: #333;
-              line-height: 1.6;
-            }
-            .election-header {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              padding: 24px;
-              background-color: #ffffff;
-              border-bottom: 1px solid #dee2e6;
-              text-align: center;
-            }
-            .branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 16px;
-              margin-bottom: 16px;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-            }
-            .university-info {
-              text-align: left;
-            }
-            .university-name {
-              margin: 0;
-              font-size: 1.5rem;
-              font-weight: 600;
-              color: #212529;
-            }
-            .system-name {
-              margin: 0;
-              font-size: 1rem;
-              color: #6c757d;
-            }
-            .election-title {
-              margin: 0;
-              font-size: 1.25rem;
-              font-weight: 500;
-              color: #495057;
-              background-color: #f8f9fa;
-              padding: 8px 12px;
-              border-radius: 8px;
-              display: inline-block;
-            }
-            .voter-table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 20px;
-              font-size: 0.9rem;
-            }
-            .voter-table th, .voter-table td { 
-              border: 1px solid #ddd; 
-              padding: 8px; 
-              text-align: left; 
-            }
-            .voter-table th { 
-              background-color: #f2f2f2; 
-              font-weight: bold;
-            }
-            .voter-table tr:nth-child(even) { 
-              background-color: #f9f9f9; 
-            }
-            .status-voted { 
-              background-color: #d4edda; 
-              color: #155724; 
-              padding: 2px 6px; 
-              border-radius: 3px;
-            }
-            .status-uncast { 
-              background-color: #d1ecf1; 
-              color: #0c5460; 
-              padding: 2px 6px; 
-              border-radius: 3px;
-            }
-            .footer { 
-              margin-top: 30px; 
-              text-align: center; 
-              color: #666; 
-              font-size: 12px;
-              border-top: 1px solid #ddd;
-              padding-top: 15px;
-            }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-              .voter-table { font-size: 0.8rem; }
-              .voter-table th, .voter-table td { padding: 4px; }
-            }
-            @media (max-width: 768px) {
-              body { margin: 10px; }
-              .branding { flex-direction: column; text-align: center; }
-              .university-info { text-align: center; }
-              .election-title { font-size: 1rem; padding: 6px 10px; }
-              .voter-table { font-size: 0.8rem; }
-              .voter-table th, .voter-table td { padding: 6px; }
-            }
-            @media (max-width: 480px) {
-              .election-header { padding: 15px; }
-              .logo { width: 40px; height: 40px; }
-              .university-name { font-size: 1.2rem; }
-              .system-name { font-size: 0.9rem; }
-              .election-title { font-size: 0.9rem; padding: 4px 8px; }
-              .voter-table { font-size: 0.7rem; }
-              .voter-table th, .voter-table td { padding: 4px; }
-              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
-            }
-          </style>
-        </head>
-        <body>
-          <header class="election-header">
-            <div class="branding">
-              <img src="${logoSrc}" alt="WU-P Aurora Enhanced Voting System Logo" class="logo" onerror="this.onerror=null;this.src='https://via.placeholder.com/60x60/cccccc/000000?text=WUP';" />
-              <div class="university-info">
-                <h1 class="university-name">Development of WU-P Aurora Enhanced Voting System</h1>
-                <p class="system-name">DWU-P-AEVS</p>
-              </div>
-            </div>
-            <h2 class="election-title">All Voters Report</h2>
-            <p><strong>Total Voters:</strong> ${filteredVoters.length}</p>
-          </header>
-          <table class="voter-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Year</th>
-                <th>Department</th>
-                <th>Status</th>
-                <th>Election</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredVoters
-                .map((voter) => {
-                  const fullName = getFullName(voter);
-                  const yearName = voter.year?.name || "Unknown";
-                  // Try multiple sources for department name
-                  let departmentName = "Not assigned";
-                  if (voter.year?.department?.name) {
-                    departmentName = voter.year.department.name;
-                  } else if (voter.year?.name) {
-                    const parts = voter.year.name.split(" - ");
-                    if (parts.length > 1) {
-                      departmentName = parts[1];
-                    }
-                  }
+    const printContent = buildPrintContent(
+      "All Voters Report",
+      `<strong>Total Voters:</strong> ${filteredVoters.length}`,
+      filteredVoters,
+      logoSrc,
+    );
 
-                  return `
-                    <tr>
-                      <td>${voter.id}</td>
-                      <td>${fullName}</td>
-                      <td>${voter.email}</td>
-                      <td>${yearName}</td>
-                      <td>${departmentName}</td>
-                      <td>
-                        <span class="${voter.status === "CAST" ? "status-voted" : "status-uncast"}">
-                          ${voter.status.toLowerCase()}
-                        </span>
-                      </td>
-                      <td>${voter.election?.name || "Not assigned"}</td>
-                      <td>${new Date(voter.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  `;
-                })
-                .join("")}
-            </tbody>
-          </table>
-          <div class="footer">
-            <p>This report contains ${filteredVoters.length} voters.</p>
-            <p>Generated by: Development of WU-P Aurora Enhanced Voting System (DWU-P-AEVS)</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-
-    // Add print event handling
-    let printed = false;
-
-    const beforePrintHandler = () => {
-      printed = true;
-    };
-
-    const afterPrintHandler = () => {
-      printWindow.removeEventListener("beforeprint", beforePrintHandler);
-      printWindow.removeEventListener("afterprint", afterPrintHandler);
-      // Close window after printing
-      setTimeout(() => {
-        if (!printWindow.closed) {
-          printWindow.close();
-        }
-      }, 1000);
-    };
-
-    printWindow.addEventListener("beforeprint", beforePrintHandler);
-    printWindow.addEventListener("afterprint", afterPrintHandler);
-
-    // Handle window close without printing
-    const checkClosed = setInterval(() => {
-      if (printWindow.closed) {
-        clearInterval(checkClosed);
-        // If not printed, it was cancelled
-        if (!printed) {
-          toast({
-            title: "Print Cancelled",
-            description: "Print operation was cancelled.",
-          });
-        }
-      }
-    }, 1000);
-
-    try {
-      printWindow.print();
-    } catch (error) {
-      clearInterval(checkClosed);
-      toast({
-        title: "Print Error",
-        description: "Failed to initiate print dialog.",
-        variant: "destructive",
-      });
-    }
+    openPrintWindow(printWindow, printContent);
   };
 
   const handlePrintSelected = async () => {
@@ -433,7 +211,7 @@ export default function VoterCards({
     }
 
     const selectedVoterData = filteredVoters.filter((voter) =>
-      selectedVoters.includes(voter.id)
+      selectedVoters.includes(voter.id),
     );
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
@@ -446,140 +224,61 @@ export default function VoterCards({
       return;
     }
 
-    // Get the base URL for absolute paths
     const baseUrl =
       typeof window !== "undefined"
         ? `${window.location.protocol}//${window.location.host}`
         : "http://localhost:3000";
 
-    // Try to get the logo as a data URL, fallback to URL if it fails
     let logoSrc = `${baseUrl}/wup-logo.png`;
     try {
       logoSrc = await getImageAsDataUrl(`${baseUrl}/wup-logo.png`);
     } catch (error) {
       console.warn(
         "Could not convert logo to data URL, using URL instead:",
-        error
+        error,
       );
     }
 
-    const printContent = `
+    const printContent = buildPrintContent(
+      "Selected Voters Report",
+      `<strong>Selected Voters:</strong> ${selectedVoterData.length}`,
+      selectedVoterData,
+      logoSrc,
+    );
+
+    openPrintWindow(printWindow, printContent);
+  };
+
+  // Shared print HTML builder
+  function buildPrintContent(
+    title: string,
+    subtitle: string,
+    voterList: Voter[],
+    logoSrc: string,
+  ): string {
+    return `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Selected Voters - Report</title>
+          <title>${title}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              color: #333;
-              line-height: 1.6;
-            }
-            .election-header {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              padding: 24px;
-              background-color: #ffffff;
-              border-bottom: 1px solid #dee2e6;
-              text-align: center;
-            }
-            .branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 16px;
-              margin-bottom: 16px;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-            }
-            .university-info {
-              text-align: left;
-            }
-            .university-name {
-              margin: 0;
-              font-size: 1.5rem;
-              font-weight: 600;
-              color: #212529;
-            }
-            .system-name {
-              margin: 0;
-              font-size: 1rem;
-              color: #6c757d;
-            }
-            .election-title {
-              margin: 0;
-              font-size: 1.25rem;
-              font-weight: 500;
-              color: #495057;
-              background-color: #f8f9fa;
-              padding: 8px 12px;
-              border-radius: 8px;
-              display: inline-block;
-            }
-            .voter-table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 20px;
-              font-size: 0.9rem;
-            }
-            .voter-table th, .voter-table td { 
-              border: 1px solid #ddd; 
-              padding: 8px; 
-              text-align: left; 
-            }
-            .voter-table th { 
-              background-color: #f2f2f2; 
-              font-weight: bold;
-            }
-            .voter-table tr:nth-child(even) { 
-              background-color: #f9f9f9; 
-            }
-            .status-voted { 
-              background-color: #d4edda; 
-              color: #155724; 
-              padding: 2px 6px; 
-              border-radius: 3px;
-            }
-            .status-uncast { 
-              background-color: #d1ecf1; 
-              color: #0c5460; 
-              padding: 2px 6px; 
-              border-radius: 3px;
-            }
-            .footer { 
-              margin-top: 30px; 
-              text-align: center; 
-              color: #666; 
-              font-size: 12px;
-              border-top: 1px solid #ddd;
-              padding-top: 15px;
-            }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-              .voter-table { font-size: 0.8rem; }
-              .voter-table th, .voter-table td { padding: 4px; }
-            }
-            @media (max-width: 768px) {
-              body { margin: 10px; }
-              .branding { flex-direction: column; text-align: center; }
-              .university-info { text-align: center; }
-              .election-title { font-size: 1rem; padding: 6px 10px; }
-              .voter-table { font-size: 0.8rem; }
-              .voter-table th, .voter-table td { padding: 6px; }
-            }
-            @media (max-width: 480px) {
-              .election-header { padding: 15px; }
-              .logo { width: 40px; height: 40px; }
-              .university-name { font-size: 1.2rem; }
-              .system-name { font-size: 0.9rem; }
-              .election-title { font-size: 0.9rem; padding: 4px 8px; }
-              .voter-table { font-size: 0.7rem; }
-              .voter-table th, .voter-table td { padding: 4px; }
-              .status-voted, .status-uncast { padding: 1px 3px; font-size: 0.6rem; }
-            }
+            body { font-family: Arial, sans-serif; margin: 20px; color: #333; line-height: 1.6; }
+            .election-header { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 24px; background-color: #ffffff; border-bottom: 1px solid #dee2e6; text-align: center; }
+            .branding { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+            .logo { width: 60px; height: 60px; }
+            .university-info { text-align: left; }
+            .university-name { margin: 0; font-size: 1.5rem; font-weight: 600; color: #212529; }
+            .system-name { margin: 0; font-size: 1rem; color: #6c757d; }
+            .election-title { margin: 0; font-size: 1.25rem; font-weight: 500; color: #495057; background-color: #f8f9fa; padding: 8px 12px; border-radius: 8px; display: inline-block; }
+            .voter-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem; }
+            .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .voter-table th { background-color: #f2f2f2; font-weight: bold; }
+            .voter-table tr:nth-child(even) { background-color: #f9f9f9; }
+            .status-voted { background-color: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; }
+            .status-uncast { background-color: #d1ecf1; color: #0c5460; padding: 2px 6px; border-radius: 3px; }
+            .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 15px; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
           </style>
         </head>
         <body>
@@ -591,45 +290,29 @@ export default function VoterCards({
                 <p class="system-name">DWU-P-AEVS</p>
               </div>
             </div>
-            <h2 class="election-title">Selected Voters Report</h2>
-            <p><strong>Selected Voters:</strong> ${selectedVoterData.length}</p>
+            <h2 class="election-title">${title}</h2>
+            <p>${subtitle}</p>
           </header>
           <table class="voter-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Year</th>
-                <th>Department</th>
-                <th>Status</th>
-                <th>Election</th>
-                <th>Created</th>
+                <th>ID</th><th>Name</th><th>Email</th><th>Year</th>
+                <th>Program</th><th>Department</th><th>Status</th>
+                <th>Election</th><th>Created</th>
               </tr>
             </thead>
             <tbody>
-              ${selectedVoterData
+              ${voterList
                 .map((voter) => {
                   const fullName = getFullName(voter);
-                  const yearName = voter.year?.name || "Unknown";
-                  // Try multiple sources for department name
-                  let departmentName = "Not assigned";
-                  if (voter.year?.department?.name) {
-                    departmentName = voter.year.department.name;
-                  } else if (voter.year?.name) {
-                    const parts = voter.year.name.split(" - ");
-                    if (parts.length > 1) {
-                      departmentName = parts[1];
-                    }
-                  }
-
                   return `
                     <tr>
                       <td>${voter.id}</td>
                       <td>${fullName}</td>
                       <td>${voter.email}</td>
-                      <td>${yearName}</td>
-                      <td>${departmentName}</td>
+                      <td>${voter.year?.name || "Unknown"}</td>
+                      <td>${voter.year?.program?.name || "Not assigned"}</td>
+                      <td>${voter.year?.program?.department?.name || "Not assigned"}</td>
                       <td>
                         <span class="${voter.status === "CAST" ? "status-voted" : "status-uncast"}">
                           ${voter.status.toLowerCase()}
@@ -644,43 +327,36 @@ export default function VoterCards({
             </tbody>
           </table>
           <div class="footer">
-            <p>This report contains ${selectedVoterData.length} selected voters.</p>
+            <p>This report contains ${voterList.length} voters.</p>
             <p>Generated by: Development of WU-P Aurora Enhanced Voting System (DWU-P-AEVS)</p>
           </div>
         </body>
       </html>
     `;
+  }
 
-    printWindow.document.write(printContent);
+  function openPrintWindow(printWindow: Window, content: string) {
+    printWindow.document.write(content);
     printWindow.document.close();
     printWindow.focus();
 
-    // Add print event handling
     let printed = false;
-
     const beforePrintHandler = () => {
       printed = true;
     };
-
     const afterPrintHandler = () => {
       printWindow.removeEventListener("beforeprint", beforePrintHandler);
       printWindow.removeEventListener("afterprint", afterPrintHandler);
-      // Close window after printing
       setTimeout(() => {
-        if (!printWindow.closed) {
-          printWindow.close();
-        }
+        if (!printWindow.closed) printWindow.close();
       }, 1000);
     };
-
     printWindow.addEventListener("beforeprint", beforePrintHandler);
     printWindow.addEventListener("afterprint", afterPrintHandler);
 
-    // Handle window close without printing
     const checkClosed = setInterval(() => {
       if (printWindow.closed) {
         clearInterval(checkClosed);
-        // If not printed, it was cancelled
         if (!printed) {
           toast({
             title: "Print Cancelled",
@@ -700,11 +376,9 @@ export default function VoterCards({
         variant: "destructive",
       });
     }
-  };
+  }
 
-  // Handle voter edit
   const handleEditVoter = (voterId: number) => {
-    // Find the voter data
     const voter = voters.find((v) => v.id === voterId);
     if (!voter) {
       toast({
@@ -714,47 +388,30 @@ export default function VoterCards({
       });
       return;
     }
-
-    // Set the selected voter and open the edit dialog
     setSelectedVoter(voter);
     setEditDialogOpen(true);
   };
 
-  // Handle voter delete - open confirmation dialog
   const handleDeleteVoter = (voter: Voter) => {
     setVoterToDelete(voter);
     setDeleteDialogOpen(true);
   };
 
-  // Handle bulk delete - open confirmation dialog
   const handleBulkDeleteVoter = () => {
     setBulkDeleteDialogOpen(true);
   };
 
-  // Perform the actual deletion
   const performDeleteVoter = async () => {
     if (!voterToDelete) return;
-
     try {
       const response = await fetch(`/api/voters/${voterToDelete.id}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
-
       const result = await response.json();
-
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Voter deleted successfully.",
-        });
-
-        // Notify parent component to refresh the voter list
-        if (onVoterDelete) {
-          onVoterDelete(voterToDelete.id);
-        }
+        toast({ title: "Success", description: "Voter deleted successfully." });
+        if (onVoterDelete) onVoterDelete(voterToDelete.id);
       } else {
         toast({
           title: "Error",
@@ -774,35 +431,22 @@ export default function VoterCards({
     }
   };
 
-  // Perform bulk deletion
   const performBulkDeleteVoters = async () => {
     if (selectedVoters.length === 0) return;
-
     try {
       const response = await fetch("/api/voters/bulk", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ voterIds: selectedVoters }),
       });
-
       const result = await response.json();
-
       if (response.ok) {
         toast({
           title: "Success",
           description: `${selectedVoters.length} voter(s) deleted successfully.`,
         });
-
-        // Clear selection
         setSelectedVoters([]);
-
-        // Notify parent component to refresh the voter list
-        if (onVoterDelete) {
-          // We can call it with any voter ID since the parent will refresh all data
-          onVoterDelete(selectedVoters[0]);
-        }
+        if (onVoterDelete) onVoterDelete(selectedVoters[0]);
       } else {
         toast({
           title: "Error",
@@ -822,27 +466,15 @@ export default function VoterCards({
     }
   };
 
-  // Handle voter update
   const handleVoterUpdated = () => {
-    // Close the dialog
     setEditDialogOpen(false);
     setSelectedVoter(null);
-
-    // Show success message
-    toast({
-      title: "Success",
-      description: "Voter updated successfully.",
-    });
-
-    // Notify parent component to refresh the voter list
-    if (onVoterUpdate) {
-      onVoterUpdate(selectedVoter as Voter);
-    }
+    toast({ title: "Success", description: "Voter updated successfully." });
+    if (onVoterUpdate) onVoterUpdate(selectedVoter as Voter);
   };
 
   return (
     <div className="space-y-4">
-      {/* Edit Voter Dialog */}
       {selectedVoter && (
         <EditVoterForm
           voter={selectedVoter}
@@ -852,7 +484,6 @@ export default function VoterCards({
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
@@ -865,7 +496,6 @@ export default function VoterCards({
         itemType="voter"
       />
 
-      {/* Bulk Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         open={bulkDeleteDialogOpen}
         onOpenChange={setBulkDeleteDialogOpen}
@@ -882,7 +512,6 @@ export default function VoterCards({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-
           {yearNames.length > 1 && (
             <Select
               value={selectedYearFilter}
@@ -965,18 +594,9 @@ export default function VoterCards({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredVoters.map((voter) => {
             const fullName = getFullName(voter);
-            const yearName = voter.year?.name || "Unknown";
-            // Try multiple sources for department name
-            let departmentName = "Not assigned";
-            if (voter.year?.department?.name) {
-              departmentName = voter.year.department.name;
-            } else if (voter.year?.name) {
-              // Fallback: try to extract from year name if department is missing
-              const parts = voter.year.name.split(" - ");
-              if (parts.length > 1) {
-                departmentName = parts[1];
-              }
-            }
+            const yearName = voter.year?.name || "Not assigned";
+            const programName = voter.year?.program?.name || "Not assigned";
+            const departmentName = getDepartmentName(voter);
 
             return (
               <Card key={voter.id} className="overflow-hidden group">
@@ -1021,7 +641,6 @@ export default function VoterCards({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-
                       <DropdownMenuItem
                         onClick={() => handleEditVoter(voter.id)}
                       >
@@ -1065,12 +684,15 @@ export default function VoterCards({
                     </div>
                     <div className="text-sm line-clamp-1 flex items-center">
                       <School className="h-3 w-3 mr-1" />
-                      <span className="font-medium mr-1">Year:</span>{" "}
-                      {yearName || "Not assigned"}
+                      <span className="font-medium mr-1">Year:</span> {yearName}
+                    </div>
+                    <div className="text-sm line-clamp-1">
+                      <span className="font-medium">Program:</span>{" "}
+                      {programName}
                     </div>
                     <div className="text-sm line-clamp-1">
                       <span className="font-medium">Department:</span>{" "}
-                      {departmentName || "Not assigned"}
+                      {departmentName}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Status:</span>{" "}

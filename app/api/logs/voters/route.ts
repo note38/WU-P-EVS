@@ -63,8 +63,12 @@ export async function GET(request: NextRequest) {
         },
         year: {
           include: {
-            department: {
-              select: { name: true },
+            program: {
+              include: {
+                department: {
+                  select: { name: true },
+                },
+              },
             },
           },
         },
@@ -85,7 +89,7 @@ export async function GET(request: NextRequest) {
       registeredAt: voter.createdAt,
       status: voter.status?.toLowerCase() || "unknown",
       election: voter.election?.name || "No election",
-      department: voter.year?.department?.name || "Unknown",
+      department: voter.year?.program?.department?.name || "Unknown",
     }));
 
     return NextResponse.json({

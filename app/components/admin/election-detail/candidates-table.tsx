@@ -38,9 +38,13 @@ interface Candidate {
   year?: {
     id: number;
     name: string;
-    department?: {
+    program?: {
       id: number;
       name: string;
+      department?: {
+        id: number;
+        name: string;
+      };
     };
   };
 }
@@ -178,7 +182,7 @@ export function CandidatesTable({
                       {candidate.year && (
                         <>
                           <Badge variant="outline" className="mr-1">
-                            {candidate.year.department?.name || "N/A"}
+                            {candidate.year.program?.department?.name || "N/A"}
                           </Badge>
                           <Badge variant="secondary">
                             {candidate.year.name}
