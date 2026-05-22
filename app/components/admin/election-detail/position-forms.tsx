@@ -122,12 +122,12 @@ export function PositionForms({
     const bDept = b.program?.department?.name || "";
     const deptCompare = aDept.localeCompare(bDept);
     if (deptCompare !== 0) return deptCompare;
-    
+
     const aProg = a.program?.name || "";
     const bProg = b.program?.name || "";
     const progCompare = aProg.localeCompare(bProg);
     if (progCompare !== 0) return progCompare;
-    
+
     return a.name.localeCompare(b.name);
   });
 
@@ -195,11 +195,11 @@ export function PositionForms({
                 }
               />
             </div>
-            
+
             {programs.length > 0 && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="program-select" className="col-span-4">
-                  Program Restriction (Optional)
+                  Program Restriction
                 </Label>
                 <Select
                   value={newPosition.programId?.toString() || "null"}
@@ -218,8 +218,13 @@ export function PositionForms({
                   <SelectContent>
                     <SelectItem value="null">All Programs</SelectItem>
                     {sortedPrograms.map((program) => (
-                      <SelectItem key={program.id} value={program.id.toString()}>
-                        {program.department ? `${program.department.name} - ${program.name}` : program.name}
+                      <SelectItem
+                        key={program.id}
+                        value={program.id.toString()}
+                      >
+                        {program.department
+                          ? `${program.department.name} - ${program.name}`
+                          : program.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -230,7 +235,7 @@ export function PositionForms({
             {years.length > 0 && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="year-select" className="col-span-4">
-                  Year Level Restriction (Optional)
+                  Year Level Restriction
                 </Label>
                 <Select
                   value={newPosition.yearId?.toString() || "null"}
@@ -256,9 +261,14 @@ export function PositionForms({
                   <SelectContent>
                     <SelectItem value="null">All Year Levels</SelectItem>
                     {sortedYears
-                      .filter((year) => !newPosition.programId || year.programId === newPosition.programId)
+                      .filter(
+                        (year) =>
+                          !newPosition.programId ||
+                          year.programId === newPosition.programId,
+                      )
                       .map((year) => {
-                        const deptName = year.program?.department?.name || "Unassigned";
+                        const deptName =
+                          year.program?.department?.name || "Unassigned";
                         const progName = year.program?.name || "";
                         return (
                           <SelectItem key={year.id} value={year.id.toString()}>
@@ -333,16 +343,17 @@ export function PositionForms({
                   }
                 />
               </div>
-              
+
               {programs.length > 0 && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-program-select" className="col-span-4">
-                    Program Restriction (Optional)
+                    Program Restriction
                   </Label>
                   <Select
                     value={currentPosition.programId?.toString() || "null"}
                     onValueChange={(value) => {
-                      const programId = value === "null" ? null : parseInt(value);
+                      const programId =
+                        value === "null" ? null : parseInt(value);
                       setCurrentPosition({
                         ...currentPosition,
                         programId,
@@ -356,8 +367,13 @@ export function PositionForms({
                     <SelectContent>
                       <SelectItem value="null">All Programs</SelectItem>
                       {sortedPrograms.map((program) => (
-                        <SelectItem key={program.id} value={program.id.toString()}>
-                          {program.department ? `${program.department.name} - ${program.name}` : program.name}
+                        <SelectItem
+                          key={program.id}
+                          value={program.id.toString()}
+                        >
+                          {program.department
+                            ? `${program.department.name} - ${program.name}`
+                            : program.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -368,7 +384,7 @@ export function PositionForms({
               {years.length > 0 && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="edit-year-select" className="col-span-4">
-                    Year Level Restriction (Optional)
+                    Year Level Restriction
                   </Label>
                   <Select
                     value={currentPosition.yearId?.toString() || "null"}
@@ -394,12 +410,20 @@ export function PositionForms({
                     <SelectContent>
                       <SelectItem value="null">All Year Levels</SelectItem>
                       {sortedYears
-                        .filter((year) => !currentPosition.programId || year.programId === currentPosition.programId)
+                        .filter(
+                          (year) =>
+                            !currentPosition.programId ||
+                            year.programId === currentPosition.programId,
+                        )
                         .map((year) => {
-                          const deptName = year.program?.department?.name || "Unassigned";
+                          const deptName =
+                            year.program?.department?.name || "Unassigned";
                           const progName = year.program?.name || "";
                           return (
-                            <SelectItem key={year.id} value={year.id.toString()}>
+                            <SelectItem
+                              key={year.id}
+                              value={year.id.toString()}
+                            >
                               {`${deptName} - ${progName} ${year.name}`}
                             </SelectItem>
                           );
