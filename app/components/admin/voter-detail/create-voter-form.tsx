@@ -34,6 +34,12 @@ interface Election {
   name: string;
 }
 
+interface Program {
+  id: number;
+  name: string;
+  departmentId: number;
+}
+
 interface Year {
   id: number;
   name: string;
@@ -49,10 +55,13 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [years, setYears] = useState<Year[]>([]);
   const [elections, setElections] = useState<Election[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
+  const [selectedProgramId, setSelectedProgramId] = useState("");
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(false);
   const [isLoadingYears, setIsLoadingYears] = useState(false);
   const [isLoadingElections, setIsLoadingElections] = useState(false);
 
@@ -75,6 +84,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
     } else {
       // Reset selections when dialog closes
       setSelectedDepartmentId("");
+      setSelectedProgramId("");
       setFormData({
         firstName: "",
         lastName: "",
@@ -83,6 +93,7 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
         yearId: "",
         electionId: "",
       });
+      setPrograms([]);
       setYears([]);
       setErrors({});
     }
@@ -90,13 +101,25 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
 
   useEffect(() => {
     if (selectedDepartmentId) {
-      fetchYearsByDepartment(parseInt(selectedDepartmentId));
+      fetchProgramsByDepartment(parseInt(selectedDepartmentId));
+      setSelectedProgramId(""); // Reset program selection when department changes
       setFormData((prev) => ({ ...prev, yearId: "" })); // Reset year selection when department changes
+    } else {
+      setPrograms([]);
+      setSelectedProgramId("");
+      setFormData((prev) => ({ ...prev, yearId: "" }));
+    }
+  }, [selectedDepartmentId]);
+
+  useEffect(() => {
+    if (selectedProgramId) {
+      fetchYearsByProgram(parseInt(selectedProgramId));
+      setFormData((prev) => ({ ...prev, yearId: "" })); // Reset year selection when program changes
     } else {
       setYears([]);
       setFormData((prev) => ({ ...prev, yearId: "" }));
     }
-  }, [selectedDepartmentId]);
+  }, [selectedProgramId]);
 
   const fetchDepartments = async () => {
     setIsLoadingDepartments(true);
@@ -118,10 +141,30 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
     }
   };
 
-  const fetchYearsByDepartment = async (departmentId: number) => {
+  const fetchProgramsByDepartment = async (departmentId: number) => {
+    setIsLoadingPrograms(true);
+    try {
+      const response = await fetch(`/api/programs/by-department/${departmentId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data);
+      }
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load programs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrograms(false);
+    }
+  };
+
+  const fetchYearsByProgram = async (programId: number) => {
     setIsLoadingYears(true);
     try {
-      const response = await fetch(`/api/years/by-department/${departmentId}`);
+      const response = await fetch(`/api/years/by-program/${programId}`);
       if (response.ok) {
         const data = await response.json();
         setYears(data);

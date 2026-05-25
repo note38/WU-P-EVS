@@ -170,7 +170,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
       }
 
       const response = await fetch(
-        `/api/elections/${electionId}/voters?${params.toString()}`
+        `/api/elections/${electionId}/voters?${params.toString()}`,
       );
       const data = await response.json();
 
@@ -230,7 +230,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     // Optimistic update: immediately remove from UI
     const originalVoters = [...voters];
     setVoters((prevVoters) =>
-      prevVoters.filter((voter) => voter.id !== voterId)
+      prevVoters.filter((voter) => voter.id !== voterId),
     );
     setSelectedVoters((prev) => prev.filter((id) => id !== voterId));
 
@@ -243,7 +243,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ voterIds: [voterId] }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -284,7 +284,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     const originalSelectedVoters = [...selectedVoters];
 
     setVoters((prevVoters) =>
-      prevVoters.filter((voter) => !selectedVoters.includes(voter.id))
+      prevVoters.filter((voter) => !selectedVoters.includes(voter.id)),
     );
     setSelectedVoters([]);
 
@@ -297,7 +297,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ voterIds: selectedVoters }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -342,7 +342,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ voterIds }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -477,7 +477,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     } catch (error) {
       console.warn(
         "Could not convert logo to data URL, using URL instead:",
-        error
+        error,
       );
     }
 
@@ -686,7 +686,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     }
 
     const selectedVoterData = voters.filter((voter) =>
-      selectedVoters.includes(voter.id)
+      selectedVoters.includes(voter.id),
     );
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -704,7 +704,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
     } catch (error) {
       console.warn(
         "Could not convert logo to data URL, using URL instead:",
-        error
+        error,
       );
     }
 

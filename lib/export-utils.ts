@@ -205,24 +205,12 @@ export async function exportToExcel(
       import("file-saver"),
     ]);
 
-    // Prepare data for Excel
+    // Prepare data for Excel (exporting only First Name, Middle Name, Last Name, and Email)
     const excelData = voters.map((voter) => ({
-      ID: voter.id,
       "First Name": voter.firstName,
       "Middle Name": voter.middleName || "",
       "Last Name": voter.lastName,
-      "Full Name":
-        `${voter.firstName} ${voter.middleName ? voter.middleName + " " : ""}${voter.lastName}`.trim(),
       Email: voter.email,
-      Year: voter.year?.name || "Unknown",
-      Department:
-        voter.year?.departmentName ||
-        voter.year?.department?.name ||
-        "Not assigned",
-      Status: voter.status,
-      Election: voter.election?.name || "Not assigned",
-      "Created Date": new Date(voter.createdAt).toLocaleDateString(),
-      "Created Time": new Date(voter.createdAt).toLocaleTimeString(),
     }));
 
     // Create workbook and worksheet
@@ -231,18 +219,10 @@ export async function exportToExcel(
 
     // Set column widths
     const columnWidths = [
-      { wch: 8 }, // ID
-      { wch: 15 }, // First Name
-      { wch: 15 }, // Middle Name
-      { wch: 15 }, // Last Name
-      { wch: 30 }, // Full Name
-      { wch: 30 }, // Email
-      { wch: 20 }, // Year
-      { wch: 25 }, // Department
-      { wch: 12 }, // Status
-      { wch: 25 }, // Election
-      { wch: 15 }, // Created Date
-      { wch: 15 }, // Created Time
+      { wch: 20 }, // First Name
+      { wch: 20 }, // Middle Name
+      { wch: 20 }, // Last Name
+      { wch: 35 }, // Email
     ];
     worksheet["!cols"] = columnWidths;
 
