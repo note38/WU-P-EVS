@@ -575,28 +575,28 @@ export function ImportVotersExcelDialog({
 
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-foreground">
             <FileSpreadsheet className="h-6 w-6 text-green-600 animate-pulse" />
             Voters Importer Wizard
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-muted-foreground">
             Import voters easily from Google Forms, Excel sheets, or CSV spreadsheets.
           </DialogDescription>
         </DialogHeader>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-between w-full py-4 border-b">
+        <div className="flex items-center justify-between w-full py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <span
               className={`h-7 w-7 rounded-full flex items-center justify-center font-semibold text-xs transition-colors duration-300 ${
-                step >= 1 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
+                step >= 1 ? "bg-green-600 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               1
             </span>
-            <span className="text-xs sm:text-sm font-medium">Upload File</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground">Upload File</span>
           </div>
-          <div className="flex-1 h-0.5 mx-2 bg-gray-200">
+          <div className="flex-1 h-0.5 mx-2 bg-muted">
             <div
               className="h-full bg-green-600 transition-all duration-500"
               style={{ width: step > 1 ? "100%" : "0%" }}
@@ -605,14 +605,14 @@ export function ImportVotersExcelDialog({
           <div className="flex items-center gap-2">
             <span
               className={`h-7 w-7 rounded-full flex items-center justify-center font-semibold text-xs transition-colors duration-300 ${
-                step >= 2 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
+                step >= 2 ? "bg-green-600 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               2
             </span>
-            <span className="text-xs sm:text-sm font-medium">Map Schema</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground">Map Schema</span>
           </div>
-          <div className="flex-1 h-0.5 mx-2 bg-gray-200">
+          <div className="flex-1 h-0.5 mx-2 bg-muted">
             <div
               className="h-full bg-green-600 transition-all duration-500"
               style={{ width: step > 2 ? "100%" : "0%" }}
@@ -621,14 +621,14 @@ export function ImportVotersExcelDialog({
           <div className="flex items-center gap-2">
             <span
               className={`h-7 w-7 rounded-full flex items-center justify-center font-semibold text-xs transition-colors duration-300 ${
-                step >= 3 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
+                step >= 3 ? "bg-green-600 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               3
             </span>
-            <span className="text-xs sm:text-sm font-medium">Verify Data</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground">Verify Data</span>
           </div>
-          <div className="flex-1 h-0.5 mx-2 bg-gray-200">
+          <div className="flex-1 h-0.5 mx-2 bg-muted">
             <div
               className="h-full bg-green-600 transition-all duration-500"
               style={{ width: step > 3 ? "100%" : "0%" }}
@@ -637,12 +637,12 @@ export function ImportVotersExcelDialog({
           <div className="flex items-center gap-2">
             <span
               className={`h-7 w-7 rounded-full flex items-center justify-center font-semibold text-xs transition-colors duration-300 ${
-                step >= 4 ? "bg-green-600 text-white" : "bg-gray-200 text-gray-700"
+                step >= 4 ? "bg-green-600 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               4
             </span>
-            <span className="text-xs sm:text-sm font-medium">Results</span>
+            <span className="text-xs sm:text-sm font-medium text-foreground">Results</span>
           </div>
         </div>
 
@@ -653,7 +653,7 @@ export function ImportVotersExcelDialog({
             <div className="space-y-6">
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 hover:border-green-500 rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 bg-gray-50/50 hover:bg-green-50/20 group"
+                className="border-2 border-dashed border-border hover:border-green-500 rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 bg-muted/20 hover:bg-green-500/5 group"
               >
                 <input
                   type="file"
@@ -662,17 +662,17 @@ export function ImportVotersExcelDialog({
                   accept=".xlsx,.xls,.csv"
                   className="hidden"
                 />
-                <Upload className="h-12 w-12 text-gray-400 group-hover:text-green-600 mb-4 transition-transform duration-300 group-hover:-translate-y-1" />
-                <h3 className="font-semibold text-lg text-gray-800">
+                <Upload className="h-12 w-12 text-muted-foreground group-hover:text-green-600 mb-4 transition-transform duration-300 group-hover:-translate-y-1" />
+                <h3 className="font-semibold text-lg text-foreground">
                   Select your Voter Spreadsheet
                 </h3>
-                <p className="text-sm text-gray-500 text-center mt-2 max-w-sm">
+                <p className="text-sm text-muted-foreground text-center mt-2 max-w-sm">
                   Drag and drop your file here, or click to browse. Supports Excel (.xlsx, .xls) and CSV (.csv) sheets generated by Google Forms.
                 </p>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 text-blue-800">
-                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl p-4 flex gap-3 text-blue-800 dark:text-blue-300">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-semibold">Format Guide:</p>
                   <p className="mt-1">
@@ -688,15 +688,15 @@ export function ImportVotersExcelDialog({
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Column Mappings */}
-                <div className="space-y-4 border p-4 rounded-xl bg-white shadow-sm">
-                  <h3 className="font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
+                <div className="space-y-4 border border-border p-4 rounded-xl bg-card text-card-foreground shadow-sm">
+                  <h3 className="font-bold text-foreground border-b border-border pb-2 flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     Map Sheet Columns
                   </h3>
 
                   <div className="space-y-3">
                     <div>
-                      <Label className="flex items-center gap-1">
+                      <Label className="flex items-center gap-1 text-foreground">
                         First Name <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -705,7 +705,7 @@ export function ImportVotersExcelDialog({
                           setMappings((prev) => ({ ...prev, firstName: val }))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-input bg-background text-foreground">
                           <SelectValue placeholder="Choose column..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -719,7 +719,7 @@ export function ImportVotersExcelDialog({
                     </div>
 
                     <div>
-                      <Label className="flex items-center gap-1">
+                      <Label className="flex items-center gap-1 text-foreground">
                         Last Name <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -728,7 +728,7 @@ export function ImportVotersExcelDialog({
                           setMappings((prev) => ({ ...prev, lastName: val }))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-input bg-background text-foreground">
                           <SelectValue placeholder="Choose column..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -742,14 +742,14 @@ export function ImportVotersExcelDialog({
                     </div>
 
                     <div>
-                      <Label>Middle Name (Optional)</Label>
+                      <Label className="text-foreground">Middle Name (Optional)</Label>
                       <Select
                         value={mappings.middleName}
                         onValueChange={(val) =>
                           setMappings((prev) => ({ ...prev, middleName: val }))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-input bg-background text-foreground">
                           <SelectValue placeholder="Select column (none/skip)..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -764,7 +764,7 @@ export function ImportVotersExcelDialog({
                     </div>
 
                     <div>
-                      <Label className="flex items-center gap-1">
+                      <Label className="flex items-center gap-1 text-foreground">
                         Email Address <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -773,7 +773,7 @@ export function ImportVotersExcelDialog({
                           setMappings((prev) => ({ ...prev, email: val }))
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-input bg-background text-foreground">
                           <SelectValue placeholder="Choose column..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -789,8 +789,8 @@ export function ImportVotersExcelDialog({
                 </div>
 
                 {/* Assignment Settings */}
-                <div className="space-y-4 border p-4 rounded-xl bg-white shadow-sm flex flex-col">
-                  <h3 className="font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
+                <div className="space-y-4 border border-border p-4 rounded-xl bg-card text-card-foreground shadow-sm flex flex-col">
+                  <h3 className="font-bold text-foreground border-b border-border pb-2 flex items-center gap-2">
                     <Info className="h-5 w-5 text-green-600" />
                     Importer Options
                   </h3>
@@ -798,12 +798,12 @@ export function ImportVotersExcelDialog({
                   <div className="space-y-4 flex-1">
                     {/* Active Election Association */}
                     <div>
-                      <Label>Link to Active Election (Optional)</Label>
+                      <Label className="text-foreground">Link to Active Election (Optional)</Label>
                       <Select
                         value={selectedElectionId}
                         onValueChange={setSelectedElectionId}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="border-input bg-background text-foreground">
                           <SelectValue placeholder="Select election..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -815,22 +815,22 @@ export function ImportVotersExcelDialog({
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Voters will be automatically added as authorized voters to this election.
                       </p>
                     </div>
 
                     {/* Department, Program, and Year mapping */}
-                    <div className="space-y-2 border-t pt-3">
-                      <Label className="font-semibold text-sm">Assign Department, Program & Year</Label>
+                    <div className="space-y-2 border-t border-border pt-3">
+                      <Label className="font-semibold text-sm text-foreground">Assign Department, Program & Year</Label>
                       <div className="space-y-3 pt-3">
                         <div>
-                          <Label>Department</Label>
+                          <Label className="text-foreground">Department</Label>
                           <Select
                             value={selectedDeptId}
                             onValueChange={setSelectedDeptId}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-input bg-background text-foreground">
                               <SelectValue placeholder="Select department..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -843,13 +843,13 @@ export function ImportVotersExcelDialog({
                           </Select>
                         </div>
                         <div>
-                          <Label>Program</Label>
+                          <Label className="text-foreground">Program</Label>
                           <Select
                             value={selectedProgId}
                             onValueChange={setSelectedProgId}
                             disabled={!selectedDeptId}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-input bg-background text-foreground">
                               <SelectValue placeholder="Select program..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -862,13 +862,13 @@ export function ImportVotersExcelDialog({
                           </Select>
                         </div>
                         <div>
-                          <Label>Year Level</Label>
+                          <Label className="text-foreground">Year Level</Label>
                           <Select
                             value={selectedYearId}
                             onValueChange={setSelectedYearId}
                             disabled={!selectedProgId}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-input bg-background text-foreground">
                               <SelectValue placeholder="Select year..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -886,7 +886,7 @@ export function ImportVotersExcelDialog({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 border-t pt-4">
+              <div className="flex justify-end gap-2 border-t border-border pt-4">
                 <Button variant="outline" onClick={() => setStep(1)}>
                   Back
                 </Button>
@@ -906,25 +906,25 @@ export function ImportVotersExcelDialog({
           {step === 3 && (
             <div className="space-y-4">
               {/* Summary Dashboard */}
-              <div className="grid grid-cols-3 gap-4 border p-4 rounded-xl bg-gray-50/50">
+              <div className="grid grid-cols-3 gap-4 border border-border p-4 rounded-xl bg-muted/30">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 font-semibold uppercase">Total Rows</p>
-                  <p className="text-2xl font-bold text-gray-800">{importSummary.total}</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">Total Rows</p>
+                  <p className="text-2xl font-bold text-foreground">{importSummary.total}</p>
                 </div>
-                <div className="text-center border-x">
-                  <p className="text-xs text-gray-500 font-semibold uppercase">Valid & Ready</p>
-                  <p className="text-2xl font-bold text-green-600">{importSummary.valid}</p>
+                <div className="text-center border-x border-border">
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">Valid & Ready</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{importSummary.valid}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 font-semibold uppercase">With Errors</p>
-                  <p className="text-2xl font-bold text-red-500">{importSummary.invalid}</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">With Errors</p>
+                  <p className="text-2xl font-bold text-red-500 dark:text-red-400">{importSummary.invalid}</p>
                 </div>
               </div>
 
               {/* Data Table */}
-              <div className="border rounded-xl overflow-hidden bg-white max-h-[350px] overflow-y-auto shadow-sm">
+              <div className="border border-border rounded-xl overflow-hidden bg-card text-card-foreground max-h-[350px] overflow-y-auto shadow-sm">
                 <table className="w-full text-sm border-collapse text-left">
-                  <thead className="bg-gray-100/80 sticky top-0 border-b font-medium text-gray-700">
+                  <thead className="bg-muted sticky top-0 border-b border-border font-medium text-foreground">
                     <tr>
                       <th className="p-3 w-12 text-center">Row</th>
                       <th className="p-3">Name</th>
@@ -933,25 +933,25 @@ export function ImportVotersExcelDialog({
                       <th className="p-3 w-28">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y text-gray-600">
+                  <tbody className="divide-y divide-border text-muted-foreground">
                     {processedVoters.map((v, idx) => (
                       <tr
                         key={idx}
-                        className={`hover:bg-gray-50/40 transition-colors ${
-                          v.status === "invalid" ? "bg-red-50/10" : ""
+                        className={`hover:bg-muted/40 transition-colors ${
+                          v.status === "invalid" ? "bg-red-500/5" : ""
                         }`}
                       >
-                        <td className="p-3 text-center text-xs font-semibold text-gray-400">
+                        <td className="p-3 text-center text-xs font-semibold text-muted-foreground/60">
                           {v.rowNumber}
                         </td>
-                        <td className="p-3 font-semibold text-gray-800">
+                        <td className="p-3 font-semibold text-foreground">
                           {v.lastName}, {v.firstName}{" "}
                           {v.middleName ? `${v.middleName.charAt(0)}.` : ""}
                         </td>
                         <td className="p-3 font-mono text-xs">{v.email}</td>
                         <td className="p-3">
                           {v.yearId ? (
-                            <span className="text-xs">
+                            <span className="text-xs text-muted-foreground">
                               {v.resolvedProgramName} - {v.resolvedYearName}
                             </span>
                           ) : (
@@ -961,7 +961,7 @@ export function ImportVotersExcelDialog({
                                   handleManualYearOverride(idx, val)
                                 }
                               >
-                                <SelectTrigger className="h-8 text-xs max-w-[200px] border-yellow-300 bg-yellow-50/20 text-yellow-800">
+                                <SelectTrigger className="h-8 text-xs max-w-[200px] border-yellow-500/50 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
                                   <SelectValue placeholder="Map Year manually..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -977,17 +977,17 @@ export function ImportVotersExcelDialog({
                         </td>
                         <td className="p-3">
                           {v.status === "valid" ? (
-                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium border border-green-200">
+                            <span className="inline-flex items-center gap-1 bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full text-xs font-medium border border-green-500/20">
                               <CheckCircle className="h-3 w-3" />
                               Valid
                             </span>
                           ) : (
                             <div className="flex flex-col gap-0.5">
-                              <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium border border-red-200 w-max">
+                              <span className="inline-flex items-center gap-1 bg-red-500/10 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full text-xs font-medium border border-red-500/20 w-max">
                                 <AlertCircle className="h-3 w-3" />
                                 Error
                               </span>
-                              <span className="text-[10px] text-red-500 font-medium leading-tight max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                              <span className="text-[10px] text-red-500 dark:text-red-400 font-medium leading-tight max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                                 {v.validationErrors[0]}
                               </span>
                             </div>
@@ -1000,14 +1000,14 @@ export function ImportVotersExcelDialog({
               </div>
 
               {/* Instructions */}
-              <div className="text-xs text-gray-500 flex gap-2">
+              <div className="text-xs text-muted-foreground flex gap-2">
                 <Info className="h-4 w-4 text-blue-500 flex-shrink-0" />
                 <p>
                   Rows with **Errors** will be skipped during import. For rows with Program/Year matching errors, you can use the dropdown to override and select a department year manually.
                 </p>
               </div>
 
-              <div className="flex justify-end gap-2 border-t pt-4">
+              <div className="flex justify-end gap-2 border-t border-border pt-4">
                 <Button variant="outline" onClick={() => setStep(2)}>
                   Back
                 </Button>
@@ -1032,23 +1032,23 @@ export function ImportVotersExcelDialog({
           {/* STEP 4: IMPORT RESULTS */}
           {step === 4 && (
             <div className="space-y-6 text-center">
-              <div className="flex flex-col items-center justify-center p-6 border rounded-xl bg-green-50/20 max-w-md mx-auto shadow-sm">
+              <div className="flex flex-col items-center justify-center p-6 border border-border rounded-xl bg-green-500/10 dark:bg-green-950/20 max-w-md mx-auto shadow-sm">
                 <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
-                <h3 className="text-2xl font-bold text-gray-800">Import Complete!</h3>
-                <p className="text-sm text-gray-500 mt-2">
+                <h3 className="text-2xl font-bold text-foreground">Import Complete!</h3>
+                <p className="text-sm text-muted-foreground mt-2">
                   The spreadsheet has been processed. Here is the final summary:
                 </p>
 
-                <div className="grid grid-cols-2 gap-4 w-full mt-6 bg-white border p-4 rounded-xl">
+                <div className="grid grid-cols-2 gap-4 w-full mt-6 bg-card border border-border p-4 rounded-xl">
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase">Created Voters</p>
-                    <p className="text-3xl font-extrabold text-green-600 mt-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Created Voters</p>
+                    <p className="text-3xl font-extrabold text-green-600 dark:text-green-400 mt-1">
                       {importSummary.imported}
                     </p>
                   </div>
-                  <div className="border-l">
-                    <p className="text-xs font-semibold text-gray-400 uppercase">Skipped / Duplicates</p>
-                    <p className="text-3xl font-extrabold text-amber-600 mt-1">
+                  <div className="border-l border-border">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Skipped / Duplicates</p>
+                    <p className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">
                       {importSummary.skipped}
                     </p>
                   </div>
@@ -1058,26 +1058,26 @@ export function ImportVotersExcelDialog({
               {/* Show errors/skipped rows if they exist */}
               {importSummary.errors.length > 0 && (
                 <div className="space-y-3 text-left">
-                  <h4 className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                  <h4 className="font-bold text-foreground flex items-center gap-2 text-sm uppercase tracking-wide">
                     <AlertCircle className="h-4 w-4 text-amber-500" />
                     Details of Skipped Rows ({importSummary.errors.length})
                   </h4>
 
-                  <div className="border rounded-xl overflow-hidden bg-white max-h-[220px] overflow-y-auto text-xs">
+                  <div className="border border-border rounded-xl overflow-hidden bg-card text-card-foreground max-h-[220px] overflow-y-auto text-xs">
                     <table className="w-full text-left">
-                      <thead className="bg-gray-50 border-b font-medium text-gray-500 sticky top-0">
+                      <thead className="bg-muted border-b border-border font-medium text-muted-foreground sticky top-0">
                         <tr>
                           <th className="p-2">Name</th>
                           <th className="p-2">Email</th>
                           <th className="p-2">Reason / Error</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y text-gray-600">
+                      <tbody className="divide-y divide-border text-muted-foreground">
                         {importSummary.errors.map((err, idx) => (
-                          <tr key={idx} className="hover:bg-amber-50/10">
-                            <td className="p-2 font-semibold">{err.name}</td>
-                            <td className="p-2 font-mono text-gray-500">{err.email}</td>
-                            <td className="p-2 text-red-500 font-medium">{err.error}</td>
+                          <tr key={idx} className="hover:bg-amber-500/5">
+                            <td className="p-2 font-semibold text-foreground">{err.name}</td>
+                            <td className="p-2 font-mono text-muted-foreground">{err.email}</td>
+                            <td className="p-2 text-red-500 dark:text-red-400 font-medium">{err.error}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1086,7 +1086,7 @@ export function ImportVotersExcelDialog({
                 </div>
               )}
 
-              <div className="flex justify-center pt-4 border-t">
+              <div className="flex justify-center pt-4 border-t border-border">
                 <Button onClick={() => setOpen(false)} className="px-8">
                   Close Importer
                 </Button>

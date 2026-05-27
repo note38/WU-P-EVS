@@ -455,20 +455,56 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
               </div>
 
               <div>
-                <Label>Year *</Label>
+                <Label>Program *</Label>
                 <Select
-                  value={formData.yearId}
-                  onValueChange={(value) => handleSelectChange("yearId", value)}
-                  disabled={!selectedDepartmentId || isLoadingYears}
+                  value={selectedProgramId}
+                  onValueChange={setSelectedProgramId}
+                  disabled={!selectedDepartmentId || isLoadingPrograms}
                 >
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
                         !selectedDepartmentId
                           ? "Select department first"
+                          : isLoadingPrograms
+                            ? "Loading programs..."
+                            : programs.length === 0
+                              ? "No programs available"
+                              : "Select program"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.length > 0 ? (
+                      programs.map((program) => (
+                        <SelectItem key={program.id} value={program.id.toString()}>
+                          {program.name}
+                        </SelectItem>
+                      ))
+                    ) : selectedDepartmentId && !isLoadingPrograms ? (
+                      <SelectItem value="none" disabled>
+                        No programs available for this department
+                      </SelectItem>
+                    ) : null}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Year *</Label>
+                <Select
+                  value={formData.yearId}
+                  onValueChange={(value) => handleSelectChange("yearId", value)}
+                  disabled={!selectedProgramId || isLoadingYears}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        !selectedProgramId
+                          ? "Select program first"
                           : isLoadingYears
                             ? "Loading years..."
-                            : years.length === 0 && selectedDepartmentId
+                            : years.length === 0 && selectedProgramId
                               ? "No years available"
                               : "Select year"
                       }
@@ -481,9 +517,9 @@ export function CreateVoterForm({ onVoterCreated }: CreateVoterFormProps = {}) {
                           {year.name}
                         </SelectItem>
                       ))
-                    ) : selectedDepartmentId && !isLoadingYears ? (
+                    ) : selectedProgramId && !isLoadingYears ? (
                       <SelectItem value="none" disabled>
-                        No years available for this department
+                        No years available for this program
                       </SelectItem>
                     ) : null}
                   </SelectContent>

@@ -44,19 +44,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if CRON_SECRET is configured
-    if (!cronSecret) {
-      console.error("[CRON] CRON_SECRET environment variable is not set");
-      return NextResponse.json(
-        {
-          error: "Server Configuration Error",
-          message: "CRON_SECRET environment variable is not configured",
-          timestamp: new Date().toISOString(),
-        },
-        { status: 500 }
-      );
-    }
-
     console.log(
       "[CRON] Authentication successful, proceeding with status update"
     );

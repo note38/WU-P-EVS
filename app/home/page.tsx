@@ -587,12 +587,6 @@ export default function Home() {
     enabled: false, // We'll manually trigger checks
     onStatusUpdate: (updates) => {
       if (updates && updates.length > 0) {
-        // Show a toast notification when election statuses are updated
-        toast({
-          title: "Election Status Updated",
-          description: `Updated ${updates.length} election(s) status`,
-        });
-
         // Refetch the data to show updated results
         refetch();
       }

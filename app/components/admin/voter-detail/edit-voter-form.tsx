@@ -27,6 +27,12 @@ interface Department {
   name: string;
 }
 
+interface Program {
+  id: number;
+  name: string;
+  departmentId: number;
+}
+
 interface Election {
   id: number;
   name: string;
@@ -35,7 +41,6 @@ interface Election {
 interface Year {
   id: number;
   name: string;
-  departmentId?: number;
 }
 
 interface EditVoterFormProps {
@@ -53,10 +58,13 @@ export function EditVoterForm({
 }: EditVoterFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [years, setYears] = useState<Year[]>([]);
   const [elections, setElections] = useState<Election[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("");
+  const [selectedProgramId, setSelectedProgramId] = useState<string>("");
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(false);
   const [isLoadingYears, setIsLoadingYears] = useState(false);
   const [isLoadingElections, setIsLoadingElections] = useState(false);
 
@@ -73,7 +81,6 @@ export function EditVoterForm({
 
   // Handle dialog close
   const handleClose = () => {
-    // Reset all state when closing
     setFormData({
       firstName: "",
       lastName: "",
@@ -83,6 +90,8 @@ export function EditVoterForm({
       electionId: "",
     });
     setSelectedDepartmentId("");
+    setSelectedProgramId("");
+    setPrograms([]);
     setYears([]);
     setErrors({});
     onOpenChange(false);
@@ -100,22 +109,21 @@ export function EditVoterForm({
         electionId: voter.election?.id?.toString() || "",
       });
 
-      // Set selected department based on voter's year
-      if (voter.year?.department?.id) {
-        const deptId = voter.year.department.id.toString();
-        setSelectedDepartmentId(deptId);
-        fetchYearsByDepartment(voter.year.department.id);
-      } else {
-        // If no department, reset the selection
-        setSelectedDepartmentId("");
-        setYears([]);
-      }
+      // Pre-populate department → program → year cascade from voter data
+      const deptId = voter.year?.program?.department?.id?.toString() || "";
+      const progId = voter.year?.program?.id?.toString() || "";
+
+      setSelectedDepartmentId(deptId);
+      setSelectedProgramId(progId);
+
+      // Fetch dependent lists using pre-known IDs so we don't reset selections
+      if (deptId) fetchProgramsByDepartment(parseInt(deptId), progId);
+      if (progId) fetchYearsByProgram(parseInt(progId));
 
       fetchDepartments();
       fetchElections();
       setErrors({});
     } else if (!open) {
-      // Reset form when dialog closes
       setFormData({
         firstName: "",
         lastName: "",
@@ -125,10 +133,30 @@ export function EditVoterForm({
         electionId: "",
       });
       setSelectedDepartmentId("");
+      setSelectedProgramId("");
+      setPrograms([]);
       setYears([]);
       setErrors({});
     }
   }, [open, voter]);
+
+  // When department changes (user interaction), reset program & year
+  const handleDepartmentChange = (value: string) => {
+    setSelectedDepartmentId(value);
+    setSelectedProgramId("");
+    setFormData((prev) => ({ ...prev, yearId: "" }));
+    setYears([]);
+    if (value) fetchProgramsByDepartment(parseInt(value));
+    else setPrograms([]);
+  };
+
+  // When program changes (user interaction), reset year
+  const handleProgramChange = (value: string) => {
+    setSelectedProgramId(value);
+    setFormData((prev) => ({ ...prev, yearId: "" }));
+    if (value) fetchYearsByProgram(parseInt(value));
+    else setYears([]);
+  };
 
   // Fetch departments
   const fetchDepartments = async () => {
@@ -139,7 +167,6 @@ export function EditVoterForm({
         const data = await response.json();
         setDepartments(data);
       } else {
-        console.error("Failed to fetch departments:", response.status);
         toast({
           title: "Error",
           description: "Failed to load departments",
@@ -158,16 +185,52 @@ export function EditVoterForm({
     }
   };
 
-  // Fetch years by department
-  const fetchYearsByDepartment = async (departmentId: number) => {
+  // Fetch programs by department — accepts an optional preselectedProgramId
+  // so we can pre-populate on init without triggering a cascade reset
+  const fetchProgramsByDepartment = async (
+    departmentId: number,
+    preselectedProgramId?: string
+  ) => {
+    setIsLoadingPrograms(true);
+    try {
+      const response = await fetch(
+        `/api/programs/by-department/${departmentId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data);
+        // If pre-populating (init), restore program selection
+        if (preselectedProgramId) {
+          setSelectedProgramId(preselectedProgramId);
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load programs",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching programs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load programs",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrograms(false);
+    }
+  };
+
+  // Fetch years by program
+  const fetchYearsByProgram = async (programId: number) => {
     setIsLoadingYears(true);
     try {
-      const response = await fetch(`/api/years/by-department/${departmentId}`);
+      const response = await fetch(`/api/years/by-program/${programId}`);
       if (response.ok) {
         const data = await response.json();
         setYears(data);
       } else {
-        console.error("Failed to fetch years:", response.status);
         toast({
           title: "Error",
           description: "Failed to load years",
@@ -193,13 +256,11 @@ export function EditVoterForm({
       const response = await fetch("/api/elections");
       if (response.ok) {
         const data = await response.json();
-        // Filter for active elections
         const activeElections = data.filter(
           (election: any) => election.status === "ACTIVE"
         );
         setElections(activeElections);
       } else {
-        console.error("Failed to fetch elections:", response.status);
         toast({
           title: "Error",
           description: "Failed to load elections",
@@ -217,17 +278,6 @@ export function EditVoterForm({
       setIsLoadingElections(false);
     }
   };
-
-  // Handle department change
-  useEffect(() => {
-    if (selectedDepartmentId) {
-      fetchYearsByDepartment(parseInt(selectedDepartmentId));
-      setFormData((prev) => ({ ...prev, yearId: "" })); // Reset year selection when department changes
-    } else {
-      setYears([]);
-      setFormData((prev) => ({ ...prev, yearId: "" }));
-    }
-  }, [selectedDepartmentId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -251,7 +301,6 @@ export function EditVoterForm({
       }
     });
 
-    // Add email format validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
@@ -275,7 +324,6 @@ export function EditVoterForm({
       return;
     }
 
-    // Prepare data for submission
     const submissionData = {
       ...formData,
       middleName: formData.middleName || "",
@@ -402,7 +450,7 @@ export function EditVoterForm({
                 <Label>Department *</Label>
                 <Select
                   value={selectedDepartmentId}
-                  onValueChange={setSelectedDepartmentId}
+                  onValueChange={handleDepartmentChange}
                   disabled={isLoadingDepartments}
                 >
                   <SelectTrigger>
@@ -433,20 +481,59 @@ export function EditVoterForm({
               </div>
 
               <div>
-                <Label>Year *</Label>
+                <Label>Program *</Label>
                 <Select
-                  value={formData.yearId}
-                  onValueChange={(value) => handleSelectChange("yearId", value)}
-                  disabled={!selectedDepartmentId || isLoadingYears}
+                  value={selectedProgramId}
+                  onValueChange={handleProgramChange}
+                  disabled={!selectedDepartmentId || isLoadingPrograms}
                 >
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
                         !selectedDepartmentId
                           ? "Select department first"
+                          : isLoadingPrograms
+                            ? "Loading programs..."
+                            : programs.length === 0
+                              ? "No programs available"
+                              : "Select program"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programs.length > 0 ? (
+                      programs.map((program) => (
+                        <SelectItem
+                          key={program.id}
+                          value={program.id.toString()}
+                        >
+                          {program.name}
+                        </SelectItem>
+                      ))
+                    ) : selectedDepartmentId && !isLoadingPrograms ? (
+                      <SelectItem value="none" disabled>
+                        No programs available for this department
+                      </SelectItem>
+                    ) : null}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Year *</Label>
+                <Select
+                  value={formData.yearId}
+                  onValueChange={(value) => handleSelectChange("yearId", value)}
+                  disabled={!selectedProgramId || isLoadingYears}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        !selectedProgramId
+                          ? "Select program first"
                           : isLoadingYears
                             ? "Loading years..."
-                            : years.length === 0 && selectedDepartmentId
+                            : years.length === 0 && selectedProgramId
                               ? "No years available"
                               : "Select year"
                       }
@@ -459,9 +546,9 @@ export function EditVoterForm({
                           {year.name}
                         </SelectItem>
                       ))
-                    ) : selectedDepartmentId && !isLoadingYears ? (
+                    ) : selectedProgramId && !isLoadingYears ? (
                       <SelectItem value="none" disabled>
-                        No years available for this department
+                        No years available for this program
                       </SelectItem>
                     ) : null}
                   </SelectContent>
