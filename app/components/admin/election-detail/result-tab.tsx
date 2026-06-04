@@ -431,7 +431,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
                             candidate.votes,
                             position.totalVotes
                           );
-                          const isWinner = index === 0 && candidate.votes > 0;
+                          const isWinner = index < position.maxCandidates && candidate.votes > 0;
 
                           return (
                             <div

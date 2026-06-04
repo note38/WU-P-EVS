@@ -22,16 +22,11 @@ export async function POST(
       allDepartments,
     });
 
-    // Validate input parameters
     if (!electionId || isNaN(electionId)) {
       return NextResponse.json(
         { error: "Invalid election ID" },
         { status: 400 }
       );
-    }
-
-    if (!yearId || isNaN(parseInt(yearId))) {
-      return NextResponse.json({ error: "Invalid year ID" }, { status: 400 });
     }
 
     if (departmentId && isNaN(parseInt(departmentId))) {
@@ -44,6 +39,20 @@ export async function POST(
     if (programId && isNaN(parseInt(programId))) {
       return NextResponse.json(
         { error: "Invalid program ID" },
+        { status: 400 }
+      );
+    }
+
+    if (yearId && isNaN(parseInt(yearId))) {
+      return NextResponse.json(
+        { error: "Invalid year ID" },
+        { status: 400 }
+      );
+    }
+
+    if (!allDepartments && !departmentId && !programId && !yearId) {
+      return NextResponse.json(
+        { error: "Must specify a department, program, or year" },
         { status: 400 }
       );
     }
@@ -62,20 +71,14 @@ export async function POST(
 
     // Build the where clause for finding voters
     // Year -> Program -> Department (correct relationship chain)
-    const whereClause: Record<string, unknown> = {
-      yearId: parseInt(yearId),
-    };
+    const whereClause: Record<string, unknown> = {};
 
-    if (!allDepartments && (programId || departmentId)) {
-      whereClause.year = {
-        ...(programId && { programId: parseInt(programId) }),
-        ...(!programId &&
-          departmentId && {
-            program: {
-              departmentId: parseInt(departmentId),
-            },
-          }),
-      };
+    if (yearId && !isNaN(parseInt(yearId))) {
+      whereClause.yearId = parseInt(yearId);
+    } else if (programId && !isNaN(parseInt(programId))) {
+      whereClause.year = { programId: parseInt(programId) };
+    } else if (departmentId && !isNaN(parseInt(departmentId))) {
+      whereClause.year = { program: { departmentId: parseInt(departmentId) } };
     }
 
     const query = {

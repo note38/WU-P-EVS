@@ -685,7 +685,7 @@ function generateResultsData(positions: Position[]): (string | number)[][] {
           candidate.votes,
           position.totalVotes
         );
-        const isWinner = index === 0 && candidate.votes > 0;
+        const isWinner = index < position.maxCandidates && candidate.votes > 0;
 
         resultsData.push([
           position.name,

@@ -147,10 +147,10 @@ export function ImportVotersDialog({
   };
 
   const handleImport = async () => {
-    if (!selectedDepartment || !selectedProgram || !selectedYear) {
+    if (!selectedDepartment) {
       toast({
         title: "Error",
-        description: "Please select department, program, and year",
+        description: "Please select a department",
         variant: "destructive",
       });
       return;
@@ -158,6 +158,13 @@ export function ImportVotersDialog({
 
     setLoading(true);
     try {
+      const payload = {
+        departmentId: parseInt(selectedDepartment),
+        programId: selectedProgram && selectedProgram !== "all" ? parseInt(selectedProgram) : undefined,
+        yearId: selectedYear && selectedYear !== "all" ? parseInt(selectedYear) : undefined,
+        allDepartments: false,
+      };
+
       const response = await fetch(
         `/api/elections/${electionId}/voters/import`,
         {
@@ -165,12 +172,7 @@ export function ImportVotersDialog({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            yearId: parseInt(selectedYear),
-            departmentId: parseInt(selectedDepartment),
-            programId: parseInt(selectedProgram),
-            allDepartments: false,
-          }),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -239,7 +241,7 @@ export function ImportVotersDialog({
 
           {/* Program Selection - Only enabled after selecting department */}
           <div className="grid gap-2">
-            <Label htmlFor="program">Program</Label>
+            <Label htmlFor="program">Program (Optional)</Label>
             <Select
               value={selectedProgram}
               onValueChange={setSelectedProgram}
@@ -250,11 +252,12 @@ export function ImportVotersDialog({
                   placeholder={
                     programs.length === 0 && selectedDepartment
                       ? "No programs available"
-                      : "Select program"
+                      : "All Programs"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Programs</SelectItem>
                 {programs.length > 0 ? (
                   programs.map((program) => (
                     <SelectItem key={program.id} value={program.id.toString()}>
@@ -272,29 +275,30 @@ export function ImportVotersDialog({
 
           {/* Year Selection - Only enabled after selecting program */}
           <div className="grid gap-2">
-            <Label htmlFor="year">Year</Label>
+            <Label htmlFor="year">Year (Optional)</Label>
             <Select
               value={selectedYear}
               onValueChange={setSelectedYear}
-              disabled={!selectedProgram}
+              disabled={!selectedProgram || selectedProgram === "all"}
             >
               <SelectTrigger id="year">
                 <SelectValue
                   placeholder={
-                    years.length === 0 && selectedProgram
+                    years.length === 0 && selectedProgram && selectedProgram !== "all"
                       ? "No years available"
-                      : "Select year"
+                      : "All Years"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Years</SelectItem>
                 {years.length > 0 ? (
                   years.map((year) => (
                     <SelectItem key={year.id} value={year.id.toString()}>
                       {year.name}
                     </SelectItem>
                   ))
-                ) : selectedProgram ? (
+                ) : selectedProgram && selectedProgram !== "all" ? (
                   <SelectItem value="none" disabled>
                     No years available for this program
                   </SelectItem>
@@ -309,9 +313,7 @@ export function ImportVotersDialog({
             onClick={handleImport}
             disabled={
               loading ||
-              !selectedDepartment ||
-              !selectedProgram ||
-              !selectedYear
+              !selectedDepartment
             }
           >
             {loading ? "Importing..." : "Import Selected Voters"}

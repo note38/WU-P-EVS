@@ -395,10 +395,11 @@ export function generateElectionDetailsSection(
 export function generateCandidateHTML(
   candidate: Candidate,
   index: number,
-  totalVotes: number
+  totalVotes: number,
+  maxCandidates: number
 ): string {
   const percentage = calculatePercentage(candidate.votes, totalVotes);
-  const isWinner = index === 0 && candidate.votes > 0;
+  const isWinner = index < maxCandidates && candidate.votes > 0;
 
   return `
     <div class="candidate ${isWinner ? "winner" : ""}">
@@ -426,7 +427,7 @@ export function generatePositionCard(position: Position): string {
       ? '<div class="candidate">No candidates for this position</div>'
       : position.candidates
           .map((candidate: Candidate, index: number) =>
-            generateCandidateHTML(candidate, index, position.totalVotes)
+            generateCandidateHTML(candidate, index, position.totalVotes, position.maxCandidates)
           )
           .join("");
 

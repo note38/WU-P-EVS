@@ -179,7 +179,7 @@ export function PositionForms({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="max-candidates" className="col-span-4">
-                Maximum Candidates
+                Winners Count
               </Label>
               <Input
                 id="max-candidates"
@@ -327,7 +327,7 @@ export function PositionForms({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-max-candidates" className="col-span-4">
-                  Maximum Candidates
+                  Winners Count
                 </Label>
                 <Input
                   id="edit-max-candidates"

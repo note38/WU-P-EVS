@@ -103,7 +103,7 @@ export function PositionsTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Position</TableHead>
-                <TableHead>Max Candidates</TableHead>
+                <TableHead>Winners Count</TableHead>
                 <TableHead>Current Candidates</TableHead>
                 <TableHead>Scope / Restriction</TableHead>
                 <TableHead className="text-right">Actions</TableHead>

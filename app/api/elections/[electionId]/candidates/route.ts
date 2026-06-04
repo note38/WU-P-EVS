@@ -258,15 +258,9 @@ export async function POST(
       );
     }
 
-    // Check if the position already has the maximum number of candidates
-    if (position._count.candidates >= position.maxCandidates) {
-      return NextResponse.json(
-        {
-          error: `This position already has the maximum number of candidates (${position.maxCandidates})`,
-        },
-        { status: 400 }
-      );
-    }
+    // The maxCandidates field represents the number of winners (e.g., top 3 candidates win),
+    // not the maximum number of candidates that can run for this position.
+    // So we no longer restrict adding candidates here.
 
     // Check if the partylist exists
     let partyId = partylistId;
