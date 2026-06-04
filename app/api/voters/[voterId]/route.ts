@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { voterId: string } }
+  { params }: { params: Promise<{ voterId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -13,7 +13,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const voterId = parseInt(params.voterId);
+    const resolvedParams = await params;
+    const voterId = parseInt(resolvedParams.voterId);
 
     if (isNaN(voterId)) {
       return NextResponse.json({ error: "Invalid voter ID" }, { status: 400 });
@@ -57,7 +58,7 @@ export async function DELETE(
 // Add PUT method for updating voters
 export async function PUT(
   request: Request,
-  { params }: { params: { voterId: string } }
+  { params }: { params: Promise<{ voterId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -66,7 +67,8 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const voterId = parseInt(params.voterId);
+    const resolvedParams = await params;
+    const voterId = parseInt(resolvedParams.voterId);
 
     if (isNaN(voterId)) {
       return NextResponse.json({ error: "Invalid voter ID" }, { status: 400 });
@@ -100,7 +102,7 @@ export async function PUT(
     }
 
     // Check if email is already used by another voter
-    const existingVoterWithEmail = await prisma.voter.findUnique({
+    const existingVoterWithEmail = await prisma.voter.findFirst({
       where: {
         email: data.email,
         NOT: { id: voterId },
@@ -167,10 +169,11 @@ export async function PUT(
 // Add POST method for deleting multiple voters
 export async function POST(
   request: Request,
-  { params }: { params: { voterId: string } }
+  { params }: { params: Promise<{ voterId: string }> }
 ) {
   // Check if this is the bulk delete endpoint
-  if (params.voterId !== "bulk-delete") {
+  const resolvedParams = await params;
+  if (resolvedParams.voterId !== "bulk-delete") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

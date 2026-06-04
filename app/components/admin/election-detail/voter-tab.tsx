@@ -181,7 +181,7 @@ export function VotersTab({ electionId }: VotersTabProps) {
         setSelectedVoters([]); // Clear selections when changing pages
         setCurrentPage(data.pagination.currentPage);
         setTotalPages(data.pagination.totalPages);
-        setTotalVoters(data.pagination.total || 0);
+        setTotalVoters(data.pagination.totalVoters || 0);
       } else {
         console.error("Error response:", data);
         toast({
@@ -1118,12 +1118,12 @@ export function VotersTab({ electionId }: VotersTabProps) {
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * 8 + 1} to{" "}
-            {Math.min(currentPage * 8, totalVoters)} of {totalVoters} voters
-          </div>
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm text-muted-foreground">
+          {totalVoters > 0
+            ? `Showing ${(currentPage - 1) * 8 + 1} to ${Math.min(currentPage * 8, totalVoters)} of ${totalVoters} voters`
+            : `${totalVoters} voters`}
+        </div>
 
           <div className="flex items-center gap-2">
             <Button
@@ -1161,7 +1161,6 @@ export function VotersTab({ electionId }: VotersTabProps) {
             </Button>
           </div>
         </div>
-      )}
 
       <AlertDialog
         open={isRemoveDialogOpen}

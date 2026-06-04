@@ -600,13 +600,13 @@ export default function VoterCards({
 
             return (
               <Card key={voter.id} className="overflow-hidden group">
-                <CardHeader className="flex flex-row items-center justify-between p-4 pb-0">
-                  <div className="flex items-center space-x-4">
+                <CardHeader className="flex flex-row items-center justify-between p-4 pb-0 gap-2">
+                  <div className="flex items-center space-x-4 min-w-0 flex-1">
                     <Checkbox
                       checked={selectedVoters.includes(voter.id)}
                       onCheckedChange={() => toggleVoterSelection(voter.id)}
                     />
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage
                         src={
                           voter.avatar ||
@@ -618,9 +618,9 @@ export default function VoterCards({
                         {fullName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="space-y-1">
-                      <div className="font-medium line-clamp-1">{fullName}</div>
-                      <div className="text-sm text-muted-foreground line-clamp-1">
+                    <div className="space-y-1 min-w-0 overflow-hidden">
+                      <div className="font-medium truncate">{fullName}</div>
+                      <div className="text-sm text-muted-foreground truncate">
                         {voter.email}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -633,7 +633,7 @@ export default function VoterCards({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
