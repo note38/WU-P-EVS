@@ -804,8 +804,7 @@ export default function Home() {
                       viewing.
                     </p>
                     <p className="text-amber-600 text-xs mt-2">
-                      Elections will appear here once they are created by the
-                      administrator.
+                      Elections will appear here once they are active.
                     </p>
                   </div>
                 </div>

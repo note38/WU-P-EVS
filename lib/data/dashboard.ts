@@ -219,6 +219,7 @@ export class DashboardDataService {
       },
       include: {
         positions: {
+          orderBy: { createdAt: "asc" },
           include: {
             candidates: {
               include: {
@@ -293,6 +294,7 @@ export class DashboardDataService {
         where: { status: "ACTIVE" },
         include: {
           positions: {
+            orderBy: { createdAt: "asc" },
             include: {
               candidates: {
                 include: {
@@ -393,6 +395,7 @@ export class DashboardDataService {
         },
         include: {
           positions: {
+            orderBy: { createdAt: "asc" },
             include: {
               candidates: {
                 include: {
@@ -484,6 +487,7 @@ export class DashboardDataService {
         },
         include: {
           positions: {
+            orderBy: { createdAt: "asc" },
             include: {
               candidates: {
                 include: {

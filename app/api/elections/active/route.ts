@@ -50,7 +50,7 @@ export async function GET() {
             },
           },
           orderBy: {
-            id: "asc",
+            createdAt: "asc",
           },
         },
       },

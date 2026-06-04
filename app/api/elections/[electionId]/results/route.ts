@@ -18,6 +18,7 @@ export async function GET(req: NextRequest, context: any) {
       where: { id: electionId },
       include: {
         positions: {
+          orderBy: { createdAt: "asc" },
           include: {
             candidates: {
               include: {
