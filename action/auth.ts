@@ -4,6 +4,7 @@ import { compare } from "bcrypt";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { checkRateLimit, getRemainingAttempts } from "@/lib/rate-limiter";
 
 interface LoginFormData {
   email: string;
@@ -12,6 +13,20 @@ interface LoginFormData {
 
 export async function voterLogin(formData: LoginFormData) {
   try {
+   
+    const rateLimitKey = `voter_login_${formData.email}`;
+    const isAllowed = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+
+    if (!isAllowed) {
+      const remainingAttempts = getRemainingAttempts(rateLimitKey, 5);
+      return {
+        success: false,
+        message:
+          "Too many login attempts. Please try again in 15 minutes.",
+        remainingAttempts,
+      };
+    }
+
     const voter = await prisma.voter.findUnique({
       where: {
         email: formData.email,
@@ -49,6 +64,10 @@ export async function voterLogin(formData: LoginFormData) {
     if (!passwordValid) {
       return { success: false, message: "Invalid email or password" };
     }
+
+    // Reset rate limit on successful login
+    const { resetRateLimit } = await import("@/lib/rate-limiter");
+    resetRateLimit(rateLimitKey);
 
     // Set voter session cookie
     const oneDay = 24 * 60 * 60 * 1000;

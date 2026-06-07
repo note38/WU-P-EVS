@@ -431,7 +431,10 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
                             candidate.votes,
                             position.totalVotes
                           );
-                          const isWinner = index < position.maxCandidates && candidate.votes > 0;
+                          
+                          const thresholdIndex = Math.min(position.maxCandidates - 1, position.candidates.length - 1);
+                          const winningThreshold = position.candidates.length > 0 ? position.candidates[thresholdIndex].votes : 0;
+                          const isWinner = candidate.votes > 0 && candidate.votes >= winningThreshold;
 
                           return (
                             <div

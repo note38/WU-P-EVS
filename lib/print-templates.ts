@@ -394,12 +394,11 @@ export function generateElectionDetailsSection(
  */
 export function generateCandidateHTML(
   candidate: Candidate,
-  index: number,
   totalVotes: number,
-  maxCandidates: number
+  winningThreshold: number
 ): string {
   const percentage = calculatePercentage(candidate.votes, totalVotes);
-  const isWinner = index < maxCandidates && candidate.votes > 0;
+  const isWinner = candidate.votes > 0 && candidate.votes >= winningThreshold;
 
   return `
     <div class="candidate ${isWinner ? "winner" : ""}">
@@ -422,12 +421,15 @@ export function generateCandidateHTML(
  * Generate position card HTML
  */
 export function generatePositionCard(position: Position): string {
+  const thresholdIndex = Math.min(position.maxCandidates - 1, position.candidates.length - 1);
+  const winningThreshold = position.candidates.length > 0 ? position.candidates[thresholdIndex].votes : 0;
+
   const candidatesHTML =
     position.candidates.length === 0
       ? '<div class="candidate">No candidates for this position</div>'
       : position.candidates
-          .map((candidate: Candidate, index: number) =>
-            generateCandidateHTML(candidate, index, position.totalVotes, position.maxCandidates)
+          .map((candidate: Candidate) =>
+            generateCandidateHTML(candidate, position.totalVotes, winningThreshold)
           )
           .join("");
 

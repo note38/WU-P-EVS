@@ -7,7 +7,7 @@ export async function POST(req: NextRequest, context: any) {
     // Validate admin access
     const adminValidation = await validateAdminAccess();
     if (!adminValidation.success) {
-      return adminValidation.response;
+      return adminValidation.response;  // Returns 401 or 403
     }
 
     const params = await context.params;

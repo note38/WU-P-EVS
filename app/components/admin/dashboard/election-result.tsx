@@ -118,6 +118,22 @@ export default function VoterPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-scroll pages every 30 seconds in fullscreen mode
+  useEffect(() => {
+    if (!isFullscreen || totalPages <= 1) return;
+
+    const scrollInterval = setInterval(() => {
+      setCurrentPage((prevPage) => {
+        if (prevPage >= totalPages) {
+          return 1;
+        }
+        return prevPage + 1;
+      });
+    }, 30000);
+
+    return () => clearInterval(scrollInterval);
+  }, [isFullscreen, totalPages]);
+
   // Toggle fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

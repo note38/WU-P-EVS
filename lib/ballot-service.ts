@@ -3,7 +3,8 @@ import type { Position, BallotSubmission } from "@/types/ballot";
 import { VoterStatus } from "@prisma/client";
 
 export async function getPositionsWithCandidates(
-  electionId?: number
+  electionId?: number,
+  hideNames: boolean = false
 ): Promise<Position[]> {
   try {
     // If no electionId provided, fetch all positions (backward compatibility)
@@ -22,8 +23,9 @@ export async function getPositionsWithCandidates(
         title: position.name,
         candidates: position.candidates.map((candidate) => ({
           id: String(candidate.id),
-          name: candidate.name,
-          party: String(candidate.partylistId),
+          // ✅ SECURITY FIX: Respect hideNames setting
+          name: hideNames ? "Candidate" : candidate.name,
+          party: hideNames ? "" : String(candidate.partylistId),
           avatar: candidate.avatar || undefined,
         })),
       }));
@@ -51,8 +53,9 @@ export async function getPositionsWithCandidates(
       title: position.name,
       candidates: position.candidates.map((candidate) => ({
         id: String(candidate.id),
-        name: candidate.name,
-        party: candidate.partylist?.name || "Independent",
+        // ✅ SECURITY FIX: Respect hideNames setting
+        name: hideNames ? "Candidate" : candidate.name,
+        party: hideNames ? "" : (candidate.partylist?.name || "Independent"),
         avatar: candidate.avatar || undefined,
       })),
     }));

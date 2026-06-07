@@ -13,6 +13,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    //  Verify admin access before allowing voter deletion
+    const adminUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!adminUser || adminUser.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required to delete voters" },
+        { status: 403 }
+      );
+    }
+
     const resolvedParams = await params;
     const voterId = parseInt(resolvedParams.voterId);
 
@@ -65,6 +77,18 @@ export async function PUT(
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    //Verify admin access before allowing voter updates
+    const adminUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!adminUser || adminUser.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required to update voters" },
+        { status: 403 }
+      );
     }
 
     const resolvedParams = await params;

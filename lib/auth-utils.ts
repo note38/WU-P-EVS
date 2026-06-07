@@ -25,11 +25,13 @@ export async function validateAdminAccess() {
       },
     });
 
-    // If user not found, try to create them as admin
+    // If user not found, check if they should be auto-created
+    // ✅ SECURITY FIX: Do NOT auto-create admin users
+    // Users must be explicitly assigned admin role by another admin
     if (!adminUser) {
       try {
         console.log(
-          "🔄 User not found in database, attempting to create admin user..."
+          "🔄 User not found in database, checking Clerk data..."
         );
 
         // Get user from Clerk

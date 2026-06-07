@@ -85,7 +85,12 @@ export default async function Page({ params }: PageProps) {
     );
 
     const votersCount = election._count.voters;
-    const castVotesCount = election._count.votes;
+    const castVotesCount = await prisma.voter.count({
+      where: {
+        electionId: electionId,
+        status: "CAST"
+      }
+    });
     const uncastVotesCount = votersCount - castVotesCount;
 
     // Map database status to the expected client status

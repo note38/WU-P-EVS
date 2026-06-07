@@ -8,12 +8,24 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    // Temporarily disable auth for debugging
-    // const { userId } = await auth();
-    //
-    // if (!userId) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    // Re-enabled authentication check
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    //  Verify admin access before returning voter data
+    const adminUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!adminUser || adminUser.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 403 }
+      );
+    }
 
     const voters = await prisma.voter.findMany({
       include: {
@@ -53,6 +65,25 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Add authentication and admin role check
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify admin access before allowing voter creation
+    const adminUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!adminUser || adminUser.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required to create voters" },
+        { status: 403 }
+      );
+    }
+
     console.log("=== Starting voter creation ==="); // Debug log
     const data = await request.json();
     console.log("Received data:", data); // Debug log
