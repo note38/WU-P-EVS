@@ -69,43 +69,58 @@ export default function DashboardLayout({
   };
 
   // --- Render Logic ---
-  // While Clerk is checking the user's session, you can show a loading state.
-  if (!isLoaded) {
+  // While Clerk is checking the user's session, show a loading state.
+  if (!isLoaded || isUserLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div>Loading Dashboard...</div>
+        <div>Loading...</div>
       </div>
     );
   }
 
-  // If the user is authenticated, render the full dashboard layout.
-  if (userId) {
+  // Not signed in — the middleware should have caught this, but guard here too.
+  if (!userId) {
+    return null;
+  }
+
+  // databaseUser loaded but user is NOT an admin → redirect is triggered by
+  // the useEffect above; render nothing in the meantime so voters never see
+  // the dashboard UI even for a flash.
+  if (databaseUser && !isAdmin) {
+    return null;
+  }
+
+  // Still waiting for databaseUser to resolve (first load) — show spinner.
+  if (!databaseUser) {
     return (
-      <div className="flex flex-col h-screen lg:flex-row overflow-hidden">
-        {/* Mobile overlay for when sidebar is open */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-            onClick={closeSidebar}
-            aria-hidden="true"
-          />
-        )}
-        <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Header onSidebarToggle={toggleSidebar} />
-          <main
-            className="flex-1 p-4 overflow-y-auto bg-gray-50"
-            style={{ backgroundColor: "var(--main-bg)" }}
-          >
-            {children}
-          </main>
-          <Footer />
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <div>Verifying access...</div>
       </div>
     );
   }
 
-  // If the user is not authenticated and loading is complete, render nothing.
-  // The useEffect hook will handle the redirect.
-  return null;
+  // Confirmed admin — render the full dashboard layout.
+  return (
+    <div className="flex flex-col h-screen lg:flex-row overflow-hidden">
+      {/* Mobile overlay for when sidebar is open */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Header onSidebarToggle={toggleSidebar} />
+        <main
+          className="flex-1 p-4 overflow-y-auto bg-gray-50"
+          style={{ backgroundColor: "var(--main-bg)" }}
+        >
+          {children}
+        </main>
+        <Footer />
+      </div>
+    </div>
+  );
 }

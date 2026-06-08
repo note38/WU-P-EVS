@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
@@ -21,7 +22,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/link-user",
   "/api/auth/get-user",
   "/api/voters(.*)",
-  "/api/years(.*)", 
+  "/api/years(.*)",
   "/ballot/thank-you",
   "/test-auth",
   "/api/backup",
@@ -29,37 +30,36 @@ const isPublicRoute = createRouteMatcher([
   "/api/test-backup",
   "/api/test-restore",
   "/api/test-db",
-  "/dashboard-redirect", 
-  "/api/elections/auto-status-update", 
+  "/dashboard-redirect",
+  "/api/elections/auto-status-update",
 ]);
 
-// Cron routes require special handling
 const isCronRoute = createRouteMatcher(["/api/cron(.*)"]);
 
+// Matches the actual admin dashboard and all its sub-routes
+const isAdminRoute = createRouteMatcher(["/admin_dashboard(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
-  // Handle cron routes with enhanced security
+  // ── Cron routes: secret-based auth, bypass Clerk ──────────────────────────
   if (isCronRoute(req)) {
     const userAgent = req.headers.get("user-agent") || "";
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    console.log("[MIDDLEWARE] Cron request:", {
+    console.log("[PROXY] Cron request:", {
       path: req.nextUrl.pathname,
       userAgent,
       hasAuth: !!authHeader,
       hasSecret: !!cronSecret,
     });
 
-    // Check if request comes from Vercel cron
     const isVercelCron =
       userAgent.includes("vercel-cron") || userAgent.includes("vercel");
+    const hasValidSecret =
+      cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-    // Check if has valid secret token
-    const hasValidSecret = cronSecret && authHeader === `Bearer ${cronSecret}`;
-
-    // Allow if either Vercel cron OR valid secret (for manual testing)
     if (!isVercelCron && !hasValidSecret) {
-      console.log("[MIDDLEWARE] Blocking unauthorized cron request");
+      console.log("[PROXY] Blocking unauthorized cron request");
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -70,25 +70,48 @@ export default clerkMiddleware(async (auth, req) => {
       );
     }
 
-    console.log("[MIDDLEWARE] Cron request authorized");
-    // Allow cron requests to proceed without Clerk authentication
+    console.log("[PROXY] Cron request authorized");
     return NextResponse.next();
   }
 
-  // Handle regular routes
+  // ── All non-public routes: require Clerk authentication ───────────────────
   if (!isPublicRoute(req)) {
-    // Check if user is authenticated
     const { userId } = await auth();
 
+    // Not signed in with Clerk → redirect to sign-in
     if (!userId) {
-      // User is not authenticated, redirect to sign-in with redirect URL
       const signInUrl = new URL("/sign-in", req.url);
       signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
       return NextResponse.redirect(signInUrl);
     }
 
-    // User is authenticated, protect the route
+    // Enforce Clerk session
     await auth.protect();
+
+    // ── Admin dashboard: verify the user is in the admin (User) table ────────
+    if (isAdminRoute(req)) {
+      try {
+        const adminUser = await prisma.user.findUnique({
+          where: { clerkId: userId },
+          select: { id: true, role: true },
+        });
+
+        if (!adminUser) {
+          // User is a voter (exists in voter table) or unknown — block access
+          console.log(
+            `[PROXY] Non-admin user ${userId} tried to access admin dashboard`
+          );
+          return NextResponse.redirect(new URL("/ballot", req.url));
+        }
+
+        // User is confirmed admin — allow through
+        console.log(`[PROXY] Admin user ${userId} granted access`);
+      } catch (err) {
+        // Fail closed: on any DB error, deny access to admin
+        console.error("[PROXY] DB error during admin check — denying access:", err);
+        return NextResponse.redirect(new URL("/ballot", req.url));
+      }
+    }
   }
 });
 
