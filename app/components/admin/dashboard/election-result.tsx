@@ -19,7 +19,7 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ElectionResult } from "@/lib/data/dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatarSvg } from "@/app/components/ui/user-avatar-svg";
@@ -71,52 +71,81 @@ export default function VoterPage() {
       )
     : [];
 
-  // Fetch election results data
+  // Keep a ref so we can update selectedElectionId inside the interval
+  // without causing the effect to re-run (which would reset the interval).
+  const selectedElectionIdRef = useRef(selectedElectionId);
   useEffect(() => {
-    const fetchElectionResults = async () => {
+    selectedElectionIdRef.current = selectedElectionId;
+  }, [selectedElectionId]);
+
+  // Single unified fetch + poll effect.
+  // The initial-load useEffect and the polling useEffect were previously
+  // duplicated — both calling /api/dashboard/results independently, which
+  // could cause race conditions and double DB hits on mount.
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const doFetch = async (isInitial = false) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const response = await fetch("/api/dashboard/results");
         if (response.ok) {
           const results: ElectionResult[] = await response.json();
           setElectionData(results);
-
-          // Set the first election as selected if available
-          if (results.length > 0 && !selectedElectionId) {
+          // Only auto-select on first load, not on every poll tick
+          if (isInitial && results.length > 0 && !selectedElectionIdRef.current) {
             setSelectedElectionId(results[0].id.toString());
           }
         }
       } catch (error) {
         console.error("Error fetching election results:", error);
       } finally {
-        setLoading(false);
+        if (isInitial) setLoading(false);
       }
     };
 
-    fetchElectionResults();
-  }, [selectedElectionId]);
+    const startPoll = () => {
+      if (pollIntervalRef.current) return;
+      pollIntervalRef.current = setInterval(() => {
+        if (!document.hidden) doFetch(false);
+      }, 60_000);
+    };
 
-  // Reset to page 1 when changing elections
+    const stopPoll = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+
+    // Pause when tab is hidden, resume + immediate refresh when visible again
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopPoll();
+      } else {
+        doFetch(false);
+        startPoll();
+      }
+    };
+
+    // Initial load
+    doFetch(true);
+    startPoll();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      stopPoll();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  // Empty deps: this effect owns the full lifecycle — never re-runs.
+  // selectedElectionId changes are handled via the ref above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reset to page 1 whenever the user picks a different election in the dropdown
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedElectionId]);
-
-  // Real-time vote updates (fetch fresh data every 30 seconds)
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch("/api/dashboard/results");
-        if (response.ok) {
-          const results: ElectionResult[] = await response.json();
-          setElectionData(results);
-        }
-      } catch (error) {
-        console.error("Error updating election results:", error);
-      }
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Auto-scroll pages every 30 seconds in fullscreen mode
   useEffect(() => {
@@ -420,7 +449,7 @@ export default function VoterPage() {
                       {position.candidates.map((candidate) => {
                         const votePercentage = calculateVotePercentage(
                           candidate.votes,
-                          selectedElection.totalVoters || 0
+                          selectedElection?.totalVoters || 0
                         );
 
                         return (

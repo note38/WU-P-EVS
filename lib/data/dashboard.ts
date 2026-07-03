@@ -31,7 +31,7 @@ export interface ElectionResult {
   name: string;
   status: "ACTIVE" | "COMPLETED" | "INACTIVE";
   hideName?: boolean;
-  totalVoters?: number; // Add total voters count
+  totalVoters?: number;
   positions: {
     id: number;
     name: string;
@@ -45,8 +45,80 @@ export interface ElectionResult {
   }[];
 }
 
+// ---------------------------------------------------------------------------
+// Helper: fetch all vote counts for a given election in ONE query (groupBy)
+// Returns a Map<candidateId, voteCount> for O(1) lookups.
+// Before: N candidates × M positions = N*M prisma.vote.count() calls
+// After: 1 prisma.vote.groupBy() call total — regardless of candidate count
+// ---------------------------------------------------------------------------
+async function getVoteCountMap(electionId: number): Promise<Map<number, number>> {
+  const rows = await prisma.vote.groupBy({
+    by: ["candidateId"],
+    where: { electionId },
+    _count: { candidateId: true },
+  });
+
+  const map = new Map<number, number>();
+  for (const row of rows) {
+    map.set(row.candidateId, row._count.candidateId);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// Helper: build ElectionResult positions from an election with candidates
+// already fetched via include. Uses a pre-built voteCountMap (no extra queries).
+// ---------------------------------------------------------------------------
+function buildPositions(
+  election: {
+    positions: {
+      id: number;
+      name: string;
+      candidates: {
+        id: number;
+        name: string;
+        avatar: string | null;
+        partylist: { name: string } | null;
+      }[];
+    }[];
+  },
+  voteCountMap: Map<number, number>
+) {
+  const positions = [];
+
+  for (const position of election.positions) {
+    const candidates = [];
+
+    for (const candidate of position.candidates) {
+      if (!candidate.partylist) {
+        console.warn(`Candidate ${candidate.id} has no partylist`);
+        continue;
+      }
+
+      candidates.push({
+        id: candidate.id,
+        name: candidate.name,
+        avatar: candidate.avatar,
+        partylist: candidate.partylist.name,
+        votes: voteCountMap.get(candidate.id) ?? 0,
+      });
+    }
+
+    candidates.sort((a, b) => b.votes - a.votes);
+
+    positions.push({
+      id: position.id,
+      name: position.name,
+      candidates,
+    });
+  }
+
+  return positions;
+}
+
 export class DashboardDataService {
   // Get dashboard statistics
+  // Uses Promise.all so all 8 count queries run in parallel (not sequential).
   static async getDashboardStats(): Promise<DashboardStats> {
     const [
       totalElections,
@@ -58,34 +130,13 @@ export class DashboardDataService {
       votedVoters,
       totalVotes,
     ] = await Promise.all([
-      // Total elections
       prisma.election.count(),
-
-      // Active elections
-      prisma.election.count({
-        where: { status: "ACTIVE" },
-      }),
-
-      // Completed elections
-      prisma.election.count({
-        where: { status: "COMPLETED" },
-      }),
-
-      // Total candidates
+      prisma.election.count({ where: { status: "ACTIVE" } }),
+      prisma.election.count({ where: { status: "COMPLETED" } }),
       prisma.candidate.count(),
-
-      // Total partylists
       prisma.partylist.count(),
-
-      // Total voters
       prisma.voter.count(),
-
-      // Voters who have voted
-      prisma.voter.count({
-        where: { status: "CAST" },
-      }),
-
-      // Total votes cast
+      prisma.voter.count({ where: { status: "CAST" } }),
       prisma.vote.count(),
     ]);
 
@@ -102,42 +153,32 @@ export class DashboardDataService {
   }
 
   // Get recent activities (system activities and updates)
-  static async getRecentActivities(
-    limit: number = 10
-  ): Promise<RecentActivity[]> {
+  static async getRecentActivities(limit: number = 10): Promise<RecentActivity[]> {
     const activities: RecentActivity[] = [];
 
-    // Get recent voter registrations
-    const recentVoters = await prisma.voter.findMany({
-      take: Math.ceil(limit / 4),
-      orderBy: { createdAt: "desc" },
-    });
+    // Run all 4 queries in parallel
+    const [recentVoters, recentElections, recentCandidates, recentVotes] =
+      await Promise.all([
+        prisma.voter.findMany({
+          take: Math.ceil(limit / 4),
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.election.findMany({
+          take: Math.ceil(limit / 4),
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.candidate.findMany({
+          take: Math.ceil(limit / 4),
+          orderBy: { createdAt: "desc" },
+          include: { partylist: true },
+        }),
+        prisma.vote.findMany({
+          take: Math.ceil(limit / 4),
+          orderBy: { votedAt: "desc" },
+          include: { voter: true },
+        }),
+      ]);
 
-    // Get recent elections
-    const recentElections = await prisma.election.findMany({
-      take: Math.ceil(limit / 4),
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Get recent candidates
-    const recentCandidates = await prisma.candidate.findMany({
-      take: Math.ceil(limit / 4),
-      orderBy: { createdAt: "desc" },
-      include: {
-        partylist: true,
-      },
-    });
-
-    // Get recent votes (for vote cast activities)
-    const recentVotes = await prisma.vote.findMany({
-      take: Math.ceil(limit / 4),
-      orderBy: { votedAt: "desc" },
-      include: {
-        voter: true,
-      },
-    });
-
-    // Add voter registration activities
     recentVoters.forEach((voter: any) => {
       activities.push({
         id: voter.id + 20000,
@@ -148,7 +189,6 @@ export class DashboardDataService {
       });
     });
 
-    // Add election activities
     recentElections.forEach((election: any) => {
       activities.push({
         id: election.id + 10000,
@@ -164,7 +204,6 @@ export class DashboardDataService {
       });
     });
 
-    // Add candidate registration activities
     recentCandidates.forEach((candidate: any) => {
       activities.push({
         id: candidate.id + 30000,
@@ -175,7 +214,6 @@ export class DashboardDataService {
       });
     });
 
-    // Add vote activities
     recentVotes.forEach((vote: any) => {
       activities.push({
         id: vote.id,
@@ -186,13 +224,12 @@ export class DashboardDataService {
       });
     });
 
-    // Sort by timestamp and return limited results
     return activities
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
   }
 
-  // Get recent voters (recently added to the system)
+  // Get recent voters
   static async getRecentVoters(limit: number = 10): Promise<RecentVoter[]> {
     const recentVoters = await prisma.voter.findMany({
       take: limit,
@@ -207,7 +244,9 @@ export class DashboardDataService {
     }));
   }
 
-  // Get election results for live results tab
+  // Get election results for the live results tab (admin dashboard)
+  // BEFORE: N candidates × M positions individual prisma.vote.count() calls per election
+  // AFTER:  1 query total per election via groupBy — all elections still parallel
   static async getElectionResults(): Promise<ElectionResult[]> {
     const elections = await prisma.election.findMany({
       where: {
@@ -222,72 +261,33 @@ export class DashboardDataService {
           orderBy: { createdAt: "asc" },
           include: {
             candidates: {
-              include: {
-                partylist: true,
-              },
+              include: { partylist: true },
             },
           },
         },
-        _count: {
-          select: {
-            voters: true,
-          },
-        },
+        _count: { select: { voters: true } },
       },
       orderBy: { startDate: "desc" },
     });
 
-    const results: ElectionResult[] = [];
+    // Fetch all vote counts in parallel — one groupBy per election
+    const voteCountMaps = await Promise.all(
+      elections.map((e) => getVoteCountMap(e.id))
+    );
 
-    for (const election of elections) {
-      const positions = [];
-
-      for (const position of election.positions) {
-        const candidates = [];
-
-        for (const candidate of position.candidates) {
-          // Count votes for this candidate
-          const voteCount = await prisma.vote.count({
-            where: {
-              candidateId: candidate.id,
-              positionId: position.id,
-              electionId: election.id,
-            },
-          });
-
-          candidates.push({
-            id: candidate.id,
-            name: candidate.name,
-            avatar: candidate.avatar,
-            partylist: candidate.partylist.name,
-            votes: voteCount,
-          });
-        }
-
-        // Sort candidates by vote count
-        candidates.sort((a, b) => b.votes - a.votes);
-
-        positions.push({
-          id: position.id,
-          name: position.name,
-          candidates,
-        });
-      }
-
-      results.push({
-        id: election.id,
-        name: election.name,
-        status: election.status,
-        hideName: election.hideName, // Include hideName field
-        totalVoters: election._count.voters, // Include total voters count
-        positions,
-      });
-    }
-
-    return results;
+    return elections.map((election, i) => ({
+      id: election.id,
+      name: election.name,
+      status: election.status,
+      hideName: election.hideName,
+      totalVoters: election._count.voters,
+      positions: buildPositions(election, voteCountMaps[i]),
+    }));
   }
 
-  // Get active election for live results
+  // Get active election for live results (home page)
+  // BEFORE: N*M individual prisma.vote.count() calls
+  // AFTER:  2 queries total (1 findFirst + 1 groupBy)
   static async getActiveElectionResults(): Promise<ElectionResult | null> {
     try {
       const activeElection = await prisma.election.findFirst({
@@ -297,17 +297,11 @@ export class DashboardDataService {
             orderBy: { createdAt: "asc" },
             include: {
               candidates: {
-                include: {
-                  partylist: true,
-                },
+                include: { partylist: true },
               },
             },
           },
-          _count: {
-            select: {
-              voters: true,
-            },
-          },
+          _count: { select: { voters: true } },
         },
       });
 
@@ -317,51 +311,16 @@ export class DashboardDataService {
         `🎯 Found active election: ${activeElection.name} with ${activeElection.positions.length} positions`
       );
 
-      const positions = [];
-
-      for (const position of activeElection.positions) {
-        const candidates = [];
-
-        for (const candidate of position.candidates) {
-          // Ensure partylist exists before accessing its properties
-          if (!candidate.partylist) {
-            console.warn(`Candidate ${candidate.id} has no partylist`);
-            continue;
-          }
-
-          const voteCount = await prisma.vote.count({
-            where: {
-              candidateId: candidate.id,
-              positionId: position.id,
-              electionId: activeElection.id,
-            },
-          });
-
-          candidates.push({
-            id: candidate.id,
-            name: candidate.name,
-            avatar: candidate.avatar,
-            partylist: candidate.partylist.name,
-            votes: voteCount,
-          });
-        }
-
-        candidates.sort((a, b) => b.votes - a.votes);
-
-        positions.push({
-          id: position.id,
-          name: position.name,
-          candidates,
-        });
-      }
+      // ONE groupBy query replaces all the per-candidate vote.count() calls
+      const voteCountMap = await getVoteCountMap(activeElection.id);
 
       const result = {
         id: activeElection.id,
         name: activeElection.name,
         status: activeElection.status,
-        hideName: activeElection.hideName, // Include hideName field
-        totalVoters: activeElection._count.voters, // Include total voters count
-        positions,
+        hideName: activeElection.hideName,
+        totalVoters: activeElection._count.voters,
+        positions: buildPositions(activeElection, voteCountMap),
       };
 
       console.log(`✅ Returning active election result:`, {
@@ -381,6 +340,8 @@ export class DashboardDataService {
   }
 
   // Get recent completed election for home page (within 24 hours)
+  // BEFORE: N*M individual prisma.vote.count() calls
+  // AFTER:  2 queries total (1 findFirst + 1 groupBy)
   static async getRecentCompletedElectionResults(): Promise<ElectionResult | null> {
     try {
       const twentyFourHoursAgo = new Date();
@@ -389,77 +350,34 @@ export class DashboardDataService {
       const recentCompletedElection = await prisma.election.findFirst({
         where: {
           status: "COMPLETED",
-          endDate: {
-            gte: twentyFourHoursAgo, // Completed within the last 24 hours
-          },
+          endDate: { gte: twentyFourHoursAgo },
         },
         include: {
           positions: {
             orderBy: { createdAt: "asc" },
             include: {
               candidates: {
-                include: {
-                  partylist: true,
-                },
+                include: { partylist: true },
               },
             },
           },
-          _count: {
-            select: {
-              voters: true,
-            },
-          },
+          _count: { select: { voters: true } },
         },
-        orderBy: { endDate: "desc" }, // Get the most recently completed
+        orderBy: { endDate: "desc" },
       });
 
       if (!recentCompletedElection) return null;
 
-      const positions = [];
-
-      for (const position of recentCompletedElection.positions) {
-        const candidates = [];
-
-        for (const candidate of position.candidates) {
-          // Ensure partylist exists before accessing its properties
-          if (!candidate.partylist) {
-            console.warn(`Candidate ${candidate.id} has no partylist`);
-            continue;
-          }
-
-          const voteCount = await prisma.vote.count({
-            where: {
-              candidateId: candidate.id,
-              positionId: position.id,
-              electionId: recentCompletedElection.id,
-            },
-          });
-
-          candidates.push({
-            id: candidate.id,
-            name: candidate.name,
-            avatar: candidate.avatar,
-            partylist: candidate.partylist.name,
-            votes: voteCount,
-          });
-        }
-
-        candidates.sort((a, b) => b.votes - a.votes);
-
-        positions.push({
-          id: position.id,
-          name: position.name,
-          candidates,
-        });
-      }
+      // ONE groupBy query replaces all the per-candidate vote.count() calls
+      const voteCountMap = await getVoteCountMap(recentCompletedElection.id);
 
       return {
         id: recentCompletedElection.id,
         name: recentCompletedElection.name,
         status: recentCompletedElection.status,
-        hideName: recentCompletedElection.hideName, // Include hideName field
-        totalVoters: recentCompletedElection._count.voters, // Include total voters count
-        positions,
+        hideName: recentCompletedElection.hideName,
+        totalVoters: recentCompletedElection._count.voters,
+        positions: buildPositions(recentCompletedElection, voteCountMap),
       };
     } catch (error) {
       console.error("Error fetching recent completed election results:", error);
@@ -467,7 +385,9 @@ export class DashboardDataService {
     }
   }
 
-  // Get election results for home page (different logic than dashboard)
+  // Get election results for home page
+  // BEFORE: N candidates × M positions × E elections individual vote.count() calls
+  // AFTER:  1 findMany + 1 groupBy per election (run in parallel)
   static async getHomePageElectionResults(): Promise<ElectionResult[]> {
     try {
       const twentyFourHoursAgo = new Date();
@@ -479,9 +399,7 @@ export class DashboardDataService {
             { status: "ACTIVE" },
             {
               status: "COMPLETED",
-              endDate: {
-                gte: twentyFourHoursAgo, // Show completed elections within 24 hours
-              },
+              endDate: { gte: twentyFourHoursAgo },
             },
           ],
         },
@@ -490,75 +408,30 @@ export class DashboardDataService {
             orderBy: { createdAt: "asc" },
             include: {
               candidates: {
-                include: {
-                  partylist: true,
-                },
+                include: { partylist: true },
               },
             },
           },
-          _count: {
-            select: {
-              voters: true,
-            },
-          },
+          _count: { select: { voters: true } },
         },
         orderBy: { startDate: "desc" },
       });
 
-      const results: ElectionResult[] = [];
+      if (elections.length === 0) return [];
 
-      for (const election of elections) {
-        const positions = [];
+      // Fetch all vote counts in parallel — one groupBy per election
+      const voteCountMaps = await Promise.all(
+        elections.map((e) => getVoteCountMap(e.id))
+      );
 
-        for (const position of election.positions) {
-          const candidates = [];
-
-          for (const candidate of position.candidates) {
-            // Ensure partylist exists before accessing its properties
-            if (!candidate.partylist) {
-              console.warn(`Candidate ${candidate.id} has no partylist`);
-              continue;
-            }
-
-            // Count votes for this candidate
-            const voteCount = await prisma.vote.count({
-              where: {
-                candidateId: candidate.id,
-                positionId: position.id,
-                electionId: election.id,
-              },
-            });
-
-            candidates.push({
-              id: candidate.id,
-              name: candidate.name,
-              avatar: candidate.avatar,
-              partylist: candidate.partylist.name,
-              votes: voteCount,
-            });
-          }
-
-          // Sort candidates by vote count
-          candidates.sort((a, b) => b.votes - a.votes);
-
-          positions.push({
-            id: position.id,
-            name: position.name,
-            candidates,
-          });
-        }
-
-        results.push({
-          id: election.id,
-          name: election.name,
-          status: election.status,
-          hideName: election.hideName, // Include hideName field
-          totalVoters: election._count.voters, // Include total voters count
-          positions,
-        });
-      }
-
-      return results;
+      return elections.map((election, i) => ({
+        id: election.id,
+        name: election.name,
+        status: election.status,
+        hideName: election.hideName,
+        totalVoters: election._count.voters,
+        positions: buildPositions(election, voteCountMaps[i]),
+      }));
     } catch (error) {
       console.error("Error fetching home page election results:", error);
       return [];

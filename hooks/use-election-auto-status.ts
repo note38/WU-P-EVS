@@ -281,10 +281,24 @@ export function useElectionAutoStatus(
       stopAutoCheck();
     }
 
+    // Pause the interval when the tab is hidden to avoid burning Prisma ops
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopAutoCheck();
+      } else if (enabled) {
+        // Tab became visible again — run a check immediately then restart interval
+        checkAndUpdateStatuses();
+        startAutoCheck();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       stopAutoCheck();
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [enabled, startAutoCheck, stopAutoCheck]);
+  }, [enabled, startAutoCheck, stopAutoCheck, checkAndUpdateStatuses]);
 
   // Cleanup on unmount
   useEffect(() => {
