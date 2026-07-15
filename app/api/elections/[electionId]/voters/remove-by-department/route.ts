@@ -6,47 +6,52 @@ export async function POST(
   { params }: { params: Promise<{ electionId: string }> }
 ) {
   try {
-    // Await params before accessing properties (Next.js 15 requirement)
     const { electionId: electionIdStr } = await params;
     const electionId = parseInt(electionIdStr);
     const body = await request.json();
-    const { voterIds } = body;
+    const { departmentId } = body;
 
-    // Validate input
-    if (!Array.isArray(voterIds) || voterIds.length === 0) {
-      return NextResponse.json(
-        { error: "voterIds array is required and cannot be empty" },
-        { status: 400 }
-      );
+    if (!departmentId) {
+      return NextResponse.json({ error: "departmentId is required" }, { status: 400 });
     }
 
-    // Validate that all voterIds are numbers
-    const validVoterIds = voterIds.filter(
-      (id) => typeof id === "number" && !isNaN(id)
-    );
-    if (validVoterIds.length !== voterIds.length) {
-      return NextResponse.json(
-        { error: "All voter IDs must be valid numbers" },
-        { status: 400 }
-      );
-    }
-
-    // Validate that the election exists
+    // Validate election exists
     const election = await prisma.election.findUnique({
       where: { id: electionId },
     });
 
     if (!election) {
+      return NextResponse.json({ error: "Election not found" }, { status: 404 });
+    }
+
+    // Find all voters in this election that belong to the specified department
+    const votersToRemove = await prisma.voter.findMany({
+      where: {
+        electionId: electionId,
+        year: {
+          program: {
+            departmentId: parseInt(departmentId),
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (votersToRemove.length === 0) {
       return NextResponse.json(
-        { error: "Election not found" },
+        { error: "No voters found in this department for this election" },
         { status: 404 }
       );
     }
 
-    // Check if any of the voters have already voted in this election
+    const voterIds = votersToRemove.map(v => v.id);
+
+    // Check if any of these voters have already voted
     const votersWithVotes = await prisma.vote.findMany({
       where: {
-        voterId: { in: validVoterIds },
+        voterId: { in: voterIds },
         electionId: electionId,
       },
       select: {
@@ -67,21 +72,20 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error: `Cannot remove voters who have already voted: ${voterNames}`,
+          error: `Cannot remove department because some voters have already voted: ${voterNames}`,
         },
         { status: 400 }
       );
     }
 
-    // Remove voters from the election by setting electionId to null
+    // Remove voters
     const result = await prisma.voter.updateMany({
       where: {
-        id: { in: validVoterIds },
-        electionId: electionId, // Only update voters that are actually in this election
+        id: { in: voterIds },
       },
       data: {
         electionId: null,
-        status: "UNCAST", // Reset status
+        status: "UNCAST",
       },
     });
 
@@ -90,9 +94,9 @@ export async function POST(
       count: result.count,
     });
   } catch (error) {
-    console.error("Error removing voters from election:", error);
+    console.error("Error removing voters by department:", error);
     return NextResponse.json(
-      { error: "Failed to remove voters from election" },
+      { error: "Failed to remove voters by department" },
       { status: 500 }
     );
   }

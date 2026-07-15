@@ -66,6 +66,7 @@ import { useEffect, useState } from "react";
 import { SearchInput } from "../search-input";
 import { ImportVotersDialog } from "./import-voter";
 import { AddVoterForm } from "./add-voter-form";
+import { RemoveByDepartmentDialog } from "./remove-by-department";
 
 // Define types for the components
 interface Year {
@@ -968,6 +969,10 @@ export function VotersTab({ electionId }: VotersTabProps) {
           <AddVoterForm
             electionId={electionId}
             onVoterAdded={handleVoterAdded}
+          />
+          <RemoveByDepartmentDialog
+            electionId={electionId}
+            onRemoveSuccess={handleImportSuccess}
           />
         </div>
       </div>
