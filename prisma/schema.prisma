@@ -33,11 +33,12 @@ model Election {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   createdById Int
-  hideName    Boolean        @default(false)
-  candidates  Candidate[]
-  createdBy   User           @relation(fields: [createdById], references: [id])
-  partylists  Partylist[]
-  positions   Position[]
+  hideName               Boolean        @default(false)
+  showOnLandingPageUntil DateTime?
+  candidates             Candidate[]
+  createdBy              User           @relation(fields: [createdById], references: [id])
+  partylists             Partylist[]
+  positions              Position[]
   votes       Vote[]
   voters      Voter[]
 

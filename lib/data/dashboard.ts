@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { getShowResultsUntil } from "@/lib/show-results-store";
 
 export interface DashboardStats {
   totalElections: number;
@@ -279,7 +278,7 @@ export class DashboardDataService {
 
     const now = new Date();
     return elections.map((election, i) => {
-      const showUntil = getShowResultsUntil(election.id);
+      const showUntil = election.showOnLandingPageUntil;
       return {
         id: election.id,
         name: election.name,
@@ -371,7 +370,7 @@ export class DashboardDataService {
 
       const now = new Date();
       const recentCompletedElection = completedElections.find(election => {
-        const showUntil = getShowResultsUntil(election.id);
+        const showUntil = election.showOnLandingPageUntil;
         return showUntil && showUntil >= now;
       });
 
@@ -425,7 +424,7 @@ export class DashboardDataService {
       const now = new Date();
       const filteredElections = elections.filter(election => {
         if (election.status === "ACTIVE") return true;
-        const showUntil = getShowResultsUntil(election.id);
+        const showUntil = election.showOnLandingPageUntil;
         return showUntil && showUntil >= now;
       });
 

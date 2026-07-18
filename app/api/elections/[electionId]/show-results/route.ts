@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setShowResultsUntil } from "@/lib/show-results-store";
+import { prisma } from "@/lib/db";
 import { validateAdminAccess } from "@/lib/auth-utils";
 
 export async function POST(req: NextRequest, context: any) {
@@ -23,7 +23,10 @@ export async function POST(req: NextRequest, context: any) {
     const action = body.action || "show";
 
     if (action === "hide") {
-      setShowResultsUntil(electionId, null);
+      await prisma.election.update({
+        where: { id: electionId },
+        data: { showOnLandingPageUntil: null },
+      });
       return NextResponse.json({
         message: "Election results will be hidden from the home page",
       });
@@ -32,7 +35,10 @@ export async function POST(req: NextRequest, context: any) {
       const showUntil = new Date();
       showUntil.setHours(showUntil.getHours() + 24);
 
-      setShowResultsUntil(electionId, showUntil);
+      await prisma.election.update({
+        where: { id: electionId },
+        data: { showOnLandingPageUntil: showUntil },
+      });
 
       return NextResponse.json({
         message: "Election results will be shown on the home page for 24 hours",

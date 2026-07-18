@@ -337,6 +337,20 @@ export default function VoterPage() {
               </SelectContent>
             </Select>
 
+            {!isFullscreen && selectedElection && (
+              <div className="flex items-center space-x-2 mr-2">
+                <Switch
+                  id="hide-names"
+                  checked={!hideNames}
+                  onCheckedChange={toggleHideName}
+                  disabled={isTogglingHideName}
+                />
+                <Label htmlFor="hide-names" className="text-xs cursor-pointer">
+                  Show Candidate Names
+                </Label>
+              </div>
+            )}
+
             {!isFullscreen && selectedElection && selectedElection.status === "COMPLETED" && (
               <div className="flex items-center space-x-2">
                 <Button
