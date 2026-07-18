@@ -337,29 +337,46 @@ export default function VoterPage() {
               </SelectContent>
             </Select>
 
-            {!isFullscreen && selectedElection && (
+            {!isFullscreen && selectedElection && selectedElection.status === "COMPLETED" && (
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={toggleHideName}
-                  disabled={isTogglingHideName}
+                  onClick={async () => {
+                    const action = selectedElection.showOnLandingPage ? "hide" : "show";
+                    try {
+                      const response = await fetch(`/api/elections/${selectedElectionId}/show-results`, {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ action }),
+                      });
+                      if (response.ok) {
+                        const refreshResponse = await fetch("/api/dashboard/results");
+                        if (refreshResponse.ok) {
+                          const results: ElectionResult[] = await refreshResponse.json();
+                          setElectionData(results);
+                        }
+                        alert(action === "show" ? "Results will be shown on the landing page for 24 hours." : "Results are now hidden from the landing page.");
+                      } else {
+                        alert("Failed to update.");
+                      }
+                    } catch (error) {
+                      console.error(error);
+                    }
+                  }}
                 >
-                  {isTogglingHideName ? (
+                  {selectedElection.showOnLandingPage ? (
                     <>
-                      <div className="mr-1 h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
-                      Updating...
-                    </>
-                  ) : hideNames ? (
-                    <>
-                      <Eye className="h-3 w-3 mr-1" />
-                      Show Names
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      Hide from Landing Page
                     </>
                   ) : (
                     <>
-                      <EyeOff className="h-3 w-3 mr-1" />
-                      Hide Names
+                      <Eye className="h-3 w-3 mr-1" />
+                      Show on Landing Page (24h)
                     </>
                   )}
                 </Button>

@@ -282,6 +282,34 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             )}
             {isExporting ? "Exporting..." : "Export Results"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const response = await fetch(
+                  `/api/elections/${electionId}/toggle-hide-name`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                if (response.ok) {
+                  fetchResults();
+                } else {
+                  console.error("Failed to toggle hide name status");
+                }
+              } catch (error) {
+                console.error("Error toggling hide name status:", error);
+              }
+            }}
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            {electionDetails?.hideName ? "Show Names" : "Hide Names"}
+          </Button>
         </div>
       </div>
 

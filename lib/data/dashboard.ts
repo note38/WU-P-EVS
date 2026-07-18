@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getShowResultsUntil } from "@/lib/show-results-store";
 
 export interface DashboardStats {
   totalElections: number;
@@ -31,6 +32,7 @@ export interface ElectionResult {
   name: string;
   status: "ACTIVE" | "COMPLETED" | "INACTIVE";
   hideName?: boolean;
+  showOnLandingPage?: boolean;
   totalVoters?: number;
   positions: {
     id: number;
@@ -275,14 +277,19 @@ export class DashboardDataService {
       elections.map((e) => getVoteCountMap(e.id))
     );
 
-    return elections.map((election, i) => ({
-      id: election.id,
-      name: election.name,
-      status: election.status,
-      hideName: election.hideName,
-      totalVoters: election._count.voters,
-      positions: buildPositions(election, voteCountMaps[i]),
-    }));
+    const now = new Date();
+    return elections.map((election, i) => {
+      const showUntil = getShowResultsUntil(election.id);
+      return {
+        id: election.id,
+        name: election.name,
+        status: election.status,
+        hideName: election.hideName,
+        showOnLandingPage: !!(showUntil && showUntil >= now),
+        totalVoters: election._count.voters,
+        positions: buildPositions(election, voteCountMaps[i]),
+      };
+    });
   }
 
   // Get active election for live results (home page)
@@ -344,13 +351,9 @@ export class DashboardDataService {
   // AFTER:  2 queries total (1 findFirst + 1 groupBy)
   static async getRecentCompletedElectionResults(): Promise<ElectionResult | null> {
     try {
-      const twentyFourHoursAgo = new Date();
-      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-      const recentCompletedElection = await prisma.election.findFirst({
+      const completedElections = await prisma.election.findMany({
         where: {
           status: "COMPLETED",
-          endDate: { gte: twentyFourHoursAgo },
         },
         include: {
           positions: {
@@ -364,6 +367,12 @@ export class DashboardDataService {
           _count: { select: { voters: true } },
         },
         orderBy: { endDate: "desc" },
+      });
+
+      const now = new Date();
+      const recentCompletedElection = completedElections.find(election => {
+        const showUntil = getShowResultsUntil(election.id);
+        return showUntil && showUntil >= now;
       });
 
       if (!recentCompletedElection) return null;
@@ -390,17 +399,11 @@ export class DashboardDataService {
   // AFTER:  1 findMany + 1 groupBy per election (run in parallel)
   static async getHomePageElectionResults(): Promise<ElectionResult[]> {
     try {
-      const twentyFourHoursAgo = new Date();
-      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
       const elections = await prisma.election.findMany({
         where: {
           OR: [
             { status: "ACTIVE" },
-            {
-              status: "COMPLETED",
-              endDate: { gte: twentyFourHoursAgo },
-            },
+            { status: "COMPLETED" },
           ],
         },
         include: {
@@ -419,12 +422,21 @@ export class DashboardDataService {
 
       if (elections.length === 0) return [];
 
+      const now = new Date();
+      const filteredElections = elections.filter(election => {
+        if (election.status === "ACTIVE") return true;
+        const showUntil = getShowResultsUntil(election.id);
+        return showUntil && showUntil >= now;
+      });
+
+      if (filteredElections.length === 0) return [];
+
       // Fetch all vote counts in parallel — one groupBy per election
       const voteCountMaps = await Promise.all(
-        elections.map((e) => getVoteCountMap(e.id))
+        filteredElections.map((e) => getVoteCountMap(e.id))
       );
 
-      return elections.map((election, i) => ({
+      return filteredElections.map((election, i) => ({
         id: election.id,
         name: election.name,
         status: election.status,
