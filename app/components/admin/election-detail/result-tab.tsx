@@ -50,6 +50,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
   const [isAnnouncingResults, setIsAnnouncingResults] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isTogglingHideName, setIsTogglingHideName] = useState(false);
   const [userPosition, setUserPosition] = useState<string>("");
 
   // Use the auto status hook to check for election status updates
@@ -288,6 +289,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             variant="outline"
             size="sm"
             onClick={async () => {
+              setIsTogglingHideName(true);
               try {
                 const response = await fetch(
                   `/api/elections/${electionId}/toggle-hide-name`,
@@ -299,18 +301,23 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
                   }
                 );
                 if (response.ok) {
-                  fetchResults();
+                  await fetchResults();
                 } else {
                   console.error("Failed to toggle hide name status");
                 }
               } catch (error) {
                 console.error("Error toggling hide name status:", error);
+              } finally {
+                setIsTogglingHideName(false);
               }
             }}
-            disabled={loading}
+            disabled={loading || isTogglingHideName}
             className="w-full sm:w-auto"
           >
-            {electionDetails?.hideName ? "Show Names" : "Hide Names"}
+            {isTogglingHideName ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : null}
+            {isTogglingHideName ? "Updating..." : (electionDetails?.hideName ? "Show Names" : "Hide Names")}
           </Button>
         </div>
       </div>

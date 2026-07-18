@@ -18,6 +18,7 @@ import {
   EyeOff,
   Maximize2,
   Minimize2,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ElectionResult } from "@/lib/data/dashboard";
@@ -50,6 +51,7 @@ export default function VoterPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isTogglingHideName, setIsTogglingHideName] = useState(false);
+  const [isTogglingLandingPage, setIsTogglingLandingPage] = useState(false);
 
   const selectedElection = electionData.find(
     (e: ElectionResult) => e.id.toString() === selectedElectionId
@@ -339,14 +341,18 @@ export default function VoterPage() {
 
             {!isFullscreen && selectedElection && (
               <div className="flex items-center space-x-2 mr-2">
-                <Switch
-                  id="hide-names"
-                  checked={!hideNames}
-                  onCheckedChange={toggleHideName}
-                  disabled={isTogglingHideName}
-                />
+                {isTogglingHideName ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Switch
+                    id="hide-names"
+                    checked={!hideNames}
+                    onCheckedChange={toggleHideName}
+                    disabled={isTogglingHideName}
+                  />
+                )}
                 <Label htmlFor="hide-names" className="text-xs cursor-pointer">
-                  Show Candidate Names
+                  {isTogglingHideName ? "Updating..." : "Show Candidate Names"}
                 </Label>
               </div>
             )}
@@ -357,7 +363,9 @@ export default function VoterPage() {
                   variant="outline"
                   size="sm"
                   className="h-7 px-2 text-xs"
+                  disabled={isTogglingLandingPage}
                   onClick={async () => {
+                    setIsTogglingLandingPage(true);
                     const action = selectedElection.showOnLandingPage ? "hide" : "show";
                     try {
                       const response = await fetch(`/api/elections/${selectedElectionId}/show-results`, {
@@ -373,16 +381,24 @@ export default function VoterPage() {
                           const results: ElectionResult[] = await refreshResponse.json();
                           setElectionData(results);
                         }
-                        alert(action === "show" ? "Results will be shown on the landing page for 24 hours." : "Results are now hidden from the landing page.");
+                        // Don't show alert to make it feel more seamless now that we have a loader
+                        // alert(action === "show" ? "Results will be shown on the landing page for 24 hours." : "Results are now hidden from the landing page.");
                       } else {
                         alert("Failed to update.");
                       }
                     } catch (error) {
                       console.error(error);
+                    } finally {
+                      setIsTogglingLandingPage(false);
                     }
                   }}
                 >
-                  {selectedElection.showOnLandingPage ? (
+                  {isTogglingLandingPage ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Updating...
+                    </>
+                  ) : selectedElection.showOnLandingPage ? (
                     <>
                       <EyeOff className="h-3 w-3 mr-1" />
                       Hide from Landing Page
