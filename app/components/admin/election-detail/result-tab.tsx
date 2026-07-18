@@ -190,6 +190,8 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
       const exportOptions = {
         electionDetails,
         positions: filteredPositions,
+        currentUser: user,
+        userPosition,
       };
 
       // Validate data before exporting
@@ -280,7 +282,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             ) : (
               <DownloadIcon className="h-4 w-4 mr-2" />
             )}
-            {isExporting ? "Exporting..." : "Export Results"}
+            {isExporting ? "Exporting..." : "Export PDF"}
           </Button>
           <Button
             variant="outline"

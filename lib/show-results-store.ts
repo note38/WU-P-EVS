@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 
-const filePath = path.join(process.cwd(), "show-results.json");
+// Use os.tmpdir() so it works in both local dev (Windows) and production (Vercel serverless)
+const filePath = path.join(os.tmpdir(), "show-results.json");
 
 export function getShowResultsUntil(electionId: number): Date | null {
   try {

@@ -49,6 +49,7 @@ export async function validateAdminAccess() {
               username: clerkUser.username || email.split("@")[0],
               avatar: clerkUser.imageUrl || "",
               role: "ADMIN",
+              password: "clerk_oauth_dummy_password",
             },
             include: {
               elections: true,

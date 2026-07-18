@@ -557,76 +557,387 @@ import type { ElectionDetails, Position } from "@/types/election-results";
 interface ExportOptions {
   electionDetails: ElectionDetails;
   positions: Position[];
+  currentUser?: { fullName?: string | null } | null;
+  userPosition?: string;
+}
+
+// Helper: load image URL as base64 data URL (same as print-templates)
+async function getLogoDataUrl(url: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        resolve(url); // fallback to URL
+      }
+    };
+    img.onerror = () => resolve(url); // fallback to URL
+    img.src = url;
+  });
 }
 
 /**
- * Export election results to Excel format
+ * Export election results to PDF format (matches print layout)
  * @param options Export configuration options
  * @returns Promise that resolves when export is complete
  */
 export async function exportElectionResults(
   options: ExportOptions
 ): Promise<void> {
-  const { electionDetails, positions } = options;
+  const { electionDetails, positions, currentUser, userPosition } = options;
 
   try {
-    // Dynamic import to avoid SSR issues
-    const [XLSX, { default: saveAs }] = await Promise.all([
-      import("xlsx"),
-      import("file-saver"),
-    ]);
+    const { default: jsPDF } = await import("jspdf");
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = 210;
+    const margin = 14;
+    const contentW = pageW - margin * 2;
 
     const startDateTime = formatDateTime(electionDetails.startDate);
     const endDateTime = formatDateTime(electionDetails.endDate);
+    const turnoutPercentage =
+      electionDetails.voters > 0
+        ? Math.round((electionDetails.castedVotes / electionDetails.voters) * 100)
+        : 0;
 
-    // Generate workbook data
-    const summaryData = generateSummaryData(
-      electionDetails,
-      startDateTime,
-      endDateTime
+    // ── Load logo ────────────────────────────────────────────────────────────
+    const baseUrl =
+      typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.host}`
+        : "";
+    let logoDataUrl: string | null = null;
+    if (baseUrl) {
+      try {
+        logoDataUrl = await getLogoDataUrl(`${baseUrl}/wup-logo.png`);
+      } catch {
+        logoDataUrl = null;
+      }
+    }
+
+    // ── HEADER (white bg, bottom border — same as print) ─────────────────────
+    const headerH = 40;
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageW, headerH, "F");
+    doc.setDrawColor(222, 226, 230);
+    doc.setLineWidth(0.5);
+    doc.line(margin, headerH, pageW - margin, headerH);
+
+    const logoSize = 16; // mm
+    const logoY = 6;
+    const logoW = logoDataUrl ? logoSize : 0;
+    const gap = logoDataUrl ? 5 : 0;
+
+    // Measure text to center the block
+    const mainTitle = "Development of WU-P Aurora Enhanced Voting System";
+    const subTitle = "DWU-P-AEVS";
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    const mainTitleW = doc.getTextWidth(mainTitle);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const subTitleW = doc.getTextWidth(subTitle);
+
+    const textW = Math.max(mainTitleW, subTitleW);
+    const totalBlockW = logoW + gap + textW;
+    
+    // Calculate starting X to perfectly center the entire block
+    const blockStartX = (pageW - totalBlockW) / 2;
+    const textStartX = blockStartX + logoW + gap;
+
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, "PNG", blockStartX, logoY, logoSize, logoSize);
+    }
+
+    // University name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(33, 37, 41);
+    doc.text(mainTitle, textStartX, logoY + 5);
+
+    // System abbreviation
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(108, 117, 125);
+    doc.text(subTitle, textStartX, logoY + 11);
+
+    // Election title pill
+    const titleText = electionDetails.name;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(73, 80, 87);
+    const titleW = Math.min(doc.getTextWidth(titleText) + 10, contentW);
+    const titleX = (pageW - titleW) / 2;
+    doc.setFillColor(248, 249, 250);
+    doc.roundedRect(titleX, logoY + 14, titleW, 8, 2, 2, "F");
+    doc.text(titleText, 105, logoY + 20, { align: "center", maxWidth: contentW - 8 });
+
+    let currentY = headerH + 6;
+
+    // ── ELECTION DETAILS BOX ─────────────────────────────────────────────────
+    const detailBoxH = 44;
+    doc.setFillColor(249, 249, 249);
+    doc.rect(margin, currentY, contentW, detailBoxH, "F");
+    doc.setDrawColor(221, 221, 221);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, currentY, contentW, detailBoxH);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.text("Election Details", margin + 4, currentY + 7);
+
+    const col = contentW / 3;
+    const detailItems = [
+      ["Election Start:", `${startDateTime.date} ${startDateTime.time}`],
+      ["Election End:", `${endDateTime.date} ${endDateTime.time}`],
+      ["Status:", electionDetails.status],
+      ["Positions:", String(electionDetails.positions)],
+      ["Candidates:", String(electionDetails.candidates)],
+      ["Total Voters:", String(electionDetails.voters)],
+      ["Casted Votes:", String(electionDetails.castedVotes)],
+      ["Uncasted Votes:", String(electionDetails.uncastedVotes)],
+      ["Turnout:", `${turnoutPercentage}%`],
+    ];
+
+    const colOffsets = [margin + 4, margin + 4 + col, margin + 4 + col * 2];
+    doc.setFontSize(8.5);
+    for (let row = 0; row < 3; row++) {
+      for (let colIdx = 0; colIdx < 3; colIdx++) {
+        const item = detailItems[colIdx * 3 + row];
+        const x = colOffsets[colIdx];
+        const y = currentY + 15 + row * 9;
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 60, 60);
+        doc.text(item[0], x, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        doc.text(item[1], x + doc.getTextWidth(item[0]) + 2, y);
+      }
+    }
+
+    currentY += detailBoxH + 6;
+
+    // ── POSITION CARDS ───────────────────────────────────────────────────────
+    for (const position of positions) {
+      if (currentY > 245) {
+        doc.addPage();
+        currentY = 14;
+      }
+
+      // Position header bar
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, currentY, contentW, 9, "F");
+      doc.setDrawColor(221, 221, 221);
+      doc.setLineWidth(0.3);
+      doc.rect(margin, currentY, contentW, 9);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(33, 37, 41);
+      doc.text(
+        `${position.name}  (${position.totalVotes} total votes)`,
+        margin + 4,
+        currentY + 6
+      );
+      currentY += 9;
+
+      if (position.candidates.length === 0) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, currentY, contentW, 10, "F");
+        doc.setDrawColor(238, 238, 238);
+        doc.rect(margin, currentY, contentW, 10);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text("No candidates for this position", margin + 4, currentY + 6.5);
+        currentY += 10;
+      } else {
+        const thresholdIndex = Math.min(
+          position.maxCandidates - 1,
+          position.candidates.length - 1
+        );
+        const winningThreshold =
+          position.candidates.length > 0
+            ? position.candidates[thresholdIndex].votes
+            : 0;
+
+        // Column layout: [left info zone] [right: votes + % + badge]
+        const rightZoneW = 42; // mm for votes/percent/badge on the right
+        const leftZoneW = contentW - rightZoneW;
+
+        for (let ci = 0; ci < position.candidates.length; ci++) {
+          const candidate = position.candidates[ci];
+          const isWinner =
+            candidate.votes > 0 && candidate.votes >= winningThreshold;
+          const percentage = calculatePercentage(
+            candidate.votes,
+            position.totalVotes
+          );
+          const rowH = 15;
+
+          if (currentY + rowH > 278) {
+            doc.addPage();
+            currentY = 14;
+          }
+
+          // Row background
+          if (isWinner) {
+            doc.setFillColor(240, 249, 255); // light blue for winner
+          } else {
+            const shade = ci % 2 === 0 ? 255 : 252;
+            doc.setFillColor(shade, shade, shade);
+          }
+          doc.rect(margin, currentY, contentW, rowH, "F");
+          doc.setDrawColor(238, 238, 238);
+          doc.setLineWidth(0.2);
+          doc.line(margin, currentY + rowH, margin + contentW, currentY + rowH);
+
+          // ── Left zone: name + party ──────────────────────────────────────
+          doc.setFont("helvetica", isWinner ? "bold" : "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(33, 37, 41);
+          doc.text(candidate.name, margin + 4, currentY + 5.5, {
+            maxWidth: leftZoneW - 8,
+          });
+
+          // Party
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(102, 102, 102);
+          doc.text(candidate.partylist, margin + 4, currentY + 11.5, {
+            maxWidth: leftZoneW - 8,
+          });
+
+          // ── Right zone: votes on top, percentage below, WINNER badge ────
+          const rightX = margin + leftZoneW;
+
+          // Votes
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.setTextColor(33, 37, 41);
+          doc.text(String(candidate.votes), rightX + rightZoneW / 2, currentY + 6, {
+            align: "center",
+          });
+
+          // Percentage
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(102, 102, 102);
+          doc.text(`${percentage}%`, rightX + rightZoneW / 2, currentY + 11, {
+            align: "center",
+          });
+
+          // WINNER badge — placed on far right of row, vertically centred
+          if (isWinner) {
+            const badgeLabel = "WINNER";
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(6.5);
+            const bw = doc.getTextWidth(badgeLabel) + 5;
+            const bx = margin + contentW - bw - 2;
+            const by = currentY + (rowH - 5) / 2;
+            doc.setFillColor(16, 185, 129);
+            doc.roundedRect(bx, by, bw, 5, 1.5, 1.5, "F");
+            doc.setTextColor(255, 255, 255);
+            doc.text(badgeLabel, bx + bw / 2, by + 3.6, { align: "center" });
+          }
+
+          currentY += rowH;
+        }
+      }
+
+      // Bottom border of card
+      doc.setDrawColor(221, 221, 221);
+      doc.setLineWidth(0.3);
+      doc.line(margin, currentY, margin + contentW, currentY);
+      currentY += 8;
+    }
+
+    // ── PROOFREAD BY ─────────────────────────────────────────────────────────
+    if (currentY > 240) {
+      doc.addPage();
+      currentY = 14;
+    }
+    currentY += 4;
+
+    const proofH = 42;
+    doc.setFillColor(249, 249, 249);
+    doc.setDrawColor(221, 221, 221);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, currentY, contentW, proofH, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.text("PROOFREAD BY:", margin + 4, currentY + 8);
+
+    // Signature line
+    doc.setDrawColor(51, 51, 51);
+    doc.setLineWidth(0.5);
+    doc.line(margin + 4, currentY + 28, margin + 4 + 80, currentY + 28);
+
+    // Name below line
+    const adminName = currentUser?.fullName || "Administrator";
+    const adminPosition = userPosition?.trim() || "Administrator";
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(33, 37, 41);
+    doc.text(adminName, margin + 4, currentY + 33);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(adminPosition, margin + 4, currentY + 38);
+
+    // Date on right
+    doc.text(
+      `Date: ${new Date().toLocaleDateString()}`,
+      margin + contentW - 4,
+      currentY + 33,
+      { align: "right" }
     );
-    const resultsData = generateResultsData(positions);
 
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
+    currentY += proofH + 6;
 
-    // Create summary worksheet
-    const summaryWorksheet = XLSX.utils.aoa_to_sheet(summaryData);
-    configureSummaryWorksheet(summaryWorksheet);
+    // ── FOOTER on every page ─────────────────────────────────────────────────
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(221, 221, 221);
+      doc.setLineWidth(0.3);
+      doc.line(margin, 289, pageW - margin, 289);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(102, 102, 102);
+      doc.text(
+        "Generated by: Development of WU-P Aurora Enhanced Voting System (DWU-P-AEVS)",
+        105,
+        294,
+        { align: "center" }
+      );
+      doc.text(`Page ${i} of ${pageCount}`, pageW - margin, 294, {
+        align: "right",
+      });
+    }
 
-    // Create results worksheet
-    const resultsWorksheet = XLSX.utils.aoa_to_sheet(resultsData);
-    configureResultsWorksheet(resultsWorksheet);
-
-    // Add worksheets to workbook
-    XLSX.utils.book_append_sheet(
-      workbook,
-      summaryWorksheet,
-      "Election Summary"
-    );
-    XLSX.utils.book_append_sheet(
-      workbook,
-      resultsWorksheet,
-      "Detailed Results"
-    );
-
-    // Generate and save file
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const blob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    const fileName = generateExportFilename(electionDetails.name);
-    saveAs(blob, fileName);
+    const fileName = `${electionDetails.name.replace(/[^a-z0-9]/gi, "_")}_Results_${new Date().toISOString().split("T")[0]}.pdf`;
+    doc.save(fileName);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`Export failed: ${errorMessage}`);
   }
 }
+
+
+
 
 /**
  * Generate summary data for Excel export
