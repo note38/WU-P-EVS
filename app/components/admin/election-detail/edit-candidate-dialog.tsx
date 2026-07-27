@@ -190,6 +190,32 @@ export function EditCandidateDialog({
   const handleUpdateCandidate = async () => {
     if (!candidate) return;
 
+    // Client-side validation before sending
+    if (!editForm.name?.trim()) {
+      toast({
+        title: "Error",
+        description: "Candidate name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!editForm.positionId) {
+      toast({
+        title: "Error",
+        description: "Please select a position",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!editForm.partylistId) {
+      toast({
+        title: "Error",
+        description: "Please select a party/affiliation",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -224,10 +250,23 @@ export function EditCandidateDialog({
         onClose();
         onSuccess();
       } else {
-        const data = await response.json();
+        // Safely parse error response — server may return HTML on 500
+        let errorMessage = "Failed to update candidate";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Response wasn't JSON (e.g., HTML error page)
+          const text = await response.text().catch(() => "");
+          console.error(
+            `Server returned non-JSON response (${response.status}):`,
+            text.slice(0, 500)
+          );
+          errorMessage = `Server error (${response.status}). Check console for details.`;
+        }
         toast({
           title: "Error",
-          description: data.error || "Failed to update candidate",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -235,7 +274,10 @@ export function EditCandidateDialog({
       console.error("Error updating candidate:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

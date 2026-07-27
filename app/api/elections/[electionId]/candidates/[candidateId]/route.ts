@@ -50,17 +50,16 @@ export async function PUT(
       );
     }
 
-    // Check if the election exists and user has permission
+    // Check if the election exists (any admin can edit candidates)
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: userData.user.id,
       },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }
@@ -125,10 +124,18 @@ export async function PUT(
       message: "Candidate updated successfully",
       candidate: updatedCandidate,
     });
-  } catch (error) {
-    console.error("Error updating candidate:", error);
+  } catch (error: any) {
+    console.error("=== ERROR UPDATING CANDIDATE ===");
+    console.error("Message:", error?.message);
+    console.error("Code:", error?.code);
+    console.error("Meta:", error?.meta);
+    console.error("Stack:", error?.stack);
+    console.error("================================");
     return NextResponse.json(
-      { error: "Failed to update candidate" },
+      {
+        error: "Failed to update candidate",
+        detail: error?.message || "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -157,17 +164,16 @@ export async function DELETE(
       );
     }
 
-    // Check if the election exists and user has permission
+    // Check if the election exists (any admin can manage candidates)
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: userData.user.id,
       },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }
@@ -226,17 +232,16 @@ export async function GET(
       );
     }
 
-    // Check if the election exists and user has permission
+    // Check if the election exists (any admin can view candidates)
     const election = await prisma.election.findFirst({
       where: {
         id: electionId,
-        createdById: userData.user.id,
       },
     });
 
     if (!election) {
       return NextResponse.json(
-        { error: "Election not found or you don't have permission" },
+        { error: "Election not found" },
         { status: 404 }
       );
     }
