@@ -138,16 +138,8 @@ export function EditCandidateDialog({
     }
   };
 
-  const handleCropComplete = (croppedFile: File) => {
-    setAvatarFile(croppedFile);
-
-    // Create preview of cropped image
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(croppedFile);
-
+  const handleCropComplete = (croppedDataUrl: string) => {
+    setAvatarPreview(croppedDataUrl);
     setIsCropDialogOpen(false);
     setSelectedImageFile(null);
   };
@@ -155,7 +147,6 @@ export function EditCandidateDialog({
   const handleCropCancel = () => {
     setIsCropDialogOpen(false);
     setSelectedImageFile(null);
-    // Clear the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -169,23 +160,7 @@ export function EditCandidateDialog({
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", "candidate-avatar");
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to upload image");
-    }
-
-    const data = await response.json();
-    return data.url;
-  };
 
   const handleUpdateCandidate = async () => {
     if (!candidate) return;
@@ -219,12 +194,7 @@ export function EditCandidateDialog({
     setIsSubmitting(true);
 
     try {
-      let avatarUrl = candidate.avatar;
-
-      // Upload new image if file was selected and cropped
-      if (avatarFile) {
-        avatarUrl = await uploadImage(avatarFile);
-      }
+      let avatarUrl = avatarPreview || candidate.avatar || "/placeholder.svg";
 
       const response = await fetch(
         `/api/elections/${electionId}/candidates/${candidate.id}`,
@@ -440,17 +410,7 @@ export function EditCandidateDialog({
           selectedImageFile ? URL.createObjectURL(selectedImageFile) : null
         }
         onCropComplete={(croppedImage) => {
-          // Convert data URL to file
-          fetch(croppedImage)
-            .then((res) => res.blob())
-            .then((blob) => {
-              const file = new File(
-                [blob],
-                selectedImageFile?.name || "cropped-avatar.jpg",
-                { type: blob.type }
-              );
-              handleCropComplete(file);
-            });
+          handleCropComplete(croppedImage);
         }}
         onCancel={handleCropCancel}
         title="Crop Candidate Photo"
