@@ -181,6 +181,7 @@ function mapToElectionType(election: any): Election {
       (position: any): Position => ({
         id: String(position.id),
         title: position.name,
+        maxCandidates: position.maxCandidates || 1,
         candidates: position.candidates.map(
           (candidate: any): Candidate => ({
             id: String(candidate.id),

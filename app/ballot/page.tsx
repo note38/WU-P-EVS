@@ -52,6 +52,7 @@ export default async function BallotPage() {
   const positions = election.positions.map((position) => ({
     id: position.id,
     title: position.title,
+    maxCandidates: position.maxCandidates || 1,
     description: position.description || "",
     candidates: position.candidates.map((candidate) => ({
       id: candidate.id,

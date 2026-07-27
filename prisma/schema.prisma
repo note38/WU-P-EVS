@@ -120,7 +120,7 @@ model Vote {
   position    Position @relation(fields: [positionId], references: [id])
   voter       Voter    @relation(fields: [voterId], references: [id])
 
-  @@unique([voterId, positionId, electionId])
+  @@unique([voterId, candidateId, electionId])
   @@index([candidateId, positionId, electionId])
 }
 

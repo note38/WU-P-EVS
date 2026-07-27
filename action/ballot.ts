@@ -69,20 +69,39 @@ export async function submitBallot(selections: Record<string, string>) {
       }
 
       // Create vote records
-      const votePromises = Object.entries(selections).map(
-        ([positionId, candidateId]) => {
-          return tx.vote.create({
-            data: {
-              voterId: voterId,
-              candidateId: Number(candidateId),
-              positionId: Number(positionId),
-              electionId: electionId,
-            },
+      const votesToCreate: {
+        voterId: number;
+        positionId: number;
+        candidateId: number;
+        electionId: number;
+      }[] = [];
+
+      for (const [positionId, candidateValue] of Object.entries(selections)) {
+        if (candidateValue === "skip" || !candidateValue) continue;
+
+        const candidateIds: number[] = (
+          Array.isArray(candidateValue)
+            ? candidateValue
+            : typeof candidateValue === "string"
+              ? candidateValue.split(",")
+              : []
+        )
+          .map((id) => Number(id))
+          .filter((id) => !isNaN(id) && id > 0);
+
+        for (const candId of candidateIds) {
+          votesToCreate.push({
+            voterId: voterId,
+            candidateId: candId,
+            positionId: Number(positionId),
+            electionId: electionId,
           });
         }
-      );
+      }
 
-      await Promise.all(votePromises);
+      await Promise.all(
+        votesToCreate.map((v) => tx.vote.create({ data: v }))
+      );
 
       // Update voter status to CAST
       await tx.voter.update({

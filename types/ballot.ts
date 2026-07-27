@@ -10,6 +10,7 @@ export interface Candidate {
 export interface Position {
   id: string;
   title: string;
+  maxCandidates?: number;
   description?: string;
   candidates: Candidate[];
 }
@@ -27,16 +28,17 @@ export interface Election {
 export interface Ballot {
   election: Election;
   positions: Position[];
-  selections: Record<string, string>;
+  selections: Record<string, string | string[]>;
 }
 
 export interface BallotSelection {
   positionId: string;
-  candidateId: string;
+  candidateId: string | string[];
 }
 
 export interface BallotSubmission {
-  selections: Record<string, string>;
+  selections: Record<string, string | string[]>;
   voterId: string;
   submittedAt: Date;
 }
+

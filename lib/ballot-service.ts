@@ -110,18 +110,26 @@ export async function submitBallot(submission: BallotSubmission) {
       console.log(
         `Validating ${Object.keys(submission.selections).length} selections for election ${electionId}`
       );
-      for (const [positionId, candidateId] of Object.entries(
+      for (const [positionId, candidateValue] of Object.entries(
         submission.selections
       )) {
-        if (candidateId === "skip") {
+        if (candidateValue === "skip" || !candidateValue) {
           console.log(`Skipping validation for position ${positionId} because voter preferred not to vote`);
           continue;
         }
 
         const posId = Number(positionId);
-        const candId = Number(candidateId);
+        const candidateIds: number[] = (
+          Array.isArray(candidateValue)
+            ? candidateValue
+            : typeof candidateValue === "string"
+              ? candidateValue.split(",")
+              : []
+        )
+          .map((id) => Number(id))
+          .filter((id) => !isNaN(id) && id > 0);
 
-        console.log(`Validating position ${posId} and candidate ${candId}`);
+        console.log(`Validating position ${posId} and candidates ${candidateIds.join(", ")}`);
 
         // Check if position exists and belongs to this election
         const position = await tx.position.findUnique({
@@ -135,7 +143,6 @@ export async function submitBallot(submission: BallotSubmission) {
           console.error(
             `Position ${posId} not found for election ${electionId}`
           );
-          // Let's also check what positions actually exist for this election
           const allPositions = await tx.position.findMany({
             where: {
               electionId: electionId,
@@ -145,70 +152,83 @@ export async function submitBallot(submission: BallotSubmission) {
               name: true,
             },
           });
-          console.error(
-            `Available positions for election ${electionId}:`,
-            allPositions
-          );
           return {
             success: false,
             error: `Invalid position ID: ${positionId}. Available positions: ${allPositions.map((p) => p.id).join(", ")}`,
           };
         }
 
-        // Check if candidate exists and belongs to this position and election
-        const candidate = await tx.candidate.findUnique({
-          where: {
-            id: candId,
-            positionId: posId,
-            electionId: electionId,
-          },
-        });
-
-        if (!candidate) {
-          console.error(
-            `Candidate ${candId} not found for position ${posId} in election ${electionId}`
-          );
-          // Let's also check what candidates actually exist for this position
-          const allCandidates = await tx.candidate.findMany({
-            where: {
-              positionId: posId,
-              electionId: electionId,
-            },
-            select: {
-              id: true,
-              name: true,
-            },
-          });
-          console.error(
-            `Available candidates for position ${posId}:`,
-            allCandidates
-          );
+        if (candidateIds.length > position.maxCandidates) {
           return {
             success: false,
-            error: `Invalid candidate ID: ${candidateId} for position ${positionId}. Available candidates: ${allCandidates.map((c) => c.id).join(", ")}`,
+            error: `You cannot select more than ${position.maxCandidates} candidate(s) for position ${position.name}`,
           };
         }
 
+        // Check if each candidate exists and belongs to this position and election
+        for (const candId of candidateIds) {
+          const candidate = await tx.candidate.findUnique({
+            where: {
+              id: candId,
+              positionId: posId,
+              electionId: electionId,
+            },
+          });
+
+          if (!candidate) {
+            console.error(
+              `Candidate ${candId} not found for position ${posId} in election ${electionId}`
+            );
+            return {
+              success: false,
+              error: `Invalid candidate ID: ${candId} for position ${positionId}`,
+            };
+          }
+        }
+
         console.log(
-          `Validation passed for position ${posId} and candidate ${candId}`
+          `Validation passed for position ${posId} and candidates ${candidateIds.join(", ")}`
         );
       }
 
       // Create all votes within the transaction
-      // Filter out 'skip' (abstain) entries before inserting — they have no candidateId
-      const votableSelections = Object.entries(submission.selections).filter(
-        ([, candidateId]) => candidateId !== "skip"
-      );
+      const votesToCreate: {
+        voterId: number;
+        positionId: number;
+        candidateId: number;
+        electionId: number;
+      }[] = [];
+
+      for (const [positionId, candidateValue] of Object.entries(
+        submission.selections
+      )) {
+        if (candidateValue === "skip" || !candidateValue) continue;
+
+        const posId = Number(positionId);
+        const candidateIds: number[] = (
+          Array.isArray(candidateValue)
+            ? candidateValue
+            : typeof candidateValue === "string"
+              ? candidateValue.split(",")
+              : []
+        )
+          .map((id) => Number(id))
+          .filter((id) => !isNaN(id) && id > 0);
+
+        for (const candId of candidateIds) {
+          votesToCreate.push({
+            voterId,
+            positionId: posId,
+            candidateId: candId,
+            electionId,
+          });
+        }
+      }
 
       await Promise.all(
-        votableSelections.map(([positionId, candidateId]) =>
+        votesToCreate.map((voteData) =>
           tx.vote.create({
-            data: {
-              voterId,
-              positionId: Number(positionId),
-              candidateId: Number(candidateId),
-              electionId,
-            },
+            data: voteData,
           })
         )
       );

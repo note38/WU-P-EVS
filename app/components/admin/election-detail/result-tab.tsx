@@ -174,6 +174,8 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
     }
   };
 
+  const [isExportingWinners, setIsExportingWinners] = useState(false);
+
   // Handle export results
   const handleExportResults = async () => {
     if (!electionDetails || !positions.length) {
@@ -219,6 +221,53 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
       });
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // Handle export winners results only
+  const handleExportWinnersResults = async () => {
+    if (!electionDetails || !positions.length) {
+      toast({
+        title: "Error",
+        description: "No results data available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExportingWinners(true);
+
+    try {
+      const exportOptions = {
+        electionDetails,
+        positions: positions,
+        currentUser: user,
+        userPosition,
+        winnersOnly: true,
+      };
+
+      const validation = validateExportData(exportOptions);
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(", "));
+      }
+
+      await exportElectionResults(exportOptions);
+
+      toast({
+        title: "Success",
+        description: "Winners PDF exported successfully",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("Error exporting winners results:", error);
+      toast({
+        title: "Error",
+        description: `Failed to export winners PDF: ${errorMessage}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingWinners(false);
     }
   };
 
@@ -275,7 +324,7 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
             variant="default"
             size="sm"
             onClick={handleExportResults}
-            disabled={isExporting || loading}
+            disabled={isExporting || isExportingWinners || loading}
             className="w-full sm:w-auto"
           >
             {isExporting ? (
@@ -284,6 +333,20 @@ export function ResultsTab({ electionId }: ResultsTabProps) {
               <DownloadIcon className="h-4 w-4 mr-2" />
             )}
             {isExporting ? "Exporting..." : "Export PDF"}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleExportWinnersResults}
+            disabled={isExportingWinners || isExporting || loading}
+            className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
+          >
+            {isExportingWinners ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <TrophyIcon className="h-4 w-4 mr-2" />
+            )}
+            {isExportingWinners ? "Exporting..." : "Export Winners PDF"}
           </Button>
           <Button
             variant="outline"

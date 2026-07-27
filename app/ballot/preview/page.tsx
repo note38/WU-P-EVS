@@ -340,15 +340,23 @@ export default function PreviewPage() {
           {positions
             .filter((position) => selections[position.id])
             .map((position) => {
-              const isAbstained = selections[position.id] === "skip";
-              const selectedCandidate = isAbstained
-                ? null
-                : position.candidates.find(
-                    (c) => c.id === selections[position.id]
-                  );
+              const rawSelection = selections[position.id];
+              const isAbstained = rawSelection === "skip";
+              
+              let selectedCandidates: typeof position.candidates = [];
+              if (!isAbstained) {
+                const selectedIds = Array.isArray(rawSelection)
+                  ? rawSelection
+                  : typeof rawSelection === "string"
+                    ? rawSelection.split(",")
+                    : [];
+                selectedCandidates = position.candidates.filter((c) =>
+                  selectedIds.includes(c.id)
+                );
+              }
 
               // Skip if no valid selection and not abstained
-              if (!selectedCandidate && !isAbstained) return null;
+              if (selectedCandidates.length === 0 && !isAbstained) return null;
 
               return (
                 <Card key={position.id}>
@@ -360,38 +368,47 @@ export default function PreviewPage() {
                       {isAbstained ? (
                         <div className="flex items-center space-x-4">
                           <div className="relative h-16 w-16 overflow-hidden rounded-full border bg-muted flex items-center justify-center">
-                            <span className="text-muted-foreground text-xs text-center leading-tight px-1">No Vote</span>
+                            <span className="text-muted-foreground text-xs text-center leading-tight px-1">
+                              No Vote
+                            </span>
                           </div>
                           <div>
-                            <h3 className="font-medium text-muted-foreground italic">Preferred Not to Vote</h3>
+                            <h3 className="font-medium text-muted-foreground italic">
+                              Preferred Not to Vote
+                            </h3>
                             <p className="text-sm text-muted-foreground">Abstained</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center space-x-4">
-                          <div className="relative h-16 w-16 overflow-hidden rounded-full border">
-                            <Image
-                              src={selectedCandidate!.avatar || "/placeholder.svg"}
-                              alt={selectedCandidate!.name}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-medium">
-                              {selectedCandidate!.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {selectedCandidate!.party}
-                            </p>
-                          </div>
+                        <div className="flex flex-col space-y-3 w-full mr-4">
+                          {selectedCandidates.map((candidate) => (
+                            <div
+                              key={candidate.id}
+                              className="flex items-center space-x-4 p-2 rounded-md bg-muted/40"
+                            >
+                              <div className="relative h-12 w-12 overflow-hidden rounded-full border flex-shrink-0">
+                                <Image
+                                  src={candidate.avatar || "/placeholder.svg"}
+                                  alt={candidate.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div>
+                                <h3 className="font-medium">{candidate.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {candidate.party}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleEditSelection(position.id)}
-                        className="flex items-center whitespace-nowrap"
+                        className="flex items-center whitespace-nowrap self-start mt-1"
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Edit

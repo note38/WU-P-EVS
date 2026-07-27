@@ -28,7 +28,9 @@ export function BallotForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentPositionIndex, setCurrentPositionIndex] = useState(0);
-  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [selections, setSelections] = useState<
+    Record<string, string | string[]>
+  >({});
   const [positions, setPositions] = useState<Position[]>(
     initialPositions || []
   );
@@ -87,14 +89,23 @@ export function BallotForm({
   const isFirstPosition = currentPositionIndex === 0;
   const isLastPosition = currentPositionIndex === positions.length - 1;
 
-  const handleSelection = (positionId: string, candidateId: string) => {
+  const hasSelection = (posId: string, currentSel = selections) => {
+    const sel = currentSel[posId];
+    if (!sel) return false;
+    if (Array.isArray(sel)) return sel.length > 0;
+    return String(sel).trim() !== "";
+  };
+
+  const handleSelection = (
+    positionId: string,
+    candidateId: string | string[]
+  ) => {
     setSelections((prev) => ({
       ...prev,
       [positionId]: candidateId,
     }));
 
     // Enable the Next button immediately when a selection is made
-    // This ensures the button becomes active right away on mobile
     setTimeout(() => {
       const nextButton = document.querySelector(
         "button.flex.items-center.ml-2"
@@ -118,7 +129,7 @@ export function BallotForm({
         ...selections,
         [currentPosition.id]: "skip",
       };
-      
+
       setSelections(updatedSelections);
 
       // Move to next or review
@@ -136,16 +147,20 @@ export function BallotForm({
     }
   };
 
-  const handleReview = (overrideSelections?: Record<string, string>) => {
+  const handleReview = (
+    overrideSelections?: Record<string, string | string[]>
+  ) => {
     const currentSelections = overrideSelections || selections;
-    
+
     // Check if all positions have selections
-    const allSelected = positions.every((position) => currentSelections[position.id]);
+    const allSelected = positions.every((position) =>
+      hasSelection(position.id, currentSelections)
+    );
 
     if (!allSelected) {
       // Find the first position without a selection
       const firstMissingIndex = positions.findIndex(
-        (position) => !currentSelections[position.id]
+        (position) => !hasSelection(position.id, currentSelections)
       );
       if (firstMissingIndex >= 0) {
         setCurrentPositionIndex(firstMissingIndex);
@@ -157,7 +172,10 @@ export function BallotForm({
     }
 
     // Store selections and positions in localStorage
-    localStorage.setItem("ballotSelections", JSON.stringify(currentSelections));
+    localStorage.setItem(
+      "ballotSelections",
+      JSON.stringify(currentSelections)
+    );
     localStorage.setItem("ballotPositions", JSON.stringify(positions));
 
     // Redirect to preview page
@@ -189,8 +207,10 @@ export function BallotForm({
             Position {currentPositionIndex + 1} of {positions.length}
           </span>
           <span className="text-sm font-medium">
-            {Math.round(((currentPositionIndex + 1) / positions.length) * 100)}%
-            Complete
+            {Math.round(
+              ((currentPositionIndex + 1) / positions.length) * 100
+            )}
+            % Complete
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -216,7 +236,7 @@ export function BallotForm({
               <PositionSelection
                 position={currentPosition}
                 selectedCandidate={selections[currentPosition.id] || ""}
-                onSelect={(candidateId: string) =>
+                onSelect={(candidateId: string | string[]) =>
                   handleSelection(currentPosition.id, candidateId)
                 }
               />
@@ -258,7 +278,9 @@ export function BallotForm({
                     <Button
                       onClick={() => handleReview()}
                       disabled={
-                        !positions.every((position) => selections[position.id])
+                        !positions.every((position) =>
+                          hasSelection(position.id)
+                        )
                       }
                       className="w-full sm:w-auto flex items-center justify-center"
                     >
@@ -267,7 +289,7 @@ export function BallotForm({
                   ) : (
                     <Button
                       onClick={goToNextPosition}
-                      disabled={!selections[currentPosition.id]}
+                      disabled={!hasSelection(currentPosition.id)}
                       className="w-full sm:w-auto flex items-center justify-center"
                     >
                       Next

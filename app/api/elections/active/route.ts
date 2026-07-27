@@ -67,6 +67,7 @@ export async function GET() {
     const positions = election.positions.map((position) => ({
       id: String(position.id),
       title: position.name,
+      maxCandidates: position.maxCandidates || 1,
       candidates: position.candidates.map((candidate) => ({
         id: String(candidate.id),
         name: candidate.name,

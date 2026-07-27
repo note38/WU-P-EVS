@@ -554,11 +554,12 @@ async function getImageAsDataUrl(imageUrl: string): Promise<string> {
 import { formatDateTime, calculatePercentage } from "./print-templates";
 import type { ElectionDetails, Position } from "@/types/election-results";
 
-interface ExportOptions {
+export interface ExportOptions {
   electionDetails: ElectionDetails;
   positions: Position[];
   currentUser?: { fullName?: string | null } | null;
   userPosition?: string;
+  winnersOnly?: boolean;
 }
 
 // Helper: load image URL as base64 data URL (same as print-templates)
@@ -584,6 +585,32 @@ async function getLogoDataUrl(url: string): Promise<string> {
 }
 
 /**
+ * Helper to filter positions so candidates list only contains winners
+ */
+export function filterPositionsToWinnersOnly(positions: Position[]): Position[] {
+  return positions.map((position) => {
+    if (!position.candidates || position.candidates.length === 0) {
+      return position;
+    }
+    const maxCand = position.maxCandidates || 1;
+    const thresholdIndex = Math.min(
+      maxCand - 1,
+      position.candidates.length - 1
+    );
+    const winningThreshold = position.candidates[thresholdIndex].votes;
+
+    const winningCandidates = position.candidates.filter(
+      (c) => c.votes > 0 && c.votes >= winningThreshold
+    );
+
+    return {
+      ...position,
+      candidates: winningCandidates,
+    };
+  });
+}
+
+/**
  * Export election results to PDF format (matches print layout)
  * @param options Export configuration options
  * @returns Promise that resolves when export is complete
@@ -591,7 +618,10 @@ async function getLogoDataUrl(url: string): Promise<string> {
 export async function exportElectionResults(
   options: ExportOptions
 ): Promise<void> {
-  const { electionDetails, positions, currentUser, userPosition } = options;
+  const { electionDetails, currentUser, userPosition, winnersOnly } = options;
+  const positions = winnersOnly
+    ? filterPositionsToWinnersOnly(options.positions)
+    : options.positions;
 
   try {
     const { default: jsPDF } = await import("jspdf");
@@ -671,7 +701,9 @@ export async function exportElectionResults(
     doc.text(subTitle, textStartX, logoY + 11);
 
     // Election title pill
-    const titleText = electionDetails.name;
+    const titleText = winnersOnly
+      ? `${electionDetails.name} (Official Winners)`
+      : electionDetails.name;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(73, 80, 87);
@@ -928,7 +960,8 @@ export async function exportElectionResults(
       });
     }
 
-    const fileName = `${electionDetails.name.replace(/[^a-z0-9]/gi, "_")}_Results_${new Date().toISOString().split("T")[0]}.pdf`;
+    const suffix = winnersOnly ? "Winners" : "Results";
+    const fileName = `${electionDetails.name.replace(/[^a-z0-9]/gi, "_")}_${suffix}_${new Date().toISOString().split("T")[0]}.pdf`;
     doc.save(fileName);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
