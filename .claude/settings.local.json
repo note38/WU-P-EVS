@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python -c \"import graphify; print\\('graphify available'\\)\")",
-      "Bash(uv tool *)"
-    ]
-  }
-}
